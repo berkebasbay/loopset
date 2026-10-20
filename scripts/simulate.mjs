@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { open } from 'node:fs/promises';
 import { constants } from 'node:fs';
-import { createExample, parsePortableProject, PROJECT_FILE_LIMIT, RNG_VERSION, simulate } from '../dist-engine/queuelab.js';
+import { createExample, parsePortableProject, PROJECT_FILE_LIMIT, simulate } from '../dist-engine/queuelab.js';
 
 const usage = `Usage:
   npm run simulate -- --example factory --seed 4207
@@ -75,7 +75,7 @@ try {
     const run = simulate(project.model, { seed: options.seed });
     const result = {
       format: 'queuelab-summary-v1',
-      id: run.id, engineVersion: run.engineVersion, rngVersion: RNG_VERSION,
+      id: run.id, engineVersion: run.engineVersion, rngVersion: run.provenance.rngVersion, provenance: run.provenance,
       modelHash: run.modelHash, demandHash: run.demandHash, seed: run.seed,
       status: run.status, ...(run.reason ? { reason: run.reason } : {}),
       simulatedUntil: run.simulatedUntil, model: run.model,

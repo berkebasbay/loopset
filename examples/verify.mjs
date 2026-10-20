@@ -17,6 +17,9 @@ assert.equal(summary.status, 'completed');
 assert.equal(summary.summary.arrivals, 80);
 assert.equal(summary.summary.completed, 40);
 assert.equal(summary.summary.cost, 74);
+assert.deepEqual(summary.provenance, { rngVersion: summary.rngVersion, limits: {
+  maxEvents: 1_000_000, maxEntities: 100_000, maxMicrosteps: 10_000, maxTraceEntities: 4_000, maxTraceEvents: 100_000,
+} });
 
 const references = JSON.parse(await readFile(new URL('reference-results.json', import.meta.url), 'utf8'));
 for (const world of ['factory', 'festival', 'service']) {
@@ -27,6 +30,7 @@ for (const world of ['factory', 'festival', 'service']) {
   assert.equal(actual.engineVersion, references.engineVersion);
   assert.equal(actual.rngVersion, references.rngVersion);
   for (const key of ['seed', 'modelHash', 'demandHash']) assert.equal(actual[key], expected[key]);
+  assert.deepEqual(actual.provenance, expected.provenance);
   for (const key of ['arrivals', 'completed', 'inSystem', 'meanWait', 'cost']) assert.equal(actual.summary[key], expected[key]);
 }
 
@@ -76,6 +80,7 @@ await writeFile(partialPath, JSON.stringify(partialProject));
 const partial = run([partialPath]);
 assert.equal(partial.status, 2);
 assert.equal(JSON.parse(partial.stdout).status, 'limited');
+assert.deepEqual(JSON.parse(partial.stdout).provenance, summary.provenance, 'A limited CLI report retains its actual RNG and default caps.');
 assert.equal(parsePortableProject(JSON.stringify(project)).schemaVersion, 1);
 assert.throws(() => parsePortableProject('{"name":"\\ud800"}'), /Unicode/);
 assert.equal(simulate(project.model, { maxEvents: 1 }).status, 'limited');

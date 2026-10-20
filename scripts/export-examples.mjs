@@ -21,6 +21,7 @@ for (const world of ['factory', 'festival', 'service']) {
   references.engineVersion = run.engineVersion;
   references.examples[world] = {
     seed: run.seed, modelHash: run.modelHash, demandHash: run.demandHash,
+    provenance: run.provenance,
     arrivals: run.summary.arrivals, completed: run.summary.completed,
     inSystem: run.summary.inSystem, meanWait: run.summary.meanWait, cost: run.summary.cost,
   };
