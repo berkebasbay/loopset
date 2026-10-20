@@ -195,6 +195,9 @@ export default function App() {
       if (origin) handle = requestAnimationFrame(() => {
         if (!current()) return;
         const canFocus = (element: HTMLElement | null): element is HTMLElement => Boolean(element?.isConnected && element.tabIndex >= 0 && !element.matches(':disabled') && !element.closest('[hidden],[inert],[role=dialog]') && element.checkVisibility({ visibilityProperty: true }));
+        // A user may already have chosen another control before this frame.
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && active !== document.body && active !== document.documentElement && active.isConnected && !active.matches(':disabled') && !active.closest('[hidden],[inert],[role=dialog]') && active.checkVisibility({ visibilityProperty: true })) return;
         const fallback = document.querySelector<HTMLElement>(`[data-panel-opener="${origin.panel}"]`);
         const canvas = document.querySelector<HTMLElement>('[data-testid="world-canvas"]');
         const target = [origin.element, fallback, canvas].find(canFocus);
