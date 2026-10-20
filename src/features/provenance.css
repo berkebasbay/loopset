@@ -1,0 +1,25 @@
+.ql-provenance{margin:20px 0;border-top:1px solid #d8dfcc;padding-top:12px;color:#435e3b;font-size:12px;line-height:1.7;min-width:0;overflow-wrap:anywhere;text-align:left}
+.ql-provenance>summary,.ql-provenance-body summary{padding:7px 0;cursor:pointer;color:#49663d;font-size:12px;line-height:1.6}
+.ql-provenance summary:focus-visible{outline:2px solid #a05e32;outline-offset:3px;border-radius:2px}
+.ql-provenance-body{padding:3px 0 0;min-width:0}
+.ql-provenance-body p{margin:10px 0 14px;color:#53684a;font-size:12px;line-height:1.7}
+.ql-provenance-body h4{font-size:13px;line-height:1.6;margin:22px 0 8px;color:#3f5a37;font-weight:600;letter-spacing:0}
+.ql-provenance-body h5{font-size:12px;line-height:1.6;margin:14px 0 6px;color:#3f5a37;font-weight:600}
+.ql-provenance-body details{margin:12px 0}
+.ql-provenance-values{margin:14px 0 18px;font-size:12px}
+.ql-provenance-values>div{display:grid;grid-template-columns:minmax(135px,.85fr) minmax(0,1.3fr);gap:12px;border-bottom:1px solid #e2e7d9;padding:8px 0}
+.ql-provenance-values dt{color:#53684a;font-weight:400}
+.ql-provenance-values dd{margin:0;color:#344f3c;min-width:0;font-variant-numeric:tabular-nums}
+.ql-provenance code{font-family:ui-monospace,monospace;font-size:11px;color:#675e43;white-space:normal;overflow-wrap:anywhere}
+.ql-provenance-values dt code{display:block}
+.ql-provenance-components{list-style:none;margin:6px 0 20px;padding:0}
+.ql-provenance-components>li{border-bottom:1px solid #e0e5d6;padding:8px 0 13px}
+.ql-provenance-components strong{font-weight:600}
+.ql-provenance-components p{margin:7px 0}
+.ql-provenance-json{margin:8px 0 16px;padding:12px;background:#edf1e3;border:1px solid #d8dfcc;border-radius:4px;max-height:340px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.7 ui-monospace,monospace;color:#344f3c;text-align:left}
+.ql-provenance-caveats{padding-left:20px;margin:12px 0 18px}
+.ql-provenance-caveats li{padding:4px 0}
+.ql-provenance-change{border-left:2px solid #d8dfcc;padding-left:12px}
+.ql-provenance-change p{margin:4px 0}
+.ql-provenance-unavailable{font-size:12px;line-height:1.7;color:#53684a;margin:20px 0}
+@media(max-width:540px){.ql-provenance-values>div{grid-template-columns:1fr;gap:3px}.ql-provenance-values dt code{display:inline;margin-left:5px}}
