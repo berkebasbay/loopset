@@ -167,6 +167,38 @@ describe('response validation with actual engine and experiment output', () => {
   });
 });
 
+describe('cross-field transport populations', () => {
+  it('rejects finite but inconsistent retained populations and estimate sample metadata', () => {
+    const request = simulation(); const actual = resultMessage(request);
+    for (const change of [
+      (run: typeof actual.result) => { run.waitDistribution.bins[0].count++; },
+      (run: typeof actual.result) => { run.classes[0].completed++; },
+      (run: typeof actual.result) => { run.diagnostics.totalArrivals = 0; },
+      (run: typeof actual.result) => { run.entities[0].classId = 'unknown'; },
+      (run: typeof actual.result) => { run.events.reverse(); },
+      (run: typeof actual.result) => { run.entities[0].visits[0].start = -1; },
+    ]) {
+      const result = structuredClone(actual.result); change(result);
+      expect(() => readSimulationResponse({ ...actual, result }, request)).toThrow();
+    }
+    const experiment = replications(); const value = runExperiment(experiment.model, experiment.seeds);
+    value.completed = { mean: 0, samples: 0, standardError: null, lower95: null, upper95: null };
+    expect(() => readExperimentResponse({ ...experimentEnvelope(experiment.id, experiment.kind), type: 'result', value }, experiment)).toThrow('observation count');
+  });
+  it('rejects paired and feasibility flags inconsistent with actual compatible inputs and estimates', () => {
+    const baseline = model(); baseline.warmup = 1;
+    const paired = { ...experimentEnvelope('pair', 'paired'), type: 'run' as const, kind: 'paired' as const, baseline, model: model(), seeds: [1, 2] };
+    const pairValue = comparePaired(baseline, paired.model, paired.seeds); pairValue.paired = true;
+    expect(() => readExperimentResponse({ ...experimentEnvelope(paired.id, paired.kind), type: 'result', value: pairValue }, paired)).toThrow('eligibility');
+    const search = { ...experimentEnvelope('search', 'search'), type: 'run' as const, kind: 'search' as const, model: model(), spec: { poolId: 'team', capacities: [1, 2], trainingSeeds: [1], verificationSeeds: [2], targetCompleted: 2, maxRuns: 3 } };
+    const actual = capacitySearch(search.model, search.spec);
+    const falseCandidate = structuredClone(actual); falseCandidate.candidates[0].feasible = !falseCandidate.candidates[0].feasible;
+    expect(() => readExperimentResponse({ ...experimentEnvelope(search.id, search.kind), type: 'result', value: falseCandidate }, search)).toThrow('feasibility');
+    const falseVerification = structuredClone(actual); falseVerification.verified = !falseVerification.verified;
+    expect(() => readExperimentResponse({ ...experimentEnvelope(search.id, search.kind), type: 'result', value: falseVerification }, search)).toThrow('feasibility');
+  });
+});
+
 describe('actual client generation safety and recovery', () => {
   it('ignores a wrong ID before touching even hostile fields', async () => {
     const { client, workers, states } = harness(); const request = simulation(); const pending = client.run(request);

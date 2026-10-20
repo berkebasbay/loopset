@@ -182,26 +182,30 @@ function runResult(v: unknown, expected: SimulationModel, seed: number, limits: 
   const trace = object(run.trace, 'trace'); boolean(trace.complete, 'trace completeness'); number(trace.until, 'trace coverage', 0, Number(run.simulatedUntil));
   if (trace.entityLimit !== limits.maxTraceEntities || trace.eventLimit !== limits.maxTraceEvents || trace.complete && run.status !== 'completed') fail('trace limits');
   if (trace.complete && trace.until !== run.simulatedUntil) fail('complete trace coverage');
-  const nodeIds = new Set(model.nodes.map(n => n.id)); const sourceIds = new Set(model.nodes.filter(n => n.kind === 'source').map(n => n.id));
+  const nodeIds = new Set(model.nodes.map(n => n.id)); const sources = new Map(model.nodes.filter(n => n.kind === 'source').map(n => [n.id, n]));
   const serviceIds = new Set(model.nodes.filter(n => n.kind === 'service').map(n => n.id)); const poolIds = new Set(model.resources.map(p => p.id));
   const entities = list(run.entities, limits.maxTraceEntities, 'trace entities'); const entityIds = new Set<string>();
   for (const value of entities) {
     const entity = object(value, 'trace entity'); text(entity.id, 'entity ID', 160); if (entityIds.has(entity.id)) fail('duplicate entity'); entityIds.add(entity.id);
-    if (!sourceIds.has(String(entity.sourceId))) fail('entity source'); text(entity.classId, 'entity class', 64);
+    const source = sources.get(String(entity.sourceId)) ?? fail('entity source'); text(entity.classId, 'entity class', 64);
     integer(entity.ordinal, 'arrival ordinal'); integer(entity.priority, 'entity priority', 1000, -1000);
-    number(entity.arrivedAt, 'arrival time', 0, model.horizon); if (entity.endedAt !== undefined) number(entity.endedAt, 'end time', Number(entity.arrivedAt), model.horizon);
+    const entityClass = source.classes.find(cls => cls.id === entity.classId);
+    if (!entityClass || entityClass.priority !== entity.priority || entity.id !== `${source.samplingId}:${entity.ordinal}`) fail('entity identity or class');
+    number(entity.arrivedAt, 'arrival time', 0, Number(run.simulatedUntil)); if (entity.endedAt !== undefined) number(entity.endedAt, 'end time', Number(entity.arrivedAt), Number(run.simulatedUntil));
     oneOf(entity.status, ['active', 'completed', 'balked', 'reneged'], 'entity status');
     const visits = list(entity.visits, limits.maxEvents, 'entity visits'); context.visits += visits.length;
     if (context.visits > 10_000_000) fail('retained visit budget');
     for (const value of visits) {
       const visit = object(value, 'visit'); if (!nodeIds.has(String(visit.nodeId))) fail('visit node');
-      number(visit.arrival, 'visit arrival', 0, model.horizon);
-      for (const key of ['start', 'end']) if (visit[key] !== undefined) number(visit[key], `visit ${key}`, 0, model.horizon);
+      number(visit.arrival, 'visit arrival', Number(entity.arrivedAt), Number(run.simulatedUntil));
+      if (visit.start !== undefined) number(visit.start, 'visit start', Number(visit.arrival), Number(run.simulatedUntil));
+      if (visit.end !== undefined) number(visit.end, 'visit end', Number(visit.start ?? visit.arrival), Number(run.simulatedUntil));
       if (visit.outcome !== undefined) oneOf(visit.outcome, ['served', 'balked', 'reneged', 'passed'], 'visit outcome');
     }
   }
+  let previousEventTime = 0;
   for (const value of list(run.events, limits.maxTraceEvents, 'trace events')) {
-    const event = object(value, 'trace event'); number(event.time, 'event time', 0, model.horizon);
+    const event = object(value, 'trace event'); number(event.time, 'event time', previousEventTime, Number(run.simulatedUntil)); previousEventTime = Number(event.time);
     oneOf(event.kind, ['arrival', 'queue', 'start', 'finish', 'complete', 'balk', 'renege', 'transfer'], 'event kind');
     if (!nodeIds.has(String(event.nodeId)) || !entityIds.has(String(event.entityId))) fail('event reference');
   }
@@ -219,14 +223,32 @@ function runResult(v: unknown, expected: SimulationModel, seed: number, limits: 
   }
   if (pools.length !== poolIds.size) fail('missing pool');
   strings(run.warnings, 100, 'warnings');
-  counts(object(run.diagnostics, 'diagnostics'), ['totalArrivals', 'activeWaiting', 'activeService', 'activeTransfer', 'bypassedRequests', 'maxHeapSize', 'maxActiveEntities'], 'diagnostics');
-  for (const value of list(run.classes, 2000, 'class metrics')) {
+  const diagnostics = object(run.diagnostics, 'diagnostics');
+  counts(diagnostics, ['totalArrivals', 'activeWaiting', 'activeService', 'activeTransfer', 'bypassedRequests', 'maxHeapSize', 'maxActiveEntities'], 'diagnostics');
+  const active = Number(diagnostics.activeWaiting) + Number(diagnostics.activeService) + Number(diagnostics.activeTransfer);
+  if (Number(diagnostics.totalArrivals) < entities.length || Number(diagnostics.totalArrivals) < Number(summary.arrivals) || Number(diagnostics.totalArrivals) > limits.maxEntities || active > Number(diagnostics.totalArrivals) || active < Number(summary.inSystem) || Number(diagnostics.maxActiveEntities) < active || Number(diagnostics.maxActiveEntities) > Number(diagnostics.totalArrivals)) fail('diagnostic population');
+  const classIds = new Set([...sources.values()].flatMap(source => source.classes.map(cls => cls.id)));
+  const classMetrics = list(run.classes, classIds.size, 'class metrics'); const seenClasses = new Set();
+  const cohortKeys = ['arrivals', 'completed', 'balked', 'reneged', 'inSystem', 'waitSampleSize'] as const;
+  const classTotals = Object.fromEntries(cohortKeys.map(key => [key, 0]));
+  for (const value of classMetrics) {
     const cls = object(value, 'class metric'); text(cls.classId, 'class ID', 64);
+    if (!classIds.has(cls.classId) || seenClasses.has(cls.classId)) fail('class identity'); seenClasses.add(cls.classId);
     counts(cls, ['arrivals', 'completed', 'balked', 'reneged', 'inSystem', 'waitSampleSize'], 'class'); number(cls.meanWait, 'class wait');
+    if (Number(cls.completed) + Number(cls.balked) + Number(cls.reneged) + Number(cls.inSystem) !== cls.arrivals || cls.waitSampleSize !== cls.completed) fail('class cohort');
+    for (const key of cohortKeys) classTotals[key] += Number(cls[key]);
   }
+  if (classMetrics.length !== classIds.size || cohortKeys.some(key => classTotals[key] !== summary[key])) fail('class population totals');
   const distribution = object(run.waitDistribution, 'wait distribution'); integer(distribution.sampleSize, 'wait samples');
   if (distribution.sampleSize !== summary.waitSampleSize) fail('wait sample count');
-  for (const value of list(distribution.bins, 100, 'wait bins')) { const bin = object(value, 'wait bin'); number(bin.from, 'bin start'); if (bin.to !== null) number(bin.to, 'bin end', Number(bin.from)); integer(bin.count, 'bin count'); }
+  const bins = list(distribution.bins, 100, 'wait bins'); let previousEnd = 0; let observations = 0;
+  for (const [index, value] of bins.entries()) {
+    const bin = object(value, 'wait bin'); number(bin.from, 'bin start', previousEnd);
+    if (bin.to === null) { if (index !== bins.length - 1) fail('open wait bin'); }
+    else { number(bin.to, 'bin end', Number(bin.from)); if (bin.to === bin.from) fail('empty wait interval'); previousEnd = Number(bin.to); }
+    integer(bin.count, 'bin count'); observations += Number(bin.count);
+  }
+  if (observations !== distribution.sampleSize) fail('wait distribution population');
 }
 function experimentResult(v: unknown, model: SimulationModel, requestedSeeds: number[], context: Context): asserts v is ExperimentResult {
   const value = object(v, 'experiment result');
@@ -234,7 +256,11 @@ function experimentResult(v: unknown, model: SimulationModel, requestedSeeds: nu
   if (value.modelHash !== context.models.get(model) || !sameData(value.seeds, requestedSeeds)) fail('experiment identity');
   const runs = list(value.runs, requestedSeeds.length, 'experiment runs'); if (runs.length !== requestedSeeds.length) fail('missing replication');
   runs.forEach((run, i) => { runResult(run, model, requestedSeeds[i], normalizeRunLimits({ maxTraceEntities: 0, maxTraceEvents: 0 }), context); if (run.status !== 'completed') fail('incomplete estimate'); });
-  for (const key of ['completed', 'wait', 'p95Wait', 'cost']) estimate(value[key], runs.length);
+  const observedWaitRuns = (runs as RunResult[]).filter(run => run.summary.waitSampleSize > 0).length;
+  for (const key of ['completed', 'wait', 'p95Wait', 'cost']) {
+    estimate(value[key], runs.length);
+    if (object(value[key], 'estimate').samples !== (key === 'wait' || key === 'p95Wait' ? observedWaitRuns : runs.length)) fail('estimate observation count');
+  }
 }
 function experimentValue(v: unknown, request: ExperimentRequest): ExperimentValue {
   const checked = context();
@@ -242,28 +268,37 @@ function experimentValue(v: unknown, request: ExperimentRequest): ExperimentValu
   const value = object(v, 'experiment value');
   if (request.kind === 'paired') {
     experimentResult(value.baseline, request.baseline, request.seeds, checked); experimentResult(value.candidate, request.model, request.seeds, checked);
+    const baseline = value.baseline; const candidate = value.candidate;
     boolean(value.paired, 'paired status'); optionalText(value.reason, 'paired reason');
     const delta = object(value.delta, 'paired differences'); for (const key of ['completed', 'wait', 'cost']) estimate(delta[key], request.seeds.length);
-    if (!sameData(value.coupling, buildCouplingManifest(value.baseline.runs[0], value.candidate.runs[0]))) fail('coupling manifest');
+    const coupling = buildCouplingManifest(baseline.runs[0], candidate.runs[0]);
+    if (!sameData(value.coupling, coupling)) fail('coupling manifest');
+    const paired = coupling.compatibility.sameMeasurementPolicies && baseline.runs.every((run, index) => run.demandHash === candidate.runs[index].demandHash);
+    if (value.paired !== paired) fail('paired eligibility');
+    const waitPairs = paired ? candidate.runs.filter((run, index) => run.summary.waitSampleSize > 0 && baseline.runs[index].summary.waitSampleSize > 0).length : 0;
+    for (const key of ['completed', 'wait', 'cost']) if (object(delta[key], 'paired estimate').samples !== (key === 'wait' ? waitPairs : paired ? request.seeds.length : 0)) fail('paired observation count');
     return { kind: request.kind, value: value as unknown as PairedComparison };
   }
   const candidates = list(value.candidates, 32, 'search candidates');
   if (candidates.length !== request.spec.capacities.length) fail('missing candidate');
   const capacities = [...request.spec.capacities].sort((a, b) => a - b);
+  const feasible = (experiment: ExperimentResult) => (request.spec.targetCompleted === undefined || experiment.completed.mean >= request.spec.targetCompleted) && (request.spec.maxMeanWait === undefined || experiment.wait.samples === experiment.runs.length && experiment.wait.mean <= request.spec.maxMeanWait);
   for (const [i, item] of candidates.entries()) {
     const candidate = object(item, 'candidate'); if (candidate.capacity !== capacities[i]) fail('candidate capacity'); boolean(candidate.feasible, 'candidate feasibility');
     // Only the pool's base capacity changes; no duplicate large model is created.
     const model = { ...request.model, resources: request.model.resources.map(pool => pool.id === request.spec.poolId ? { ...pool, capacity: capacities[i] } : pool) };
     experimentResult(candidate.experiment, model, request.spec.trainingSeeds, checked);
+    if (candidate.feasible !== feasible(candidate.experiment)) fail('candidate feasibility');
   }
   boolean(value.verified, 'verification status'); optionalText(value.reason, 'search reason'); integer(value.totalRuns, 'total runs', 1000); integer(value.runBudget, 'run budget', 1000, 1);
   if (value.runBudget !== (request.spec.maxRuns ?? 256) || Number(value.totalRuns) > Number(value.runBudget)) fail('search budget');
-  if (value.selectedCapacity === null) { if (value.verification !== null || value.verified !== false || value.totalRuns !== candidates.length * request.spec.trainingSeeds.length) fail('unselected search'); }
+  if (value.selectedCapacity === null) { if (value.verification !== null || value.verified !== false || value.totalRuns !== candidates.length * request.spec.trainingSeeds.length || candidates.some(item => object(item, 'candidate').feasible)) fail('unselected search'); }
   else {
     const selected = candidates.map(x => object(x, 'candidate')).find(c => c.capacity === value.selectedCapacity);
     if (!selected || selected.feasible !== true) fail('selected capacity');
     const experiment = selected!.experiment as ExperimentResult;
     experimentResult(value.verification, experiment.runs[0].model, request.spec.verificationSeeds, checked);
+    if (value.verified !== feasible(value.verification)) fail('held-out feasibility');
     if (value.totalRuns !== candidates.length * request.spec.trainingSeeds.length + request.spec.verificationSeeds.length) fail('search run count');
   }
   return { kind: request.kind, value: value as unknown as CapacitySearchResult };
