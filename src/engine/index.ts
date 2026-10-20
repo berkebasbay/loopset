@@ -317,10 +317,11 @@ export async function simulateAsync(model: SimulationModel, options: RunOptions 
   const yieldTask = () => new Promise<void>(resolve => {
     // Periodically use the timer queue too: continuously posted port tasks can
     // otherwise starve timers in Node (including a caller's cancel callback).
-    if (channel && ++yields % 8 !== 0) { channel.port1.onmessage = () => resolve(); channel.port2.postMessage(null); }
+    if (channel && ++yields % 8 !== 0) { channel.port1.addEventListener('message', () => resolve(), { once: true }); channel.port2.postMessage(null); }
     else setTimeout(resolve, 0);
   });
   try {
+    channel?.port1.start();
     let result = iterator.next(); let chunk = 0;
     while (!result.done) {
       if (++chunk === 256) { chunk = 0; await yieldTask(); }
