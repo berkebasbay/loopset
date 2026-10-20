@@ -8,7 +8,8 @@ export function replayTimeFromRange(input: HTMLInputElement, endpoint: number): 
   let boundary = boundaries.get(input);
   if (!boundary || boundary.settings !== settings) {
     const probe = input.cloneNode(false) as HTMLInputElement;
-    probe.value = probe.max;
+    // Numeric assignment follows native slider serialization in Firefox too.
+    probe.valueAsNumber = Number(probe.max);
     boundary = { settings, maximum: probe.value };
     boundaries.set(input, boundary);
   }
