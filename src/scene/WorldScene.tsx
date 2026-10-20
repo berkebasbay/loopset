@@ -13,6 +13,26 @@ interface Props {
 }
 type Label = { el: HTMLButtonElement; node: ModelNode; position: THREE.Vector3 };
 type Part = { nodeId: string; mesh: THREE.Object3D; kind: 'press' | 'scanner' | 'arm'; rest: number };
+type LabelRect = { x: number; y: number; width: number; height: number };
+
+// Labels may cross scenic bodies when space is tight, but never another label's
+// pointer region. The second pass trades decorative occlusion for a safe target.
+export function placeLabel(anchor: LabelRect, viewport: { width: number; height: number }, occupied: LabelRect[], bodies: LabelRect[]): LabelRect | null {
+  const { width, height } = anchor;
+  const minX = 10, maxX = viewport.width - width - 10, minY = 47, maxY = viewport.height - height - (viewport.width < 500 ? 56 : 42);
+  if (maxX < minX || maxY < minY) return null;
+  const x = Math.max(minX, Math.min(maxX, anchor.x)), y = Math.max(minY, Math.min(maxY, anchor.y));
+  const overlaps = (candidate: LabelRect, rectangles: LabelRect[]) => rectangles.some(rect => candidate.x < rect.x + rect.width + 8 && candidate.x + width + 8 > rect.x && candidate.y < rect.y + rect.height + 8 && candidate.y + height + 8 > rect.y);
+  const candidates: LabelRect[] = [];
+  for (let row = 0; row <= Math.ceil((maxY - minY) / (height + 8)); row++) {
+    for (const direction of row ? [-1, 1] : [0]) {
+      const cy = Math.max(minY, Math.min(maxY, y + row * (height + 8) * direction));
+      for (const col of [0, -1, 1, -2, 2, -3, 3]) candidates.push({ x: Math.max(minX, Math.min(maxX, x + col * (width * .72 + 8))), y: cy, width, height });
+    }
+  }
+  return candidates.find(candidate => !overlaps(candidate, occupied) && !overlaps(candidate, bodies))
+    ?? candidates.find(candidate => !overlaps(candidate, occupied)) ?? null;
+}
 const kit = {
   factory: { accent: '#dc6338', secondary: '#507b68', floor: '#e5e0d1', base: '#b4b9a7', wall: '#829a83', edge: '#42634d' },
   festival: { accent: '#d89539', secondary: '#327b79', floor: '#d7ddc5', base: '#a7b38c', wall: '#709375', edge: '#3d684d' },
@@ -200,24 +220,46 @@ export function WorldScene(props: Props) {
     function register(g: THREE.Group, id: string) {
       g.traverse(obj => { if ((obj as THREE.Mesh).isMesh) { obj.userData.nodeId = id; pickables.push(obj); } });
     }
+    const edgeVisuals: { from: string; to: string; highlight: THREE.Group; meshes: { mesh: THREE.Mesh; material: THREE.Material | THREE.Material[] }[] }[] = [];
+    const fadedMaterials = new Map<THREE.Material, THREE.Material>();
+    const focusLinkMaterial = new THREE.MeshBasicMaterial({ color: theme.accent, transparent: true, depthTest: false, depthWrite: false });
+    const focusArrowMaterial = new THREE.MeshBasicMaterial({ color: palette.cream, transparent: true, depthTest: false, depthWrite: false });
+    function faded(material: THREE.Material) {
+      if (!fadedMaterials.has(material)) { const copy = material.clone(); copy.transparent = true; copy.opacity = .16; copy.depthWrite = false; fadedMaterials.set(material, copy); }
+      return fadedMaterials.get(material)!;
+    }
     // Links are the model's actual directed edges, never an invented service ordering.
     for (const link of links) {
       const a = layout[link.from], b = layout[link.to], distance = Math.hypot(b.x - a.x, b.z - a.z);
       const sourceNode = nodes.find(node => node.id === link.from)!, targetNode = nodes.find(node => node.id === link.to)!;
       const startTrim = sourceNode.kind === 'service' ? 1.15 : sourceNode.kind === 'queue' ? .7 : .65;
       const endTrim = targetNode.kind === 'service' ? 1.15 : targetNode.kind === 'queue' ? .7 : .65;
-      const length = distance - startTrim - endTrim; if (length <= .08) continue;
+      const trimmedLength = distance - startTrim - endTrim, compact = trimmedLength <= .08;
+      if ((!dense && compact) || distance === 0) continue;
+      const length = compact ? distance : trimmedLength;
       const dx = (b.x - a.x) / distance, dz = (b.z - a.z) / distance;
-      const g = new THREE.Group(); g.position.set(a.x + dx * (startTrim + length / 2), 0, a.z + dz * (startTrim + length / 2)); g.rotation.y = Math.atan2(dx, dz); scene.add(g);
-      if (world === 'factory') {
+      const g = new THREE.Group(), offset = compact ? length / 2 : startTrim + length / 2;
+      g.position.set(a.x + dx * offset, 0, a.z + dz * offset); g.rotation.y = Math.atan2(dx, dz); scene.add(g);
+      if (!compact && world === 'factory') {
         box(g, 0, .25, 0, .67, .14, length, palette.dark);
         for (const x of [-.38, .38]) box(g, x, .34, 0, .05, .14, length, '#819284');
         if (!dense) for (let z = -length / 2 + .1; z < length / 2; z += .22) cylinder(g, 0, .34, z, .055, .65, '#9ca895', Math.PI / 2);
-      } else box(g, 0, .07, 0, .65, .025, length, world === 'festival' ? '#bbc8a7' : '#c6bcaa');
+      } else if (!compact) box(g, 0, .07, 0, .65, .025, length, world === 'festival' ? '#bbc8a7' : '#c6bcaa');
       // White chevrons communicate direction even in a monochrome view.
       const arrowZ = Math.min(length / 2 - .08, 0);
-      for (const x of [-1, 1]) { const arrow = box(g, x * .09, world === 'factory' ? .411 : .092, arrowZ, .045, .015, .23, palette.cream, .005); arrow.rotation.y = x * -.65; }
+      if (!compact) for (const x of [-1, 1]) { const arrow = box(g, x * .09, world === 'factory' ? .411 : .092, arrowZ, .045, .015, .23, palette.cream, .005); arrow.rotation.y = x * -.65; }
       if (link.probability !== undefined && !dense) text(g, `${Math.round(link.probability * 100)}%`, 0, .13, -.2, .15, palette.ink, -Math.PI / 2);
+      if (dense) {
+        const meshes: { mesh: THREE.Mesh; material: THREE.Material | THREE.Material[] }[] = [];
+        g.traverse(object => { const mesh = object as THREE.Mesh; if (mesh.isMesh) meshes.push({ mesh, material: mesh.material }); });
+        const highlight = new THREE.Group(); g.add(highlight); highlight.visible = false;
+        // Closely placed nodes have no floor segment after trimming. Their
+        // selected connection is lifted above the equipment instead of lost.
+        const surfaceY = compact ? 3.35 : world === 'factory' ? .44 : .12;
+        const spine: THREE.Mesh = box(highlight, 0, surfaceY, 0, .2, .02, length, theme.accent, .005); spine.material = focusLinkMaterial; spine.renderOrder = 2;
+        for (const x of [-1, 1]) { const arrow: THREE.Mesh = box(highlight, x * .12, surfaceY + .02, arrowZ, .055, .02, .3, palette.cream, .005); arrow.rotation.y = x * -.65; arrow.material = focusArrowMaterial; arrow.renderOrder = 3; }
+        edgeVisuals.push({ from: link.from, to: link.to, highlight, meshes });
+      }
     }
     for (const [index, node] of services.entries()) {
       const g = nodeGroup(node); g.scale.setScalar(1.12);
@@ -367,7 +409,7 @@ export function WorldScene(props: Props) {
     const bounds = new THREE.Box3(new THREE.Vector3(extent.minX - .5, -.8, extent.minZ - .5), new THREE.Vector3(extent.maxX + .5, 3.6, extent.maxZ + .5));
     const corners: THREE.Vector3[] = [];
     for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) corners.push(new THREE.Vector3(x, y, z));
-    let handle = 0, alive = true, hover: string | null = null, renderCount = 0;
+    let handle = 0, alive = true, hover: string | null = null, renderCount = 0, edgeFocus: string | null | undefined;
     function requestRender() { if (alive && !handle && !document.hidden) { host.dataset.renderPending = 'true'; handle = requestAnimationFrame(draw); } }
     invalidate.current = requestRender;
     function fit() {
@@ -442,7 +484,23 @@ export function WorldScene(props: Props) {
         const content = `${String(plate.index + 1).padStart(2, '0')} / ${node?.kind === 'service' && Number.isFinite(node.servers) ? node.servers : '—'}×`;
         if (content !== plate.content) { plate.update(content); plate.content = content; }
       }
-      for (const [id, ring] of rings) ring.visible = current.selected === id || hover === id;
+      const neighbors = dense ? new Set(links.filter(link => link.from === current.selected || link.to === current.selected).flatMap(link => [link.from, link.to])) : new Set<string>();
+      for (const [id, ring] of rings) {
+        ring.visible = current.selected === id || hover === id || neighbors.has(id);
+        (ring.material as THREE.MeshBasicMaterial).color.set(current.selected === id ? theme.accent : theme.secondary);
+      }
+      const selectedEdgeFocus = current.selected !== null && currentNodes.has(current.selected) ? current.selected : null;
+      if (edgeFocus !== selectedEdgeFocus) {
+        edgeFocus = selectedEdgeFocus;
+        for (const edge of edgeVisuals) {
+          const incident = edge.from === edgeFocus || edge.to === edgeFocus;
+          edge.highlight.visible = incident;
+          for (const item of edge.meshes) item.mesh.material = edgeFocus !== null && !incident
+            ? Array.isArray(item.material) ? item.material.map(faded) : faded(item.material) : item.material;
+        }
+        host.dataset.highlightedEdges = JSON.stringify(edgeVisuals.filter(edge => edge.highlight.visible).map(({ from, to }) => ({ from, to })));
+        host.dataset.dimmedEdgeCount = String(edgeFocus !== null ? edgeVisuals.filter(edge => !edge.highlight.visible).length : 0);
+      }
       const grouped: Record<string, number> = {}, count = Math.min(current.frame.actors.length, 500); actors.count = count; if (actorTops) actorTops.count = count;
       current.frame.actors.slice(0, count).forEach((actor, index) => {
         const node = currentNodes.get(actor.nodeId), p = layout[actor.nodeId] ?? { x: 0, z: 0 };
@@ -463,7 +521,7 @@ export function WorldScene(props: Props) {
       }
       const projected = corners.map(point => point.clone().project(camera));
       host.dataset.projectedBounds = JSON.stringify({ minX: Math.min(...projected.map(p => p.x)), maxX: Math.max(...projected.map(p => p.x)), minY: Math.min(...projected.map(p => p.y)), maxY: Math.max(...projected.map(p => p.y)) });
-      const occupied: { x: number; y: number; width: number; height: number }[] = [];
+      const occupied: LabelRect[] = [];
       // Label callouts avoid projected machine bodies as well as one another.
       const bodyRects = services.map(node => {
         const p = layout[node.id], points: THREE.Vector3[] = [];
@@ -486,17 +544,10 @@ export function WorldScene(props: Props) {
         const point = label.position.clone().project(camera), w = host.clientWidth, h = host.clientHeight;
         if (Math.abs(point.x) > 1.1 || Math.abs(point.y) > 1.1) { label.el.hidden = true; continue; }
         const width = label.el.offsetWidth, height = label.el.offsetHeight;
-        const x = Math.max(10, Math.min(w - width - 10, (point.x * .5 + .5) * w - width / 2));
-        let y = Math.max(50, Math.min(h - height - 30, (-point.y * .5 + .5) * h - height));
-        const conflicts = (cx: number, cy: number) => [...occupied, ...bodyRects].some(rect => cx < rect.x + rect.width + 8 && cx + width + 8 > rect.x && cy < rect.y + rect.height + 7 && cy + height + 7 > rect.y);
-        let labelX = x;
-        if (conflicts(labelX, y)) {
-          const candidates = Array.from({ length: 8 }, (_, row) => [0, -1, 1, -2, 2, -3, 3].map(col => ({ x: Math.max(10, Math.min(w - width - 10, x + col * (width * .72 + 8))), y: y - row * (height + 8) }))).flat();
-          const free = candidates.find(candidate => candidate.y >= 47 && !conflicts(candidate.x, candidate.y));
-          if (free) { labelX = free.x; y = free.y; }
-          else if (!primary && label.node.kind !== 'service') { label.el.hidden = true; continue; }
-        }
-        y = Math.max(47, y); occupied.push({ x: labelX, y, width, height }); label.el.style.transform = `translate(${labelX}px,${y}px)`;
+        const placed = placeLabel({ x: (point.x * .5 + .5) * w - width / 2, y: (-point.y * .5 + .5) * h - height, width, height }, { width: w, height: h }, occupied, bodyRects);
+        if (!placed) { label.el.hidden = true; continue; }
+        const { x: labelX, y } = placed;
+        occupied.push(placed); label.el.style.transform = `translate(${labelX}px,${y}px)`;
         label.el.style.zIndex = primary ? '200' : label.node.kind === 'service' ? '100' : '50';
         label.el.dataset.screenX = String((point.x * .5 + .5) * w); label.el.dataset.screenY = String((-point.y * .5 + .5) * h);
         const anchorX = (point.x * .5 + .5) * w, anchorY = (-point.y * .5 + .5) * h;
@@ -517,6 +568,10 @@ export function WorldScene(props: Props) {
       scene.traverse(obj => { const mesh = obj as THREE.Mesh; if (mesh.geometry && !disposedGeometries.has(mesh.geometry)) { mesh.geometry.dispose(); disposedGeometries.add(mesh.geometry); }
         if (mesh.material) for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) if (!disposedMaterials.has(m)) { m.dispose(); disposedMaterials.add(m); } });
       for (const geometry of geometries.values()) if (!disposedGeometries.has(geometry)) geometry.dispose();
+      for (const material of materials.values()) if (!disposedMaterials.has(material)) material.dispose();
+      for (const material of fadedMaterials.values()) if (!disposedMaterials.has(material)) material.dispose();
+      if (!disposedMaterials.has(focusLinkMaterial)) focusLinkMaterial.dispose();
+      if (!disposedMaterials.has(focusArrowMaterial)) focusArrowMaterial.dispose();
       for (const texture of textures) texture.dispose(); actors.dispose(); actorTops?.dispose(); light.shadow.dispose(); renderer.dispose(); renderer.domElement.remove(); labelLayer.remove();
     };
   }, [geometryKey, props.quality, props.resetKey]);
