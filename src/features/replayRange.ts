@@ -13,6 +13,7 @@ export function replayTimeFromRange(input: HTMLInputElement, endpoint: number): 
     boundary = { settings, maximum: probe.value };
     boundaries.set(input, boundary);
   }
-  const time = input.value === boundary.maximum ? endpoint : input.valueAsNumber;
+  // String assignment can preserve max verbatim even when numeric/native input rounds it.
+  const time = input.value === boundary.maximum || input.value === input.max ? endpoint : input.valueAsNumber;
   return Number.isFinite(time) ? Math.max(0, Math.min(time, endpoint)) : 0;
 }
