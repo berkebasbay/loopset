@@ -82,8 +82,15 @@ export interface Summary {
   waitSampleSize: number; measurementStart: number; measurementEnd: number;
 }
 export type RunStatus = 'completed' | 'cancelled' | 'limited' | 'failed';
+/** Effective numeric caps. Zero is a literal cap, not an unlimited sentinel. */
+export interface RunLimits {
+  readonly maxEvents: number; readonly maxEntities: number; readonly maxMicrosteps: number;
+  readonly maxTraceEntities: number; readonly maxTraceEvents: number;
+}
+export interface RunProvenance { readonly rngVersion: string; readonly limits: RunLimits }
 export interface RunResult {
   id: string; engineVersion: string; modelHash: string; demandHash: string;
+  provenance: RunProvenance;
   seed: number; model: SimulationModel; status: RunStatus; reason?: string;
   simulatedUntil: number; summary: Summary; stations: StationMetrics[]; pools: PoolMetrics[];
   entities: EntityRecord[]; events: TraceEvent[];
@@ -103,7 +110,32 @@ export interface ExperimentResult {
   modelHash: string; seeds: number[]; runs: RunResult[];
   completed: MetricEstimate; wait: MetricEstimate; p95Wait: MetricEstimate; cost: MetricEstimate;
 }
+export type DrawKind = 'arrival' | 'class' | 'service' | 'patience' | 'delay' | 'route';
+export interface CouplingComponent {
+  nodeId: string; samplingId: string; kind: ModelNode['kind']; drawKinds: DrawKind[];
+}
+export type CouplingChange = 'arrival' | 'classes' | 'distribution' | 'routing' | 'queuePolicy' | 'capacity' | 'resources';
+export interface CouplingMatch {
+  samplingId: string; kind: ModelNode['kind']; baselineNodeId: string; candidateNodeId: string;
+  baselineDrawKinds: DrawKind[]; candidateDrawKinds: DrawKind[];
+  /** Potential common raw uniforms, conditional on the stated source/ordinal/visit scope. Not observed counts. */
+  sharedDrawKinds: DrawKind[]; changes: CouplingChange[];
+}
+export interface CouplingManifest {
+  kind: 'static-key-scope';
+  rngVersions: { baseline: string; candidate: string };
+  compatibility: { sameRngVersion: boolean; sameSeed: boolean; sameExternalDemand: boolean; sameMeasurementPolicies: boolean };
+  rawKeys: {
+    encoding: 'JSON.stringify'; ordinalBase: 0;
+    arrival: string[]; class: string[]; stage: string[];
+    visitScope: string; replicationScope: string;
+  };
+  matchedSources: CouplingMatch[]; matchedStages: CouplingMatch[];
+  unmatched: { side: 'baseline' | 'candidate'; component: CouplingComponent; reason: 'sampling-id-absent' | 'kind-changed' }[];
+  caveats: string[];
+}
 export interface PairedComparison {
   paired: boolean; reason?: string; baseline: ExperimentResult; candidate: ExperimentResult;
+  coupling: CouplingManifest;
   delta: { completed: MetricEstimate; wait: MetricEstimate; cost: MetricEstimate };
 }

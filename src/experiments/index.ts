@@ -1,7 +1,7 @@
 import type { ExperimentResult, MetricEstimate, PairedComparison, RunOptions, RunResult, SimulationModel } from '../model/types';
 import { modelHash } from '../model/identity';
 import { assertModel } from '../model/validate';
-import { simulate, simulateAsync } from '../engine';
+import { buildCouplingManifest, simulate, simulateAsync } from '../engine';
 
 // Two-sided 95% Student-t critical values, df 1–30. Above 30 use the explicit
 // Cornish-Fisher expansion through 1/df³ (documented approximation).
@@ -54,14 +54,14 @@ class RetentionBudget {
   private used = 0;
   private snapshots = new WeakMap<SimulationModel, SimulationModel>();
   check(bytes: number) { if (this.used + bytes > RETAINED_BYTES) throw new Error('Experiment exceeds the 32 MiB retained-result budget. Reduce candidates, replications, input samples or explicit trace retention. No partial estimate was accepted.'); }
-  private add(value: unknown) { const bytes = encodedBytes(value); this.check(bytes); this.used += bytes; }
+  retain(value: unknown) { const bytes = encodedBytes(value); this.check(bytes); this.used += bytes; }
   snapshot(model: SimulationModel) {
     const existing = this.snapshots.get(model); if (existing) return existing;
-    this.add(model); const snapshot = freezeSnapshot(structuredClone(model));
+    this.retain(model); const snapshot = freezeSnapshot(structuredClone(model));
     this.snapshots.set(model, snapshot); this.snapshots.set(snapshot, snapshot); return snapshot;
   }
   run(run: RunResult, snapshot: SimulationModel) {
-    completedRun(run); this.add({ ...run, model: undefined }); run.model = snapshot; return run;
+    completedRun(run); this.retain({ ...run, model: undefined }); run.model = snapshot; return run;
   }
 }
 
@@ -88,11 +88,11 @@ export function comparePaired(baselineModel: SimulationModel, candidateModel: Si
   const budget = new RetentionBudget();
   budget.check(encodedBytes(baselineModel) + encodedBytes(candidateModel));
   const baseline = replications(baselineModel, seeds, options, budget); const candidate = replications(candidateModel, seeds, options, budget);
-  const sameWindow = baselineModel.horizon === candidateModel.horizon && baselineModel.warmup === candidateModel.warmup && baselineModel.slaSeconds === candidateModel.slaSeconds && baselineModel.currency === candidateModel.currency;
-  const paired = sameWindow && baseline.runs.every((r, i) => r.demandHash === candidate.runs[i].demandHash);
-  if (!paired) return { paired, reason: 'External demand fingerprints or measurement/currency policies differ; paired deltas are unavailable.', baseline, candidate, delta: { completed: estimate([]), wait: estimate([]), cost: estimate([]) } };
+  const coupling = buildCouplingManifest(baseline.runs[0], candidate.runs[0]); budget.retain(coupling);
+  const paired = coupling.compatibility.sameMeasurementPolicies && baseline.runs.every((r, i) => r.demandHash === candidate.runs[i].demandHash);
+  if (!paired) return { paired, reason: 'External demand fingerprints or measurement/currency policies differ; paired deltas are unavailable.', baseline, candidate, coupling, delta: { completed: estimate([]), wait: estimate([]), cost: estimate([]) } };
   const measuredPairs = candidate.runs.flatMap((r, i) => r.summary.waitSampleSize && baseline.runs[i].summary.waitSampleSize ? [{ candidate: r, baseline: baseline.runs[i] }] : []);
-  return { paired, baseline, candidate, reason: measuredPairs.length < seeds.length ? 'Wait delta excludes pairs without completed-cohort observations in both runs; inspect its sample count.' : undefined, delta: {
+  return { paired, baseline, candidate, coupling, reason: measuredPairs.length < seeds.length ? 'Wait delta excludes pairs without completed-cohort observations in both runs; inspect its sample count.' : undefined, delta: {
     completed: estimate(candidate.runs.map((r, i) => r.summary.completed - baseline.runs[i].summary.completed)),
     wait: estimate(measuredPairs.map(p => p.candidate.summary.meanWait - p.baseline.summary.meanWait)),
     cost: estimate(candidate.runs.map((r, i) => r.summary.cost - baseline.runs[i].summary.cost)),

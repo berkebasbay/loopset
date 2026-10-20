@@ -1,6 +1,6 @@
 /** Browser-independent entry point. No UI, renderer, storage or network imports. */
 export * from './model/types';
-export { simulate, simulateAsync, quantile, RNG_VERSION } from './engine';
+export { simulate, simulateAsync, quantile, RNG_VERSION, normalizeRunLimits, buildCouplingManifest } from './engine';
 export { runExperiment, runExperimentAsync, comparePaired, capacitySearch, estimate } from './experiments';
 export type { CapacitySearchSpec, CapacityCandidate, CapacitySearchResult } from './experiments';
 export { validateModel, validateProject, assertModel, parseProject } from './model/validate';

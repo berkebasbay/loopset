@@ -11,6 +11,8 @@ export interface ResultCardContent {
   readonly run: string;
   readonly seed: string;
   readonly engine: string;
+  readonly randomness: string;
+  readonly limits: string;
   readonly fingerprints: string;
   readonly coverage: string;
   readonly assumptions: string;
@@ -48,6 +50,8 @@ export function resultCardContent(result: RunResult): ResultCardContent {
     observation: `Processed 0–${seconds(result.simulatedUntil)} / requested 0–${seconds(result.model.horizon)}`,
     reason: incomplete ? result.reason ?? 'Requested horizon not fully processed; do not use as a full-run comparison.' : 'Observed results from the sealed run snapshot',
     run: `Run ${result.id}`, seed: `Seed ${result.seed}`, engine: `Engine ${result.engineVersion}`,
+    randomness: `RNG ${result.provenance.rngVersion}`,
+    limits: `Limits · maxEvents ${result.provenance.limits.maxEvents} · maxEntities ${result.provenance.limits.maxEntities} · maxMicrosteps ${result.provenance.limits.maxMicrosteps} · trace entities ${result.provenance.limits.maxTraceEntities} · trace events ${result.provenance.limits.maxTraceEvents}`,
     fingerprints: `Model ${result.modelHash} · Demand ${result.demandHash}`,
     coverage: `${window} · replay ${result.trace.complete ? 'complete' : 'prefix'} through ${seconds(result.trace.until)}`,
     assumptions: 'Single run · uncertainty not estimated · model assumptions unvalidated.',
@@ -102,15 +106,17 @@ function paintResultCard(context: CanvasRenderingContext2D, content: ResultCardC
     text(context, metric.detail, x, y + 75, 368, 13, MUTED, 400);
   }
   context.fillStyle = INK; context.fillRect(0, 439, WIDTH, HEIGHT - 439);
-  text(context, content.run, 56, 474, 416, 14, PAPER, 600);
-  text(context, content.seed, 500, 474, 350, 14, PAPER, 600);
-  text(context, content.engine, 910, 474, 314, 14, PAPER, 600);
-  text(context, content.fingerprints, 56, 502, 1168, 14, PAPER, 500);
-  text(context, content.coverage, 56, 529, 1168, 14, PAPER, 400, 12);
-  context.strokeStyle = '#5c7062'; context.beginPath(); context.moveTo(56, 546); context.lineTo(1224, 546); context.stroke();
-  text(context, content.assumptions, 56, 571, 1168, 14, '#f2c9af', 500);
-  text(context, content.population, 56, 595, 1168, 13, PAPER);
-  text(context, content.scope, 56, 617, 1168, 13, PAPER);
+  text(context, content.run, 56, 464, 416, 14, PAPER, 600);
+  text(context, content.seed, 500, 464, 350, 14, PAPER, 600);
+  text(context, content.engine, 910, 464, 314, 14, PAPER, 600);
+  text(context, content.fingerprints, 56, 486, 1168, 14, PAPER, 500);
+  text(context, content.randomness, 56, 508, 1168, 14, PAPER, 500);
+  text(context, content.limits, 56, 530, 1168, 13, PAPER, 400, 12);
+  text(context, content.coverage, 56, 552, 1168, 13, PAPER, 400, 12);
+  context.strokeStyle = '#5c7062'; context.beginPath(); context.moveTo(56, 562); context.lineTo(1224, 562); context.stroke();
+  text(context, content.assumptions, 56, 582, 1168, 13, '#f2c9af', 500);
+  text(context, content.population, 56, 603, 1168, 13, PAPER);
+  text(context, content.scope, 56, 624, 1168, 13, PAPER);
 }
 
 export async function resultCardPNG(result: RunResult): Promise<{ blob: Blob; filename: string }> {

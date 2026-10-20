@@ -4,8 +4,10 @@ import { assertModel } from '../model/validate';
 import { demandHash, fingerprint, modelHash } from '../model/identity';
 import { EventHeap } from './heap';
 import { RNG_VERSION, sample, uniform } from './random';
+import { normalizeRunLimits } from './provenance';
 
 export { RNG_VERSION } from './random';
+export { normalizeRunLimits, buildCouplingManifest } from './provenance';
 
 type Event = { time: number; phase: number; key: string; sequence: number; kind: 'arrival' | 'finish' | 'calendar' | 'transfer' | 'patience'; nodeId: string; entityId?: string; ordinal?: number; requestId?: number };
 interface Entity {
@@ -32,22 +34,13 @@ export function quantile(xs: number[], p: number): number {
 }
 const idCompare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const requestCompare = (a: Request, b: Request) => a.priority - b.priority || a.arrival - b.arrival || idCompare(a.entity.source.samplingId, b.entity.source.samplingId) || a.entity.ordinal - b.entity.ordinal || idCompare(a.service.samplingId, b.service.samplingId) || a.id - b.id;
-const limit = (value: number | undefined, fallback: number, ceiling: number) => {
-  if (value === undefined) return fallback;
-  if (!Number.isSafeInteger(value) || value < 0 || value > ceiling) throw new Error(`Run limit must be an integer between 0 and ${ceiling}.`);
-  return value;
-};
-
 /** Generator yields after bounded units of work, including same-timestamp transitions. */
 function* execute(input: SimulationModel, options: RunOptions): Generator<void, RunResult> {
   const started = performance.now(); const model = structuredClone(input);
   const seed = options.seed ?? model.seed;
   if (!Number.isSafeInteger(seed)) throw new Error('Run seed must be a safe integer.');
-  const maxWork = limit(options.maxEvents, 1_000_000, 10_000_000);
-  const maxEntities = limit(options.maxEntities, 100_000, 1_000_000);
-  const maxTraceEntities = limit(options.maxTraceEntities, 4_000, 100_000);
-  const maxTraceEvents = limit(options.maxTraceEvents, 100_000, 1_000_000);
-  const maxMicrosteps = limit(options.maxMicrosteps, 10_000, 1_000_000);
+  const limits = normalizeRunLimits(options);
+  const { maxEvents: maxWork, maxEntities, maxTraceEntities, maxTraceEvents, maxMicrosteps } = limits;
   const nodes = new Map(model.nodes.map(n => [n.id, n]));
   const sources = model.nodes.filter((n): n is SourceNode => n.kind === 'source').sort((a, b) => idCompare(a.samplingId, b.samplingId));
   const stations = new Map<string, StationState>(); const pools = new Map<string, PoolState>();
@@ -293,7 +286,7 @@ function* execute(input: SimulationModel, options: RunOptions): Generator<void, 
   if (status !== 'completed') warnings.push('Incomplete run: observed cohort and measurement window are partial; exclude from comparisons and confidence intervals.');
   if (time < model.warmup) warnings.push('Run stopped before the measurement window.');
   return {
-    id: fingerprint({ engine: ENGINE_VERSION, hash, seed }), engineVersion: ENGINE_VERSION, modelHash: hash, demandHash: demand, seed, model, status, reason, simulatedUntil: time,
+    id: fingerprint({ engine: ENGINE_VERSION, hash, seed }), engineVersion: ENGINE_VERSION, modelHash: hash, demandHash: demand, provenance: { rngVersion: RNG_VERSION, limits }, seed, model, status, reason, simulatedUntil: time,
     summary: { arrivals, completed, balked, reneged, inSystem: [...active.values()].filter(e => e.cohort).length, meanWait: average(waits), p50Wait: quantile(waits, 0.5), p95Wait: quantile(waits, 0.95), meanSojourn: average(sojourns), slaMet, slaRate: arrivals ? slaMet / arrivals : null, throughputPerHour: window ? completed / window * 3600 : 0, cost: poolMetrics.reduce((sum, p) => sum + p.cost, 0), waitSampleSize: waits.length, measurementStart: model.warmup, measurementEnd: Math.max(model.warmup, time) },
     stations: stationMetrics, pools: poolMetrics, entities: records, events,
     trace: { complete: traceFull && status === 'completed', until: traceUntil, entityLimit: maxTraceEntities, eventLimit: maxTraceEvents }, warnings, processedEvents: work, elapsedMs: performance.now() - started,

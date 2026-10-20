@@ -5,6 +5,7 @@ export function resultRows(result: RunResult): unknown[][] {
   const s = result.summary;
   const rows: unknown[][] = [['section', 'metric', 'value', 'unit', 'scope'],
     ['identity', 'run_id', result.id, '', 'run snapshot'], ['identity', 'engine_version', result.engineVersion, '', 'run snapshot'],
+    ['identity', 'rng_version', result.provenance.rngVersion, '', 'actual run RNG'],
     ['identity', 'model_hash', result.modelHash, '', 'run snapshot'], ['identity', 'demand_hash', result.demandHash, '', 'run snapshot'],
     ['identity', 'seed', result.seed, '', 'run snapshot'], ['identity', 'status', result.status, '', result.reason ?? ''],
     ['identity', 'simulated_until', result.simulatedUntil, 'seconds', 'processed interval'],
@@ -17,6 +18,7 @@ export function resultRows(result: RunResult): unknown[][] {
     ['identity', 'time_integrals', 'Queue, busy and cost integrals include all work during the measurement window, including work arriving before warm-up. Cost = scheduled unit-hours × regular rate + overtime unit-hours × overtime rate.', '', 'time-window population'],
     ['identity', 'trace_complete', result.trace.complete, '', `Trace through ${result.trace.until} seconds; numerical metrics do not depend on trace completeness.`],
     ['identity', 'forecast', 'Synthetic model run; no validated real-world forecast.', '', 'assumption']];
+  for (const [metric, value] of Object.entries(result.provenance.limits)) rows.push(['limits', metric, value, 'count', 'effective numeric cap; zero is a literal cap, not unlimited']);
   for (const [metric, unit] of [['arrivals', 'entities'], ['completed', 'entities'], ['balked', 'entities'], ['reneged', 'entities'], ['inSystem', 'entities'], ['meanWait', 'seconds'], ['p50Wait', 'seconds'], ['p95Wait', 'seconds'], ['meanSojourn', 'seconds'], ['slaMet', 'entities'], ['slaRate', 'fraction'], ['throughputPerHour', 'entities/hour'], ['cost', result.model.currency], ['waitSampleSize', 'completed entities']] as const) rows.push(['summary', metric, ['meanWait', 'p50Wait', 'p95Wait', 'meanSojourn'].includes(metric) && !s.waitSampleSize ? null : s[metric], unit, !s.waitSampleSize && ['meanWait', 'p50Wait', 'p95Wait', 'meanSojourn'].includes(metric) ? 'unavailable: no completed-cohort observations' : result.status === 'completed' ? 'full run' : 'incomplete run; not a completed comparison']);
   for (const station of result.stations) {
     rows.push(['station', 'label', result.model.nodes.find(n => n.id === station.nodeId)?.label ?? station.nodeId, '', station.nodeId]);
