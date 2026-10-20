@@ -29,10 +29,10 @@ function SnapshotSettings({ baselineNode, candidateNode, baseline, candidate, ch
   return <details onToggle={event => setOpen(event.currentTarget.open)}>
     <summary>{changes.length ? 'Changed values & component input snapshots' : 'Component input snapshots'}</summary>
     {open && <>
-      {changes.map(change => <div key={change} className="ql-provenance-change"><h5>{changeLabels[change]}</h5><p>Baseline</p><pre className="ql-provenance-json">{JSON.stringify(parameter(change, baselineNode, baseline.model), null, 2)}</pre><p>Candidate</p><pre className="ql-provenance-json">{JSON.stringify(parameter(change, candidateNode, candidate.model), null, 2)}</pre></div>)}
+      {changes.map(change => <div key={change} className="ql-provenance-change"><h5>{changeLabels[change]}</h5><p>Baseline</p><pre className="ql-provenance-json" tabIndex={0} role="region" aria-label={`Baseline ${changeLabels[change]} data`}>{JSON.stringify(parameter(change, baselineNode, baseline.model), null, 2)}</pre><p>Candidate</p><pre className="ql-provenance-json" tabIndex={0} role="region" aria-label={`Candidate ${changeLabels[change]} data`}>{JSON.stringify(parameter(change, candidateNode, candidate.model), null, 2)}</pre></div>)}
       <div className="ql-provenance-snapshots">
-        {baselineNode && <div><h5>Baseline: {baselineNode.label}</h5><pre className="ql-provenance-json">{JSON.stringify(componentInputs(baselineNode, baseline.model), null, 2)}</pre></div>}
-        {candidateNode && <div><h5>Candidate: {candidateNode.label}</h5><pre className="ql-provenance-json">{JSON.stringify(componentInputs(candidateNode, candidate.model), null, 2)}</pre></div>}
+        {baselineNode && <div><h5>Baseline: {baselineNode.label}</h5><pre className="ql-provenance-json" tabIndex={0} role="region" aria-label={`Baseline ${baselineNode.label} inputs`}>{JSON.stringify(componentInputs(baselineNode, baseline.model), null, 2)}</pre></div>}
+        {candidateNode && <div><h5>Candidate: {candidateNode.label}</h5><pre className="ql-provenance-json" tabIndex={0} role="region" aria-label={`Candidate ${candidateNode.label} inputs`}>{JSON.stringify(componentInputs(candidateNode, candidate.model), null, 2)}</pre></div>}
       </div>
     </>}
   </details>;

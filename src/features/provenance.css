@@ -1,6 +1,7 @@
 .ql-provenance{margin:20px 0;border-top:1px solid #d8dfcc;padding-top:12px;color:#435e3b;font-size:12px;line-height:1.7;min-width:0;overflow-wrap:anywhere;text-align:left}
 .ql-provenance>summary,.ql-provenance-body summary{padding:7px 0;cursor:pointer;color:#49663d;font-size:12px;line-height:1.6}
 .ql-provenance summary:focus-visible{outline:2px solid #a05e32;outline-offset:3px;border-radius:2px}
+.ql-provenance-json:focus-visible{outline:2px solid #a05e32;outline-offset:3px}
 .ql-provenance-body{padding:3px 0 0;min-width:0}
 .ql-provenance-body p{margin:10px 0 14px;color:#53684a;font-size:12px;line-height:1.7}
 .ql-provenance-body h4{font-size:13px;line-height:1.6;margin:22px 0 8px;color:#3f5a37;font-weight:600;letter-spacing:0}

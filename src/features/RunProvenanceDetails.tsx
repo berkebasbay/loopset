@@ -30,11 +30,11 @@ export function RunProvenanceDetails({ run, summary = 'Run settings & identity' 
         </dl>
         <p>Zero is a literal cap. Work units count engine processing work, rather than replay events. Replay caps limit retained detail; reaching them alone does not make numerical results incomplete. These count limits are not a total memory guarantee.</p>
       </> : <p>The RNG version and effective limits were not recorded in this older run. A new calculation records them; no values have been inferred here.</p>}
-      <p>Processed {run.processedEvents.toLocaleString('en')} work units. Observed through {run.simulatedUntil} / {run.model.horizon} sec. Replay: {run.trace.complete ? 'complete' : `retained through ${run.trace.until} sec`}.</p>
+      <p>Processed {run.processedEvents.toLocaleString('en')} work units. Observed through {run.simulatedUntil} / {run.model.horizon} sec. Replay: {run.trace.complete ? 'complete' : run.trace.until > 0 ? `retained through ${run.trace.until} sec` : 'no complete interval retained'}.</p>
       <ReplayCoverageDetails run={run} />
       <details onToggle={event => setShowModel(event.currentTarget.open)}>
         <summary>Exact run model inputs</summary>
-        {showModel && <pre className="ql-provenance-json">{JSON.stringify(run.model, null, 2)}</pre>}
+        {showModel && <pre className="ql-provenance-json" tabIndex={0} role="region" aria-label="Exact run model data">{JSON.stringify(run.model, null, 2)}</pre>}
       </details>
     </div>
   </details>;
