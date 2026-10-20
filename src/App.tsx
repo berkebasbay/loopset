@@ -174,7 +174,7 @@ export default function App() {
       if (event.key === 'Tab' && panel && !event.ctrlKey && !event.metaKey) {
         const dialog = document.querySelector<HTMLElement>('[role=dialog]');
         if (!dialog) return;
-        const elements = [...dialog.querySelectorAll<HTMLElement>('button,input,select,textarea,a[href],summary,[tabindex],[contenteditable="true"]')].filter(element => element.tabIndex >= 0 && !element.matches(':disabled') && !element.closest('[hidden],[inert]') && element.getClientRects().length > 0 && getComputedStyle(element).visibility === 'visible');
+        const elements = [...dialog.querySelectorAll<HTMLElement>('button,input,select,textarea,a[href],summary,[tabindex],[contenteditable="true"]')].filter(element => element.tabIndex >= 0 && !element.matches(':disabled') && !element.closest('[hidden],[inert]') && element.checkVisibility({ visibilityProperty: true }));
         // macOS can omit buttons from native Tab order. Own the entire dialog sequence
         // so plain Tab reaches every control and cannot escape into the inert workspace.
         event.preventDefault();
