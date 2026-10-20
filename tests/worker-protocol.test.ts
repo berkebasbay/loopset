@@ -74,7 +74,9 @@ describe('versioned requests and narrow boundary values', () => {
       calendar: Array.from({ length: 200 }, (_, j) => ({ start: j * 3000, end: (j + 1) * 3000, capacity: 1000 })) }));
     const request = { ...simulation(), model: extreme };
     expect(readSimulationRequest(request)).toBe(request);
-  });
+    // Functional acceptance of9.9million entries, not a latency benchmark.
+    // Keep the longer deadline local to this exhaustive schema fixture.
+  }, 15_000);
   it('accepts the largest legal collection of empirical distributions', () => {
     const extreme = model(); extreme.nodes = extreme.nodes.filter(n => n.kind === 'source' || n.kind === 'sink');
     (extreme.nodes[0] as Extract<SimulationModel['nodes'][number], { kind: 'source' }>).next = 'd0';
