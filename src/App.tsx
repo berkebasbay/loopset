@@ -10,13 +10,13 @@ const WorldScene = lazy(() => import('./scene/WorldScene').then(module => ({ def
 import { useSimulation } from './worker/useSimulation';
 import { ModelEditor } from './features/ModelEditor';
 import { connectNext } from './features/modelEdits';
-import { DataTools } from './features/DataTools';
+import { DataTools, recoveryProjectKey, serializeDraftRecovery, type RetainedDraft } from './features/DataTools';
 import { ExperimentsPanel } from './lab/ExperimentsPanel';
 import { SavedScenarios } from './lab/SavedScenarios';
 import { RunInsights } from './lab/RunInsights';
 import { loadLastProject, saveProject } from './storage/projectStore';
 import { openProjectJSON, serializeProject } from './storage/projectFile';
-import { readLocalText } from './storage/csv';
+import { downloadText, readLocalText, safeFilename } from './storage/csv';
 
 declare global {
   interface Window {
@@ -39,10 +39,22 @@ export default function App() {
   const [linkFrom, setLinkFrom] = useState<string | null>(null);
   const [quality, setQuality] = useState<'high' | 'low'>('high');
   const [moving, setMoving] = useState(false); const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const [toast, setToast] = useState<string | null>(null); const [savedRevision, setSavedRevision] = useState<number | null>(null);
+  const [toast, setToast] = useState<string | null>(null); const [backupRequestedRevision, setBackupRequestedRevision] = useState<number | null>(null);
   const [storageReady, setStorageReady] = useState(false);
   const [localRevision, setLocalRevision] = useState<number | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [retainedDrafts, setRetainedDrafts] = useState<RetainedDraft[]>([]);
+  const retained = useRef<RetainedDraft[]>([]); const recoverySequence = useRef(0);
+  const acknowledgedContent = useRef(new Map<string, string>());
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const pendingSaves = useRef(new Map<string, ReturnType<typeof saveProject>>());
+  const storageGate = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
+  if (!storageGate.current) {
+    let resolve!: () => void;
+    const promise = new Promise<void>(done => { resolve = done; });
+    storageGate.current = { promise, resolve };
+  }
+
   const sim = useSimulation(); const initialized = useRef(false); const requestGeneration = useRef(0); const manualClock = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null); const live = useRef({ project, result, time, playing, speed, selected, running: sim.running, canReplay: false });
 
@@ -83,12 +95,15 @@ export default function App() {
         // A slow IndexedDB load must never replace a newer user action.
         const untouched = live.current.project.id === project.id && live.current.project.revision === project.revision;
         const initial = untouched ? saved ?? project : live.current.project;
+        if (saved) acknowledgedContent.current.set(saved.id, recoveryProjectKey(saved));
         if (saved && untouched) { setProject(saved); setLocalRevision(saved.revision); setSelected(serviceNodes(saved)[0]?.id ?? null); }
-        setStorageReady(true); void compute(initial, true);
+        storageGate.current!.resolve(); setStorageReady(true);
+        if (!validateProject(initial).some(issue => issue.severity === 'error')) void compute(initial, true);
       }).catch(error => {
         if (!alive) return;
         setStorageError(error instanceof Error ? error.message : 'Browser storage is unavailable. Keep a downloaded backup.');
-        setStorageReady(true); void compute(live.current.project, true);
+        storageGate.current!.resolve(); setStorageReady(true);
+        if (!validateProject(live.current.project).some(issue => issue.severity === 'error')) void compute(live.current.project, true);
       });
     }, 50);
     return () => { alive = false; clearTimeout(timer); initialized.current = false; };
@@ -96,13 +111,18 @@ export default function App() {
   useEffect(() => {
     if (!storageReady || issues.some(i => i.severity === 'error')) return;
     const snapshot = project;
-    const timer = setTimeout(() => {
-      void saveProject(snapshot).then(ack => {
-        if (live.current.project.id === ack.projectId && live.current.project.revision === ack.revision) { setLocalRevision(ack.revision); setStorageError(null); }
-      }).catch(error => { if (live.current.project.id === snapshot.id) setStorageError(error instanceof Error ? error.message : 'Could not save locally. Download a backup.'); });
-    }, 800);
+    const timer = setTimeout(() => { void persistProject(snapshot).catch(() => { /* Retained and surfaced by persistProject. */ }); }, 800);
     return () => clearTimeout(timer);
   }, [project, storageReady]);
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      const current = live.current.project;
+      if (!retained.current.length && acknowledgedContent.current.get(current.id) === recoveryProjectKey(current)) return;
+      event.preventDefault(); event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => window.removeEventListener('beforeunload', beforeUnload);
+  }, []);
   useEffect(() => {
     if (!playing) return;
     let handle = 0; let previous = performance.now();
@@ -162,38 +182,112 @@ export default function App() {
   }, [panel, linkFrom]);
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(null), 6000); return () => clearTimeout(id); }, [toast]);
 
-  function edit(next: Project) { setLinkFrom(null); next = { ...next, revision: project.revision + 1 }; setHistory(h => [...h.slice(-49), project]); setFuture([]); setProject({ ...next, revision: project.revision + 1 }); setPlaying(false); }
-  function undo() { setLinkFrom(null); const previous = history.at(-1); if (!previous) return; setFuture(f => [project, ...f]); setHistory(h => h.slice(0, -1)); setProject({ ...previous, revision: project.revision + 1 }); setPlaying(false); }
-  function redo() { setLinkFrom(null); const next = future[0]; if (!next) return; setHistory(h => [...h, project]); setFuture(f => f.slice(1)); setProject({ ...next, revision: project.revision + 1 }); setPlaying(false); }
-  function acceptProject(next: Project) {
+  function updateRetained(next: RetainedDraft[]) { retained.current = next; setRetainedDrafts(next); }
+  function retainDraft(snapshot: Project, state: RetainedDraft['state'], message: string): RetainedDraft | null {
+    const key = recoveryProjectKey(snapshot);
+    const existing = retained.current.find(draft => draft.key === key);
+    if (existing) {
+      const updated = { ...existing, state, message };
+      updateRetained(retained.current.map(draft => draft.token === existing.token ? updated : draft)); return updated;
+    }
+    let bytes: number;
+    try { bytes = new TextEncoder().encode(serializeDraftRecovery(snapshot)).length; }
+    catch (error) { setStorageError(error instanceof Error ? error.message : 'Keep this draft open until you can make a backup.'); return null; }
+    if (retained.current.length >= 12 || retained.current.reduce((total, draft) => total + draft.bytes, 0) + bytes > 20_000_000) {
+      setStorageError('The retained-draft limit (12 copies / 20 MB) is full. Save, back up and explicitly remove an older retained copy before replacing this draft.'); return null;
+    }
+    const draft: RetainedDraft = { token: `draft-${++recoverySequence.current}`, key, project: structuredClone(snapshot), bytes, state, message };
+    updateRetained([...retained.current, draft]); return draft;
+  }
+  /** All project writes, including the manual DataTools button, share a FIFO after startup restore. */
+  function persistProject(snapshot: Project): ReturnType<typeof saveProject> {
+    snapshot = structuredClone(snapshot);
+    const key = recoveryProjectKey(snapshot);
+    const pending = pendingSaves.current.get(key); if (pending) return pending;
+    try { serializeProject(snapshot); }
+    catch (error) {
+      const message = error instanceof Error ? error.message : 'Repair this draft before saving.';
+      retainDraft(snapshot, 'invalid', message); setStorageError(message); return Promise.reject(error);
+    }
+    const task = saveQueue.current.then(async () => {
+      await storageGate.current!.promise;
+      updateRetained(retained.current.map(draft => draft.key === key ? { ...draft, state: 'saving', message: 'Waiting for the IndexedDB transaction acknowledgment.' } : draft));
+      try {
+        const ack = await saveProject(snapshot);
+        acknowledgedContent.current.set(snapshot.id, key);
+        // This is only an acknowledgment cache; dropping old cache entries only causes a safe repeat save.
+        if (acknowledgedContent.current.size > 64) acknowledgedContent.current.delete(acknowledgedContent.current.keys().next().value!);
+        updateRetained(retained.current.filter(draft => draft.key !== key));
+        if (live.current.project.id === ack.projectId && recoveryProjectKey(live.current.project) === key) { setLocalRevision(ack.revision); setStorageError(null); }
+        return ack;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Local save failed. Keep this tab open and verify a downloaded backup.';
+        retainDraft(snapshot, 'failed', message);
+        if (live.current.project.id === snapshot.id && recoveryProjectKey(live.current.project) === key) setStorageError(message);
+        throw error;
+      }
+    });
+    pendingSaves.current.set(key, task);
+    saveQueue.current = task.then(() => undefined, () => undefined);
+    void task.finally(() => { if (pendingSaves.current.get(key) === task) pendingSaves.current.delete(key); }).catch(() => {});
+    return task;
+  }
+  function preserveOutgoing(snapshot: Project): boolean {
+    if (acknowledgedContent.current.get(snapshot.id) === recoveryProjectKey(snapshot)) return true;
+    let invalid = false; let message = 'Saving the outgoing project before replacement.';
+    try { serializeProject(snapshot); }
+    catch (error) { invalid = true; message = error instanceof Error ? error.message : 'Repair this draft before saving.'; }
+    const draft = retainDraft(snapshot, invalid ? 'invalid' : 'waiting', message);
+    if (!draft) { setPanel('data'); setToast('This draft is still open. Review retained copies or reduce data before switching projects.'); return false; }
+    if (!invalid) void persistProject(snapshot).catch(() => {});
+    return true;
+  }
+  function edit(next: Project) {
+    const previous = live.current.project;
+    setLinkFrom(null); next = { ...next, revision: previous.revision + 1 }; delete next.savedAt;
+    setHistory(h => [...h.slice(-49), previous]); setFuture([]); setProject(next); live.current = { ...live.current, project: next }; setPlaying(false);
+  }
+  function undo() { setLinkFrom(null); const previous = history.at(-1); if (!previous) return; setFuture(f => [project, ...f]); setHistory(h => h.slice(0, -1)); const restored = { ...previous, revision: project.revision + 1 }; delete restored.savedAt; setProject(restored); live.current = { ...live.current, project: restored }; setPlaying(false); }
+  function redo() { setLinkFrom(null); const next = future[0]; if (!next) return; setHistory(h => [...h, project]); setFuture(f => f.slice(1)); const restored = { ...next, revision: project.revision + 1 }; delete restored.savedAt; setProject(restored); live.current = { ...live.current, project: restored }; setPlaying(false); }
+  function acceptProject(next: Project): Project | null {
+    const previous = live.current.project;
     setLinkFrom(null);
-    if (next.id === project.id) edit(next);
-    else { setProject(next); setHistory([]); setFuture([]); setResult(null); setBaseline(null); setSelected(serviceNodes(next)[0]?.id ?? null); setSavedRevision(null); setLocalRevision(null); void compute(next, true); }
+    if (next.id === previous.id) { edit(next); return live.current.project; }
+    if (!preserveOutgoing(previous)) return null;
+    setProject(next); live.current = { ...live.current, project: next }; setHistory([]); setFuture([]); setResult(null); setBaseline(null); setSelected(serviceNodes(next)[0]?.id ?? null); setBackupRequestedRevision(null); setLocalRevision(null); setStorageError(null);
+    if (!validateProject(next).some(issue => issue.severity === 'error')) void compute(next, true);
+    return next;
   }
   function chooseWorld(world: World) {
-    setLinkFrom(null);
-    const next = createExample(world); setProject(next); setHistory([]); setFuture([]); setResult(null); setBaseline(null); setSelected('station-c'); setPanel(null); setSavedRevision(null); setLocalRevision(null); void compute(next, true);
+    const next = acceptProject(createExample(world));
+    if (next) { setSelected('station-c'); setPanel(null); }
   }
   function downloadProject() {
+    const snapshot = live.current.project;
     try {
-      const data = { ...project, savedAt: new Date().toISOString() };
-      const url = URL.createObjectURL(new Blob([serializeProject(data)], { type: 'application/json' }));
-      const a = document.createElement('a'); a.href = url; a.download = `${project.world}-queuelab.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setSavedRevision(project.revision); setToast('Project file downloaded. Keep it to reopen your world.');
-    } catch (e) { setToast(e instanceof Error ? e.message : 'Repair the draft before downloading a project.'); }
+      let text: string; let repair = false;
+      try { text = serializeProject({ ...snapshot, savedAt: new Date().toISOString() }); }
+      catch { repair = true; text = serializeDraftRecovery(snapshot); }
+      downloadText(text, safeFilename(`${snapshot.world}-queuelab${repair ? '-unvalidated-repair' : ''}`, 'json'), 'application/json;charset=utf-8');
+      setBackupRequestedRevision(snapshot.revision); setToast(`${repair ? 'Unvalidated repair backup' : 'Project file'} download requested. Verify the saved file; a request does not confirm a backup.`);
+    } catch (e) { setToast(e instanceof Error ? e.message : 'Could not prepare a backup. Keep this draft open.'); }
   }
   async function importProject(file: File | undefined) {
     setLinkFrom(null);
     if (!file) return;
     try {
       const next = openProjectJSON(await readLocalText(file));
-      if (next.id === project.id) {
-        const restored = { ...next, revision: project.revision + 1 }; edit(restored); void compute(restored, true);
-      } else {
-        setProject(next); setHistory([]); setFuture([]); setResult(null); setBaseline(null); setSelected(serviceNodes(next)[0]?.id ?? null); setLocalRevision(null); void compute(next, true);
-      }
-      setSavedRevision(null);
+      const sameDocument = next.id === live.current.project.id;
+      const accepted = acceptProject(next);
+      if (!accepted) return;
+      if (sameDocument) void compute(accepted, true);
+      setBackupRequestedRevision(null);
     } catch (e) { setToast(e instanceof Error ? e.message : 'Could not open this project.'); }
+  }
+  function restoreDraft(token: string) {
+    const draft = retained.current.find(item => item.token === token); if (!draft) return;
+    const restored = acceptProject(structuredClone(draft.project));
+    if (restored) { setPanel('model'); setToast('Retained draft restored for repair. Its retained copy stays available until saved or explicitly removed.'); }
   }
   function updateDuration(seconds: number) {
     if (!station) return;
@@ -235,7 +329,7 @@ export default function App() {
         </section>
         <aside className="inspector" aria-label="Station inspector"><div className="inspector-eyebrow">SELECTED STATION<Settings2 size={15} /></div>{station ? <><div className="station-title"><span className="large-station-number">{String(stations.findIndex(n => n.id === station.id) + 1).padStart(2, '0')}</span><div><h2>{station.label}</h2><span>{project.world === 'factory' ? 'Processing station' : 'Service station'}</span></div></div><div className="inspector-divider" /><div className="field-heading"><label htmlFor="capacity">Parallel stations</label><span className="field-help" title="A dedicated resource pool is scaled with this quick control. Shared pools are managed in the model editor.">?</span></div><div className="stepper"><button aria-label="Remove one station" disabled={station.servers <= 1} onClick={() => edit(setCapacity(project, station.id, station.servers - 1))}><Minus size={15} /></button><output id="capacity">{Number.isFinite(station.servers) ? station.servers : '—'}</output><button aria-label="Add one station" disabled={station.servers >= 12} onClick={() => edit(setCapacity(project, station.id, station.servers + 1))}><Plus size={15} /></button></div><p className="field-description">{station.resources.some(req => project.model.nodes.filter(n => n.kind === 'service' && n.resources.some(r => r.poolId === req.poolId)).length > 1) ? 'This station shares a resource pool. Adjust the shared team in Model editor to change that limit.' : 'More capacity here may move the bottleneck elsewhere.'}</p><label className="input-label" htmlFor="process-time">Processing time</label><div className="input-with-unit"><input id="process-time" type="number" min="1" max="604800" value={Number.isFinite(meanDuration(station.duration)) ? Math.round(meanDuration(station.duration)) : ''} onChange={e => { if (e.target.value && +e.target.value > 0) updateDuration(+e.target.value); }} /><span>sec / {project.world === 'factory' ? 'item' : 'request'}</span></div><div className="distribution-note">{station.duration.kind === 'triangular' ? 'Variable · triangular distribution' : station.duration.kind === 'constant' ? 'Fixed processing time' : `${station.duration.kind} distribution`}</div><button className="subtle-link" onClick={() => setPanel('model')}>Advanced settings<ArrowUpRight size={13} /></button><div className="inspector-divider" /><div className="inspector-section-title">THIS RUN<span>{stale ? 'OUT OF DATE' : 'FULL RUN'}</span></div><dl className="station-stats"><div><dt>Finished here</dt><dd>{stationMetrics ? number(stationMetrics.finished) : '—'}</dd></div><div><dt>Avg. waiting time</dt><dd>{stationMetrics?.finished ? wait(stationMetrics.averageWait) : '—'}</dd></div><div><dt>Utilization</dt><dd>{stationMetrics?.utilization != null ? `${Math.round(stationMetrics.utilization * 100)}%` : '—'}</dd></div></dl><div className="inspector-tip"><FlaskConical size={19} /><p><b>A little experiment</b>Try one more station. Compare the same arrivals, then check both waiting time and cost.</p></div><button className="inspector-compare" onClick={() => setPanel('compare')}>Compare with baseline<ArrowRight size={15} /></button></> : <p>Select a station in the world or the list.</p>}<div className="inspector-bottom"><ShieldCheck size={13} />Layout is illustrative. Timing comes from your model.</div></aside>
       </div>
-      <footer className="workspace-footer"><span><span className="status-dot" />{storageError ? 'Local save failed · download a backup' : !storageReady ? 'Opening local project…' : issues.some(i => i.severity === 'error') ? 'Draft has issues · repair before saving' : localRevision === project.revision ? 'Saved in this browser' : 'Saving locally…'}{savedRevision === project.revision ? ' · backup downloaded' : ''}</span><span>Seed {Number.isFinite(project.model.seed) ? project.model.seed : 'CHECK'}<span className="footer-separator" />{source?.kind === 'source' ? 'Variable demand' : 'Custom model'}<span className="footer-separator" /><button onClick={() => setReducedMotion(!reducedMotion)}>{reducedMotion ? 'Reduced motion on' : 'Motion on'}</button></span></footer>
+      <footer className="workspace-footer"><span><span className="status-dot" />{storageError ? 'Local save failed · download a backup' : !storageReady ? 'Opening local project…' : issues.some(i => i.severity === 'error') ? 'Draft has issues · repair before saving' : localRevision === project.revision ? 'Saved in this browser' : 'Saving locally…'}{backupRequestedRevision === project.revision ? ' · backup requested, verify file' : ''}{retainedDrafts.length > 0 && <button onClick={() => setPanel('data')}>{retainedDrafts.length} retained draft{retainedDrafts.length === 1 ? '' : 's'} · review recovery</button>}</span><span>Seed {Number.isFinite(project.model.seed) ? project.model.seed : 'CHECK'}<span className="footer-separator" />{source?.kind === 'source' ? 'Variable demand' : 'Custom model'}<span className="footer-separator" /><button onClick={() => setReducedMotion(!reducedMotion)}>{reducedMotion ? 'Reduced motion on' : 'Motion on'}</button></span></footer>
     </main>
     <input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={e => { void importProject(e.target.files?.[0]); e.target.value = ''; }} />
     {storageError && <button className="storage-warning" onClick={() => { setToast(storageError); setPanel('data'); }}>Local save needs attention — download a backup</button>}
@@ -247,7 +341,7 @@ export default function App() {
       {panel === 'model' && <ModelEditor project={project} onChange={edit} selectedId={selected} onSelect={setSelected} />}
       {panel === 'insights' && <RunInsights result={result} draft={project.model} onReport={() => setPanel('data')} onExperiments={() => setPanel('experiments')} />}
       {panel === 'experiments' && <ExperimentsPanel project={project} baseline={baseline} onApplyCapacity={(poolId, capacity) => { edit(mutateProject(project, p => { const pool = p.model.resources.find(r => r.id === poolId); if (pool) pool.capacity = capacity; })); setPanel(null); setToast('Applied the verified pool capacity to your draft. Run it to calculate results.'); }} />}
-      {panel === 'data' && <DataTools project={project} result={result} onImport={acceptProject} />}
+      {panel === 'data' && <DataTools project={project} result={result} onImport={acceptProject} onSave={persistProject} retainedDrafts={retainedDrafts} onRestoreDraft={restoreDraft} onRetryDraft={token => { const draft = retained.current.find(item => item.token === token); if (draft) void persistProject(draft.project).catch(() => {}); }} onRemoveDraft={token => updateRetained(retained.current.filter(draft => draft.token !== token))} />}
       {panel === 'help' && <div className="help-content"><p>Every world is a small, editable process simulation. Jobs arrive, wait for limited resources, move through stations and leave.</p><ol><li><b>Watch the queue.</b> Select a station to inspect its capacity and processing time.</li><li><b>Try another plan.</b> Make a change, then run the model. The original result stays as your baseline.</li><li><b>Compare the trade-off.</b> Check completed work, waiting and resource cost together.</li><li><b>Keep your world.</b> Download the project file and reopen it later.</li></ol><p className="quiet-copy">With the world focused: Space to play or pause · F for full screen · G to focus the selected station.</p><p className="quiet-copy">The engine uses a reproducible seed. The visual layout does not determine travel time or simulate physical collisions. These are synthetic examples, not validated forecasts of a real business.</p><button className="secondary-button" onClick={() => setQuality(quality === 'high' ? 'low' : 'high')}>3D quality: {quality === 'high' ? 'detailed' : 'low power'}</button><button className="secondary-button" onClick={() => setReducedMotion(!reducedMotion)}>{reducedMotion ? <Check size={15} /> : <Pause size={15} />}Reduced motion: {reducedMotion ? 'on' : 'off'}</button></div>}
     </section></div>}
   </div>;
