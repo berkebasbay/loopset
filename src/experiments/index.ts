@@ -108,11 +108,10 @@ export interface CapacitySearchResult {
   candidates: CapacityCandidate[]; selectedCapacity: number | null; verification: ExperimentResult | null;
   verified: boolean; totalRuns: number; runBudget: number; reason?: string;
 }
+export interface CapacitySearchPlan { minimumRuns: number; maximumRuns: number; runBudget: number }
 
-/** Bounded finite candidate search. Selection means the cheapest training-feasible
- * candidate; an independent held-out experiment checks the same mean constraints.
- * This is neither a global optimum nor a statistical guarantee of feasibility. */
-export function capacitySearch(model: SimulationModel, spec: CapacitySearchSpec, options: RunOptions = {}): CapacitySearchResult {
+/** Validate/count the same finite plan used by execution, without running it. */
+export function capacitySearchPlan(model: SimulationModel, spec: CapacitySearchSpec): CapacitySearchPlan {
   assertModel(model); validateSeeds(spec.trainingSeeds); validateSeeds(spec.verificationSeeds);
   const pool = model.resources.find(p => p.id === spec.poolId);
   if (!pool) throw new Error('Capacity search requires an existing resource pool.');
@@ -122,6 +121,14 @@ export function capacitySearch(model: SimulationModel, spec: CapacitySearchSpec,
   const runBudget = spec.maxRuns ?? 256;
   const plannedRuns = spec.capacities.length * spec.trainingSeeds.length + spec.verificationSeeds.length;
   if (!Number.isSafeInteger(runBudget) || runBudget < 1 || runBudget > 1000 || plannedRuns > runBudget) throw new Error(`Search needs up to ${plannedRuns} runs, exceeding its valid 1–1,000 run budget.`);
+  return { minimumRuns: spec.capacities.length * spec.trainingSeeds.length, maximumRuns: plannedRuns, runBudget };
+}
+
+/** Bounded finite candidate search. Selection means the cheapest training-feasible
+ * candidate; an independent held-out experiment checks the same mean constraints.
+ * This is neither a global optimum nor a statistical guarantee of feasibility. */
+export function capacitySearch(model: SimulationModel, spec: CapacitySearchSpec, options: RunOptions = {}): CapacitySearchResult {
+  const { maximumRuns: plannedRuns, runBudget } = capacitySearchPlan(model, spec);
   const budget = new RetentionBudget();
   budget.check(encodedBytes(model) * spec.capacities.length);
   const candidateModel = (capacity: number) => {

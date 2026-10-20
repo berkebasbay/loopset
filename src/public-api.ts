@@ -1,8 +1,10 @@
 /** Browser-independent entry point. No UI, renderer, storage or network imports. */
 export * from './model/types';
 export { simulate, simulateAsync, quantile, RNG_VERSION, normalizeRunLimits, buildCouplingManifest } from './engine';
-export { runExperiment, runExperimentAsync, comparePaired, capacitySearch, estimate } from './experiments';
-export type { CapacitySearchSpec, CapacityCandidate, CapacitySearchResult } from './experiments';
+export { runExperiment, runExperimentAsync, comparePaired, capacitySearch, capacitySearchPlan, estimate } from './experiments';
+export type { CapacitySearchSpec, CapacityCandidate, CapacitySearchResult, CapacitySearchPlan } from './experiments';
+export { arrivalExpectation, calculationBudget } from './model/workBudget';
+export type { WorkGroup, WorkBudget } from './model/workBudget';
 export { validateModel, validateProject, assertModel, parseProject } from './model/validate';
 export { canonical, fingerprint, modelHash, demandHash } from './model/identity';
 export { meanDuration, mutateProject, setCapacity, serviceNodes, duplicateProject } from './model/commands';
