@@ -1,0 +1,41 @@
+import type { Distribution, Project, ServiceNode } from './types';
+
+export function meanDuration(d: Distribution): number {
+  switch (d.kind) {
+    case 'constant': return d.value;
+    case 'exponential': return d.mean;
+    case 'triangular': return (d.min + d.mode + d.max) / 3;
+    case 'empirical': return d.values.reduce((a, b) => a + b, 0) / d.values.length;
+  }
+}
+
+export function mutateProject(project: Project, edit: (copy: Project) => void): Project {
+  const next = structuredClone(project); edit(next); next.revision++; delete next.savedAt; return next;
+}
+
+/** Quick capacity control also scales a dedicated pool. Shared resources stay explicit. */
+export function setCapacity(project: Project, stationId: string, capacity: number): Project {
+  return mutateProject(project, p => {
+    const node = p.model.nodes.find(n => n.id === stationId);
+    if (!node || node.kind !== 'service') return;
+    node.servers = Math.max(1, Math.min(12, Math.round(capacity)));
+    for (const req of node.resources) {
+      const consumers = p.model.nodes.filter(n => n.kind === 'service' && n.resources.some(r => r.poolId === req.poolId));
+      const pool = p.model.resources.find(r => r.id === req.poolId);
+      if (pool && consumers.length === 1) {
+        pool.capacity = Math.min(pool.installedCapacity, node.servers * req.units);
+      }
+    }
+  });
+}
+
+export function serviceNodes(project: Project): ServiceNode[] { return project.model.nodes.filter((n): n is ServiceNode => n.kind === 'service'); }
+
+/** New document identity, same modeled process and sampling identities. */
+export function duplicateProject(project: Project): Project {
+  const next = structuredClone(project);
+  next.id = `${project.world}-${crypto.randomUUID().slice(0, 8)}`;
+  next.name = `${project.name.slice(0, 150)} copy`;
+  next.revision = 0; delete next.savedAt;
+  return next;
+}

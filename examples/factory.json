@@ -1,0 +1,426 @@
+{
+  "schemaVersion": 1,
+  "id": "factory-example",
+  "name": "Little Factory",
+  "world": "factory",
+  "model": {
+    "id": "factory-model",
+    "name": "Little Factory",
+    "horizon": 3600,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 300,
+    "currency": "USD",
+    "resources": [
+      {
+        "id": "team-a",
+        "label": "Machining team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      },
+      {
+        "id": "team-b",
+        "label": "Quality check team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 28,
+        "overtimeCostPerHour": 42
+      },
+      {
+        "id": "team-c",
+        "label": "Packing team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 22,
+        "overtimeCostPerHour": 33
+      }
+    ],
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "factory-arrivals",
+        "label": "Incoming orders",
+        "kind": "source",
+        "next": "queue-a",
+        "arrival": {
+          "kind": "poisson",
+          "segments": [
+            {
+              "start": 0,
+              "end": 900,
+              "perHour": 70
+            },
+            {
+              "start": 900,
+              "end": 2400,
+              "perHour": 110
+            },
+            {
+              "start": 2400,
+              "end": 3600,
+              "perHour": 70
+            }
+          ]
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-a",
+        "samplingId": "factory-queue-a",
+        "label": "Before machining",
+        "kind": "queue",
+        "next": "station-a",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "station-a",
+        "samplingId": "factory-station-a",
+        "label": "Machining",
+        "kind": "service",
+        "next": "queue-b",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 18,
+          "mode": 28,
+          "max": 40
+        },
+        "resources": [
+          {
+            "poolId": "team-a",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-b",
+        "samplingId": "factory-queue-b",
+        "label": "Before quality check",
+        "kind": "queue",
+        "next": "station-b",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "station-b",
+        "samplingId": "factory-station-b",
+        "label": "Quality check",
+        "kind": "service",
+        "next": "queue-c",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 12,
+          "mode": 18,
+          "max": 28
+        },
+        "resources": [
+          {
+            "poolId": "team-b",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-c",
+        "samplingId": "factory-queue-c",
+        "label": "Before packing",
+        "kind": "queue",
+        "next": "station-c",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "station-c",
+        "samplingId": "factory-station-c",
+        "label": "Packing",
+        "kind": "service",
+        "next": "exit",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 65,
+          "mode": 85,
+          "max": 110
+        },
+        "resources": [
+          {
+            "poolId": "team-c",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "factory-exit",
+        "label": "Ready to ship",
+        "kind": "sink"
+      }
+    ]
+  },
+  "revision": 0,
+  "description": "A small workshop with a growing packing queue. Explore where an extra station makes a difference.",
+  "layout": {
+    "arrivals": {
+      "x": -8,
+      "z": -2
+    },
+    "queue-a": {
+      "x": -6,
+      "z": -2
+    },
+    "station-a": {
+      "x": -4,
+      "z": -2
+    },
+    "queue-b": {
+      "x": -2,
+      "z": 0
+    },
+    "station-b": {
+      "x": 0,
+      "z": 0
+    },
+    "queue-c": {
+      "x": 2,
+      "z": 2
+    },
+    "station-c": {
+      "x": 4,
+      "z": 2
+    },
+    "exit": {
+      "x": 8,
+      "z": 2
+    }
+  },
+  "scenarios": [
+    {
+      "id": "factory-baseline",
+      "name": "Baseline",
+      "createdAt": "2026-10-20T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "factory-model",
+        "name": "Little Factory",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 300,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Machining team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "team-b",
+            "label": "Quality check team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "team-c",
+            "label": "Packing team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 22,
+            "overtimeCostPerHour": 33
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "factory-arrivals",
+            "label": "Incoming orders",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 70
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 110
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 70
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "factory-queue-a",
+            "label": "Before machining",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "factory-station-a",
+            "label": "Machining",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 28,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "factory-queue-b",
+            "label": "Before quality check",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "factory-station-b",
+            "label": "Quality check",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "team-b",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "factory-queue-c",
+            "label": "Before packing",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-c",
+            "samplingId": "factory-station-c",
+            "label": "Packing",
+            "kind": "service",
+            "next": "exit",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 65,
+              "mode": 85,
+              "max": 110
+            },
+            "resources": [
+              {
+                "poolId": "team-c",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "factory-exit",
+            "label": "Ready to ship",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -8,
+          "z": -2
+        },
+        "queue-a": {
+          "x": -6,
+          "z": -2
+        },
+        "station-a": {
+          "x": -4,
+          "z": -2
+        },
+        "queue-b": {
+          "x": -2,
+          "z": 0
+        },
+        "station-b": {
+          "x": 0,
+          "z": 0
+        },
+        "queue-c": {
+          "x": 2,
+          "z": 2
+        },
+        "station-c": {
+          "x": 4,
+          "z": 2
+        },
+        "exit": {
+          "x": 8,
+          "z": 2
+        }
+      }
+    }
+  ]
+}

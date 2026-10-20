@@ -1,0 +1,30 @@
+name: Local-release checks
+
+# Manual until the owner reviews private-repository Actions usage and billing.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Official release refs resolved through api.github.com on 2026-10-20.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run build:engine
+      - run: node scripts/simulate.mjs --example factory --seed 4207
+      - run: node scripts/simulate.mjs examples/service.json --seed 4207
+      - run: node examples/verify.mjs

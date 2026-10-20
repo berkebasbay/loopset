@@ -1,0 +1,432 @@
+{
+  "schemaVersion": 1,
+  "id": "festival-example",
+  "name": "Festival Gate",
+  "world": "festival",
+  "model": {
+    "id": "festival-model",
+    "name": "Festival Gate",
+    "horizon": 3600,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 180,
+    "currency": "USD",
+    "resources": [
+      {
+        "id": "team-a",
+        "label": "Wristbands team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      },
+      {
+        "id": "team-b",
+        "label": "Ticket check team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 28,
+        "overtimeCostPerHour": 42
+      },
+      {
+        "id": "team-c",
+        "label": "Security team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 22,
+        "overtimeCostPerHour": 33
+      }
+    ],
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "festival-arrivals",
+        "label": "Visitors arrive",
+        "kind": "source",
+        "next": "queue-a",
+        "arrival": {
+          "kind": "poisson",
+          "segments": [
+            {
+              "start": 0,
+              "end": 900,
+              "perHour": 80
+            },
+            {
+              "start": 900,
+              "end": 2400,
+              "perHour": 125
+            },
+            {
+              "start": 2400,
+              "end": 3600,
+              "perHour": 85
+            }
+          ]
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-a",
+        "samplingId": "festival-queue-a",
+        "label": "Before wristbands",
+        "kind": "queue",
+        "next": "station-a",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "station-a",
+        "samplingId": "festival-station-a",
+        "label": "Wristbands",
+        "kind": "service",
+        "next": "queue-b",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 18,
+          "mode": 22,
+          "max": 40
+        },
+        "resources": [
+          {
+            "poolId": "team-a",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-b",
+        "samplingId": "festival-queue-b",
+        "label": "Before ticket check",
+        "kind": "queue",
+        "next": "station-b",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "station-b",
+        "samplingId": "festival-station-b",
+        "label": "Ticket check",
+        "kind": "service",
+        "next": "queue-c",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 12,
+          "mode": 18,
+          "max": 28
+        },
+        "resources": [
+          {
+            "poolId": "team-b",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-c",
+        "samplingId": "festival-queue-c",
+        "label": "Before security",
+        "kind": "queue",
+        "next": "station-c",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": {
+          "kind": "constant",
+          "value": 900
+        }
+      },
+      {
+        "id": "station-c",
+        "samplingId": "festival-station-c",
+        "label": "Security",
+        "kind": "service",
+        "next": "exit",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 50,
+          "mode": 75,
+          "max": 100
+        },
+        "resources": [
+          {
+            "poolId": "team-c",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "festival-exit",
+        "label": "Inside the festival",
+        "kind": "sink"
+      }
+    ]
+  },
+  "revision": 0,
+  "description": "A wave of visitors meets three checkpoints. Keep the entrance moving without hiding the staffing cost.",
+  "layout": {
+    "arrivals": {
+      "x": -8,
+      "z": -2
+    },
+    "queue-a": {
+      "x": -6,
+      "z": -2
+    },
+    "station-a": {
+      "x": -4,
+      "z": -2
+    },
+    "queue-b": {
+      "x": -2,
+      "z": 0
+    },
+    "station-b": {
+      "x": 0,
+      "z": 0
+    },
+    "queue-c": {
+      "x": 2,
+      "z": 2
+    },
+    "station-c": {
+      "x": 4,
+      "z": 2
+    },
+    "exit": {
+      "x": 8,
+      "z": 2
+    }
+  },
+  "scenarios": [
+    {
+      "id": "festival-baseline",
+      "name": "Baseline",
+      "createdAt": "2026-10-20T00:00:00.000Z",
+      "world": "festival",
+      "model": {
+        "id": "festival-model",
+        "name": "Festival Gate",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 180,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Wristbands team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "team-b",
+            "label": "Ticket check team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "team-c",
+            "label": "Security team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 22,
+            "overtimeCostPerHour": 33
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "festival-arrivals",
+            "label": "Visitors arrive",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 80
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 125
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 85
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "festival-queue-a",
+            "label": "Before wristbands",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "festival-station-a",
+            "label": "Wristbands",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 22,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "festival-queue-b",
+            "label": "Before ticket check",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "festival-station-b",
+            "label": "Ticket check",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "team-b",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "festival-queue-c",
+            "label": "Before security",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": {
+              "kind": "constant",
+              "value": 900
+            }
+          },
+          {
+            "id": "station-c",
+            "samplingId": "festival-station-c",
+            "label": "Security",
+            "kind": "service",
+            "next": "exit",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 50,
+              "mode": 75,
+              "max": 100
+            },
+            "resources": [
+              {
+                "poolId": "team-c",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "festival-exit",
+            "label": "Inside the festival",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -8,
+          "z": -2
+        },
+        "queue-a": {
+          "x": -6,
+          "z": -2
+        },
+        "station-a": {
+          "x": -4,
+          "z": -2
+        },
+        "queue-b": {
+          "x": -2,
+          "z": 0
+        },
+        "station-b": {
+          "x": 0,
+          "z": 0
+        },
+        "queue-c": {
+          "x": 2,
+          "z": 2
+        },
+        "station-c": {
+          "x": 4,
+          "z": 2
+        },
+        "exit": {
+          "x": 8,
+          "z": 2
+        }
+      }
+    }
+  ]
+}
