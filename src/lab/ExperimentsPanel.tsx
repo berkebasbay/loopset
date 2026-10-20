@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, FlaskConical, LoaderCircle, Play, X } from 'lucide-react';
-import type { CapacitySearchResult, CapacitySearchSpec } from '../experiments';
-import type { ExperimentResult, MetricEstimate, PairedComparison, Project, RunResult } from '../model/types';
+import type { CapacitySearchSpec } from '../experiments';
+import type { ExperimentResult, MetricEstimate, Project, RunResult } from '../model/types';
 import { modelHash } from '../model/identity';
 import { validateProject } from '../model/validate';
-import type { LabRequest } from '../worker/experiments.worker';
+import { WorkerClient } from '../worker/client';
+import { experimentEnvelope, readExperimentRequest, readExperimentResponse } from '../worker/protocol';
+import type { ExperimentRequest, ExperimentValue } from '../worker/protocol';
 import { CouplingDetails } from '../features/CouplingDetails';
 import { RunProvenanceDetails } from '../features/RunProvenanceDetails';
 import './lab.css';
 
-type Result = { kind: 'replications'; value: ExperimentResult } | { kind: 'paired'; value: PairedComparison } | { kind: 'search'; value: CapacitySearchResult };
+type Result = ExperimentValue;
 interface Props { project: Project; baseline: RunResult | null; onApplyCapacity: (poolId: string, capacity: number) => void }
 const formatted = (n: number, unit: string) => `${n.toLocaleString('en', { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ''}`;
 const interval = (e: MetricEstimate, unit = '') => e.samples === 0 ? 'No observations' : e.lower95 === null || e.upper95 === null ? 'Requires at least 2 runs' : `${formatted(e.lower95, unit)} to ${formatted(e.upper95, unit)}`;
@@ -33,43 +35,43 @@ export function ExperimentsPanel({ project, baseline, onApplyCapacity }: Props) 
   const [resultPoolId, setResultPoolId] = useState('');
   const [resultCurrency, setResultCurrency] = useState(project.model.currency); const [resultHash, setResultHash] = useState('');
   const [running, setRunning] = useState(false); const [progress, setProgress] = useState(0); const [error, setError] = useState('');
-  const pending = useRef<{ id: string; worker: Worker } | null>(null);
+  const pending = useRef<string | null>(null);
+  const client = useRef<WorkerClient<ExperimentRequest, ExperimentValue> | null>(null);
+  if (!client.current) client.current = new WorkerClient(
+    () => new Worker(new URL('../worker/experiments.worker.ts', import.meta.url), { type: 'module' }),
+    readExperimentResponse, state => { setRunning(state.running); setProgress(state.progress); setError(state.error ?? ''); }, 'experiment',
+  );
   const currentPool = project.model.resources.find(p => p.id === poolId);
   const invalid = validateProject(project).some(i => i.severity === 'error');
-  useEffect(() => () => pending.current?.worker.terminate(), []);
-  function cancel() { pending.current?.worker.terminate(); pending.current = null; setRunning(false); setError('Experiment cancelled. No partial estimate was accepted.'); }
+  useEffect(() => () => { pending.current = null; client.current?.dispose(); }, []);
+  function cancel() { pending.current = null; client.current!.cancel(); }
   function submit() {
     setError('');
     try {
       if (!Number.isSafeInteger(count) || count < 1 || count > 100) throw new Error('Choose 1–100 independent runs.');
       const seeds = Array.from({ length: count }, (_, i) => firstSeed + i);
       if (seeds.some(s => !Number.isSafeInteger(s))) throw new Error('Replication seeds must be safe integers.');
-      const id = crypto.randomUUID(); let request: LabRequest;
-      if (tab === 'replications') request = { id, kind: tab, model: structuredClone(project.model), seeds };
+      const id = crypto.randomUUID(); const envelope = { ...experimentEnvelope(id, tab), type: 'run' as const }; let request: ExperimentRequest;
+      if (tab === 'replications') request = { ...envelope, kind: tab, model: structuredClone(project.model), seeds };
       else if (tab === 'paired') {
         if (!baseline) throw new Error('Create a baseline run first.');
-        request = { id, kind: tab, baseline: baseline.model, model: structuredClone(project.model), seeds };
+        request = { ...envelope, kind: tab, baseline: baseline.model, model: structuredClone(project.model), seeds };
       } else {
         const values = capacities.split(',').map(v => Number(v.trim()));
         if (!capacities.trim() || capacities.split(',').some(v => !v.trim())) throw new Error('Enter comma-separated integer capacities without empty values.');
         const verificationSeeds = Array.from({ length: count }, (_, i) => firstSeed + 1_000_000 + i);
         const spec: CapacitySearchSpec = { poolId, capacities: values, trainingSeeds: seeds, verificationSeeds, maxRuns: 256,
           targetCompleted: target.trim() ? Number(target) : undefined, maxMeanWait: maxWait.trim() ? Number(maxWait) : undefined };
-        request = { id, kind: tab, model: structuredClone(project.model), spec };
+        request = { ...envelope, kind: tab, model: structuredClone(project.model), spec };
       }
-      pending.current?.worker.terminate();
-      const worker = new Worker(new URL('../worker/experiments.worker.ts', import.meta.url), { type: 'module' });
-      pending.current = { id, worker }; setRunning(true); setProgress(0);
+      readExperimentRequest(request);
+      pending.current = id;
       const hash = modelHash(project.model); const currency = project.model.currency; const searchedPool = poolId;
-      worker.onmessage = event => {
-        if (pending.current?.id !== id || event.data.id !== id) return;
-        if (event.data.type === 'progress') { setProgress(event.data.fraction); return; }
-        if (event.data.type === 'result') { setResult({ kind: event.data.kind, value: event.data.value }); setResultHash(hash); setResultCurrency(currency); setResultPoolId(searchedPool); setProgress(1); }
-        else setError(event.data.message ?? 'The experiment could not finish.');
-        setRunning(false); pending.current = null; worker.terminate();
-      };
-      worker.onerror = event => { if (pending.current?.id === id) { setError(event.message || 'The experiment worker stopped unexpectedly.'); setRunning(false); pending.current = null; } worker.terminate(); };
-      worker.postMessage(request);
+      void client.current!.run(request).then(value => {
+        if (pending.current !== id) return;
+        pending.current = null;
+        setResult(value); setResultHash(hash); setResultCurrency(currency); setResultPoolId(searchedPool);
+      }).catch(() => { if (pending.current === id) pending.current = null; });
     } catch (e) { setError(e instanceof Error ? e.message : 'Check experiment settings.'); }
   }
   const stale = Boolean(result && resultHash !== modelHash(project.model));
