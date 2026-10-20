@@ -10,7 +10,7 @@ function socialMetadata(value: string | undefined): HtmlTagDescriptor[] {
   let url: URL;
   try { url = new URL(value.trim()); } catch { throw new Error(message); }
   const host = url.hostname.toLowerCase();
-  if (url.protocol !== 'https:' || url.username || url.password || url.port || url.href !== `${url.origin}/` || !host.includes('.') || host.endsWith('.localhost') || host.endsWith('.local') || isIP(host.replace(/^\[|\]$/g, ''))) throw new Error(message);
+  if (url.protocol !== 'https:' || url.username || url.password || url.port || url.href !== `${url.origin}/` || !host.includes('.') || host.endsWith('.') || host.endsWith('.localhost') || host.endsWith('.local') || isIP(host.replace(/^\[|\]$/g, ''))) throw new Error(message);
   const title = 'QueueLab — Little worlds. Better decisions.';
   const description = 'A free process and capacity simulator. Build a little world, find its bottleneck and compare plans.';
   const image = new URL('social-card.png', url).href;
