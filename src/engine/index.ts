@@ -310,10 +310,22 @@ export function simulate(model: SimulationModel, options: RunOptions = {}): RunR
 
 export async function simulateAsync(model: SimulationModel, options: RunOptions = {}): Promise<RunResult> {
   assertModel(model); const iterator = execute(model, options);
-  let result = iterator.next(); let chunk = 0;
-  while (!result.done) {
-    if (++chunk === 256) { chunk = 0; await new Promise<void>(resolve => setTimeout(resolve, 0)); }
-    result = iterator.next();
-  }
-  return result.value;
+  // Nested setTimeout(0) is clamped by browsers. A private message task yields
+  // to cancellation/progress without adding that delay to every 256 units.
+  const channel = typeof MessageChannel === 'undefined' ? null : new MessageChannel();
+  let yields = 0;
+  const yieldTask = () => new Promise<void>(resolve => {
+    // Periodically use the timer queue too: continuously posted port tasks can
+    // otherwise starve timers in Node (including a caller's cancel callback).
+    if (channel && ++yields % 8 !== 0) { channel.port1.onmessage = () => resolve(); channel.port2.postMessage(null); }
+    else setTimeout(resolve, 0);
+  });
+  try {
+    let result = iterator.next(); let chunk = 0;
+    while (!result.done) {
+      if (++chunk === 256) { chunk = 0; await yieldTask(); }
+      result = iterator.next();
+    }
+    return result.value;
+  } finally { channel?.port1.close(); channel?.port2.close(); }
 }

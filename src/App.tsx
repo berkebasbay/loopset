@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, ArrowDownToLine, ArrowRight, ArrowUpRight, Box, Check, ChevronRight, CircleHelp, Copy, Factory, FileUp, FlaskConical, Focus, GitCompareArrows, Globe2, Layers3, Leaf, List, LoaderCircle, Minus, MousePointer2, Move, Pause, Play, Plus, Redo2, Settings2, ShieldCheck, SkipBack, Sparkles, Undo2, Users, X } from 'lucide-react';
+import { Activity, ArrowDownToLine, ArrowRight, ArrowUpRight, Box, Check, ChevronRight, CircleHelp, Copy, Factory, FileUp, FlaskConical, Focus, GitCompareArrows, Globe2, Layers3, Leaf, Link2, List, LoaderCircle, Minus, MousePointer2, Move, Pause, Play, Plus, Redo2, Settings2, ShieldCheck, SkipBack, Sparkles, Undo2, Users, X } from 'lucide-react';
 import { createExample, WORLD_INFO } from './examples';
 import { meanDuration, mutateProject, serviceNodes, setCapacity } from './model/commands';
 import { modelHash } from './model/identity';
@@ -9,6 +9,7 @@ import { frameAt } from './playback';
 const WorldScene = lazy(() => import('./scene/WorldScene').then(module => ({ default: module.WorldScene })));
 import { useSimulation } from './worker/useSimulation';
 import { ModelEditor } from './features/ModelEditor';
+import { connectNext } from './features/modelEdits';
 import { DataTools } from './features/DataTools';
 import { ExperimentsPanel } from './lab/ExperimentsPanel';
 import { SavedScenarios } from './lab/SavedScenarios';
@@ -35,6 +36,7 @@ export default function App() {
   const [result, setResult] = useState<RunResult | null>(null); const [baseline, setBaseline] = useState<RunResult | null>(null);
   const [time, setTime] = useState(0); const [playing, setPlaying] = useState(false); const [speed, setSpeed] = useState(60);
   const [panel, setPanel] = useState<'worlds' | 'model' | 'compare' | 'data' | 'experiments' | 'insights' | 'help' | null>(null);
+  const [linkFrom, setLinkFrom] = useState<string | null>(null);
   const [quality, setQuality] = useState<'high' | 'low'>('high');
   const [moving, setMoving] = useState(false); const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [toast, setToast] = useState<string | null>(null); const [savedRevision, setSavedRevision] = useState<number | null>(null);
@@ -135,12 +137,13 @@ export default function App() {
   }, [panel]);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    if (panel) setPlaying(false);
+    if (panel) { setPlaying(false); setLinkFrom(null); }
     if (panel) {
       const focusDialog = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[role=dialog] button')?.focus());
       if (document.fullscreenElement) void document.exitFullscreen().then(focusDialog); else focusDialog();
     }
     const keyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && linkFrom && !panel) { event.preventDefault(); setLinkFrom(null); return; }
       if (event.key === 'Escape' && panel) { event.preventDefault(); setPanel(null); return; }
       if (event.key === 'Tab' && panel) {
         const elements = [...document.querySelectorAll<HTMLElement>('[role=dialog] button:not(:disabled),[role=dialog] input:not(:disabled),[role=dialog] select,[role=dialog] a[href],[role=dialog] textarea')].filter(e => e.offsetParent !== null);
@@ -156,17 +159,19 @@ export default function App() {
     };
     document.addEventListener('keydown', keyboard);
     return () => { document.removeEventListener('keydown', keyboard); if (panel && previous?.isConnected) previous.focus(); };
-  }, [panel]);
+  }, [panel, linkFrom]);
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(null), 6000); return () => clearTimeout(id); }, [toast]);
 
-  function edit(next: Project) { next = { ...next, revision: project.revision + 1 }; setHistory(h => [...h.slice(-49), project]); setFuture([]); setProject({ ...next, revision: project.revision + 1 }); setPlaying(false); }
-  function undo() { const previous = history.at(-1); if (!previous) return; setFuture(f => [project, ...f]); setHistory(h => h.slice(0, -1)); setProject({ ...previous, revision: project.revision + 1 }); setPlaying(false); }
-  function redo() { const next = future[0]; if (!next) return; setHistory(h => [...h, project]); setFuture(f => f.slice(1)); setProject({ ...next, revision: project.revision + 1 }); setPlaying(false); }
+  function edit(next: Project) { setLinkFrom(null); next = { ...next, revision: project.revision + 1 }; setHistory(h => [...h.slice(-49), project]); setFuture([]); setProject({ ...next, revision: project.revision + 1 }); setPlaying(false); }
+  function undo() { setLinkFrom(null); const previous = history.at(-1); if (!previous) return; setFuture(f => [project, ...f]); setHistory(h => h.slice(0, -1)); setProject({ ...previous, revision: project.revision + 1 }); setPlaying(false); }
+  function redo() { setLinkFrom(null); const next = future[0]; if (!next) return; setHistory(h => [...h, project]); setFuture(f => f.slice(1)); setProject({ ...next, revision: project.revision + 1 }); setPlaying(false); }
   function acceptProject(next: Project) {
+    setLinkFrom(null);
     if (next.id === project.id) edit(next);
     else { setProject(next); setHistory([]); setFuture([]); setResult(null); setBaseline(null); setSelected(serviceNodes(next)[0]?.id ?? null); setSavedRevision(null); setLocalRevision(null); void compute(next, true); }
   }
   function chooseWorld(world: World) {
+    setLinkFrom(null);
     const next = createExample(world); setProject(next); setHistory([]); setFuture([]); setResult(null); setBaseline(null); setSelected('station-c'); setPanel(null); setSavedRevision(null); setLocalRevision(null); void compute(next, true);
   }
   function downloadProject() {
@@ -178,6 +183,7 @@ export default function App() {
     } catch (e) { setToast(e instanceof Error ? e.message : 'Repair the draft before downloading a project.'); }
   }
   async function importProject(file: File | undefined) {
+    setLinkFrom(null);
     if (!file) return;
     try {
       const next = openProjectJSON(await readLocalText(file));
@@ -217,11 +223,11 @@ export default function App() {
       <div className="workspace-heading"><div><div className="eyebrow"><span />A PLAYGROUND FOR BETTER DECISIONS</div><h1>{project.name}<span className="title-period">.</span></h1><p>{worldInfo.subtitle}. What would you change?</p></div><div className="heading-actions"><button className="secondary-button" onClick={() => setPanel('compare')}><GitCompareArrows size={16} />Compare plans</button><button className="primary-button" disabled={sim.running || issues.some(i => i.severity === 'error')} onClick={() => void compute(project)}>{sim.running ? <LoaderCircle size={17} className="spin" /> : <Play size={16} fill="currentColor" />}{sim.running ? `${Math.round(sim.progress * 100)}% calculating` : 'Run simulation'}</button></div></div>
       <div className="workspace-body">
         <section className="world-workspace" aria-label="Simulation workspace">
-          <div className="world-toolbar"><div className="world-tabs">{(['factory', 'festival', 'service'] as const).map(w => <button key={w} className={project.world === w ? 'selected' : ''} onClick={() => chooseWorld(w)}>{w === 'factory' ? <Factory size={14} /> : w === 'festival' ? <Users size={14} /> : <Leaf size={14} />}{w === 'factory' ? 'Factory' : w === 'festival' ? 'Festival' : 'Service'}</button>)}</div><div className="world-tools"><button className="icon-button" disabled={!history.length} aria-label="Undo" onClick={undo}><Undo2 size={16} /></button><button className="icon-button" disabled={!future.length} aria-label="Redo" onClick={redo}><Redo2 size={16} /></button><span className="tool-divider" /><button className={`icon-button ${moving ? 'selected' : ''}`} aria-label="Move stations" aria-pressed={moving} onClick={() => setMoving(!moving)}><Move size={16} /></button><button className="icon-button" aria-label="Focus selected station" disabled={!selected} onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:focus'))}><MousePointer2 size={16} /></button><button className="icon-button" aria-label="Fit world" onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={16} /></button></div></div>
+          <div className="world-toolbar"><div className="world-tabs">{(['factory', 'festival', 'service'] as const).map(w => <button key={w} className={project.world === w ? 'selected' : ''} onClick={() => chooseWorld(w)}>{w === 'factory' ? <Factory size={14} /> : w === 'festival' ? <Users size={14} /> : <Leaf size={14} />}{w === 'factory' ? 'Factory' : w === 'festival' ? 'Festival' : 'Service'}</button>)}</div><div className="world-tools"><button className="icon-button" disabled={!history.length} aria-label="Undo" onClick={undo}><Undo2 size={16} /></button><button className="icon-button" disabled={!future.length} aria-label="Redo" onClick={redo}><Redo2 size={16} /></button><span className="tool-divider" /><button className={`icon-button ${linkFrom ? 'selected' : ''}`} aria-label="Connect selected step" aria-pressed={Boolean(linkFrom)} disabled={!project.model.nodes.some(n => n.id === selected && 'next' in n)} onClick={() => { setMoving(false); setLinkFrom(linkFrom ? null : selected); }}><Link2 size={16} /></button><button className={`icon-button ${moving ? 'selected' : ''}`} aria-label="Move stations" aria-pressed={moving} onClick={() => { setLinkFrom(null); setMoving(!moving); }}><Move size={16} /></button><button className="icon-button" aria-label="Focus selected station" disabled={!selected} onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:focus'))}><MousePointer2 size={16} /></button><button className="icon-button" aria-label="Fit world" onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={16} /></button></div></div>
           <div className="scene-area"><div className="scene-topline"><span className="live-label"><span className={sim.running ? 'status-dot orange' : 'status-dot'} />{sim.running ? 'CALCULATING' : stale ? 'DRAFT · RUN TO PREVIEW' : shownResult ? shownResult.trace.complete ? 'REPLAY' : 'LIMITED REPLAY' : 'YOUR MODEL'}</span><span className="scene-unit">{worldInfo.unit.toUpperCase()} / {Number.isFinite(project.model.horizon) ? `${Math.round(project.model.horizon / 60)} MIN` : 'CHECK MODEL'}</span></div>
-            <Suspense fallback={<div className="scene-fallback" role="status"><p>Building your little world…</p></div>}><WorldScene project={visualProject} quality={quality} frame={frame} selected={selected} reducedMotion={reducedMotion} moving={moving} onSelect={id => { setSelected(id); if (project.model.nodes.find(n => n.id === id)?.kind !== 'service') setPanel('model'); }} onMove={(id, x, z) => edit(mutateProject(project, p => { p.layout[id] = { x, z }; }))} /></Suspense>
+            <Suspense fallback={<div className="scene-fallback" role="status"><p>Building your little world…</p></div>}><WorldScene project={visualProject} quality={quality} frame={frame} selected={selected} reducedMotion={reducedMotion} moving={moving} onSelect={id => { if (linkFrom) { try { edit(connectNext(project, linkFrom, id)); setToast('Connection updated. Run the changed plan to calculate its results.'); setLinkFrom(null); } catch (e) { setToast(e instanceof Error ? e.message : 'Choose a valid next step.'); } return; } setSelected(id); if (project.model.nodes.find(n => n.id === id)?.kind !== 'service') setPanel('model'); }} onMove={(id, x, z) => edit(mutateProject(project, p => { p.layout[id] = { x, z }; }))} /></Suspense>
             {(stale || hasErrors) && <div className="draft-banner"><Sparkles size={16} /><span>{hasErrors ? 'Your draft has issues to repair before running.' : 'Your plan has changed. Run it to see what happens.'}</span><button onClick={() => hasErrors ? setPanel('model') : void compute(project)}>{hasErrors ? 'Review model' : 'Run this plan'}<ArrowRight size={14} /></button></div>}
-            <div className="scene-caption"><MousePointer2 size={13} />{shownResult && !shownResult.trace.complete ? `Replay coverage: 00:00–${clock(shownResult.trace.until)}. Full-run statistics are shown below.` : frame.aggregated ? `Showing ${frame.actors.length} representative ${worldInfo.unit} of ${frame.inSystem}. Queue counts remain exact.` : <>Click a station to explore<span />Drag to pan · scroll to zoom</>}</div>
+            <div className="scene-caption"><MousePointer2 size={13} />{linkFrom ? `Connect ${project.model.nodes.find(n => n.id === linkFrom)?.label ?? 'step'}: choose its next step. Escape cancels.` : shownResult && !shownResult.trace.complete ? `Replay coverage: 00:00–${clock(shownResult.trace.until)}. Full-run statistics are shown below.` : frame.aggregated ? `Showing ${frame.actors.length} representative ${worldInfo.unit} of ${frame.inSystem}. Queue counts remain exact.` : <>Click a station to explore<span />Drag to pan · scroll to zoom</>}</div>
             <div className="world-compass"><span>N</span><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4L24 25L16 20L8 25Z" fill="#9aaa94"/><path d="M16 4V20L8 25Z" fill="#496354"/></svg></div>
           </div>
           <div className="playback-bar"><button className="icon-button" aria-label="Restart replay" onClick={() => setTime(0)} disabled={!canReplay}><SkipBack size={16} /></button><button className="play-toggle" aria-label={playing ? 'Pause replay' : 'Play replay'} disabled={!canReplay} onClick={() => { manualClock.current = false; if (time >= (shownResult?.trace.until ?? 0)) setTime(0); setPlaying(!playing); }}>{playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}</button><span className="playback-time">{clock(shownResult ? frame.time : 0)}</span><input aria-label="Replay time" type="range" min="0" max={shownResult ? shownResult.trace.until : Number.isFinite(project.model.horizon) ? project.model.horizon : 1} step="1" value={shownResult ? frame.time : 0} disabled={!canReplay} onChange={e => { setPlaying(false); setTime(+e.target.value); }} /><span className="playback-end">{clock(shownResult?.trace.until ?? project.model.horizon)}</span><select aria-label="Replay speed" value={speed} onChange={e => setSpeed(+e.target.value)}><option value="15">15×</option><option value="30">30×</option><option value="60">60×</option><option value="120">120×</option></select></div>

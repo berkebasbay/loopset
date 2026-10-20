@@ -1,5 +1,19 @@
 import { mutateProject } from '../model/commands';
 import type { ModelNode, Project } from '../model/types';
+import { validateProject } from '../model/validate';
+
+/** The scene and DOM editor use the same model links; routing weights stay explicit. */
+export function connectNext(project: Project, from: string, to: string): Project {
+  const next = mutateProject(project, copy => {
+    const node = copy.model.nodes.find(n => n.id === from);
+    if (!node || !('next' in node)) throw new Error('Choose a source, queue, service or delay. Edit weighted routes in the model editor.');
+    if (!copy.model.nodes.some(n => n.id === to)) throw new Error('The destination step no longer exists.');
+    node.next = to;
+  });
+  const issue = validateProject(next).find(i => i.severity === 'error');
+  if (issue) throw new Error(issue.message);
+  return next;
+}
 
 export const validIdentity = (value: string): boolean => /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(value) && !['constructor', 'prototype', '__proto__'].includes(value);
 export function uniqueIdentity(prefix: string, existing: Iterable<string>): string {

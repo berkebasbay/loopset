@@ -26,7 +26,6 @@ export function WorldScene(props: Props) {
   const [error, setError] = useState(false);
   const geometryKey = JSON.stringify({ world: props.project.world, layout: props.project.layout,
     nodes: props.project.model.nodes.map(node => ({ id: node.id, kind: node.kind,
-      servers: node.kind === 'service' ? node.servers : undefined,
       next: 'next' in node ? node.next : undefined, branches: node.kind === 'route' ? node.branches : undefined })) });
 
   useEffect(() => {
@@ -68,6 +67,7 @@ export function WorldScene(props: Props) {
     scene.add(light, light.target);
     const materials = new Map<string, THREE.MeshStandardMaterial>();
     const geometries = new Map<string, THREE.BufferGeometry>(); const textures: THREE.Texture[] = [];
+    const capacityPlates: { id: string; index: number; content: string; update: (content: string) => void }[] = [];
     function mat(color: string) {
       if (!materials.has(color)) materials.set(color, new THREE.MeshStandardMaterial({ color, roughness: .78 }));
       return materials.get(color)!;
@@ -92,7 +92,8 @@ export function WorldScene(props: Props) {
       const c = canvas.getContext('2d')!; c.font = '700 64px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = color; c.fillText(content, 512, 64);
       const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; textures.push(tex);
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * 8, size), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
-      geometries.set(`text-${textures.length}`, mesh.geometry); mesh.position.set(x, y, z); mesh.rotation.x = rotationX; parent.add(mesh); return mesh;
+      geometries.set(`text-${textures.length}`, mesh.geometry); mesh.position.set(x, y, z); mesh.rotation.x = rotationX; parent.add(mesh);
+      return { mesh, update: (content: string) => { c.clearRect(0, 0, 1024, 128); c.fillText(content, 512, 64); tex.needsUpdate = true; } };
     }
     function person(parent: THREE.Object3D, x: number, z: number, shirt = theme.secondary) {
       const g = new THREE.Group(); g.position.set(x, .1, z); parent.add(g);
@@ -291,7 +292,9 @@ export function WorldScene(props: Props) {
         for (const x of [-.6, .6]) { box(g, x, .43, .95, .55, .16, .55, theme.secondary); box(g, x, .7, 1.18, .55, .47, .12, theme.secondary); }
       }
       // Server count is represented by a numbered capacity plate, never fake busy workers.
-      text(g, `${String(index + 1).padStart(2, '0')} / ${Number.isFinite(node.servers) ? node.servers : '—'}×`, .05, .09, 1.17, .25, theme.edge, -Math.PI / 2);
+      const content = `${String(index + 1).padStart(2, '0')} / ${Number.isFinite(node.servers) ? node.servers : '—'}×`;
+      const plate = text(g, content, .05, .09, 1.17, .25, theme.edge, -Math.PI / 2);
+      capacityPlates.push({ id: node.id, index, content, update: plate.update });
       register(g, node.id);
     }
     for (const node of nodes.filter(node => node.kind !== 'service')) {
@@ -433,10 +436,16 @@ export function WorldScene(props: Props) {
     function draw() {
       handle = 0; if (!alive || document.hidden) return;
       const started = performance.now(), current = latest.current;
+      const currentNodes = new Map(current.project.model.nodes.map(node => [node.id, node]));
+      for (const plate of capacityPlates) {
+        const node = currentNodes.get(plate.id);
+        const content = `${String(plate.index + 1).padStart(2, '0')} / ${node?.kind === 'service' && Number.isFinite(node.servers) ? node.servers : '—'}×`;
+        if (content !== plate.content) { plate.update(content); plate.content = content; }
+      }
       for (const [id, ring] of rings) ring.visible = current.selected === id || hover === id;
       const grouped: Record<string, number> = {}, count = Math.min(current.frame.actors.length, 500); actors.count = count; if (actorTops) actorTops.count = count;
       current.frame.actors.slice(0, count).forEach((actor, index) => {
-        const node = nodes.find(n => n.id === actor.nodeId), p = layout[actor.nodeId] ?? { x: 0, z: 0 };
+        const node = currentNodes.get(actor.nodeId), p = layout[actor.nodeId] ?? { x: 0, z: 0 };
         const rank = grouped[`${actor.nodeId}-${actor.state}`] ?? 0; grouped[`${actor.nodeId}-${actor.state}`] = rank + 1;
         const waiting = actor.state === 'waiting';
         const cell = rank % 24, x = waiting ? p.x + (cell % 4) * .27 - .4 : p.x + (rank % 3) * .3 - .3;
@@ -470,7 +479,7 @@ export function WorldScene(props: Props) {
         const connector = connectors.get(label.node.id)!; connector.style.display = 'none';
         label.el.hidden = !visibleLabel; if (!visibleLabel) continue;
         label.el.classList.toggle('is-selected', current.selected === label.node.id); label.el.classList.toggle('is-hovered', hover === label.node.id);
-        const currentName = current.project.model.nodes.find(n => n.id === label.node.id)?.label ?? label.node.label;
+        const currentName = currentNodes.get(label.node.id)?.label ?? label.node.label;
         label.el.querySelector('.station-name')!.textContent = currentName; label.el.setAttribute('aria-label', `Select ${currentName}, ${label.node.kind}`);
         label.el.querySelector('.station-queue')!.textContent = queue ? `${queue} waiting` : '';
         label.el.classList.toggle('has-queue', queue > 0);
