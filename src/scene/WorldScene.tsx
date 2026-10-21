@@ -21,6 +21,9 @@ type Label = { el: HTMLButtonElement; node: ModelNode; position: THREE.Vector3 }
 type Part = { nodeId: string; mesh: THREE.Object3D; kind: 'press' | 'scanner' | 'arm'; rest: number };
 type LabelRect = { x: number; y: number; width: number; height: number };
 type RendererLifetime = { renderer: THREE.WebGLRenderer; releasePointers: () => void; dispose: () => void };
+type Disposable = { dispose: () => void };
+type GeometryAssets = { geometries: Map<string, THREE.BufferGeometry>; resources: Set<Disposable> };
+type EdgeVisual = { index: number; from: string; to: string; highlight: { visible: boolean }; meshes: { mesh: THREE.Mesh; material: THREE.Material | THREE.Material[] }[] };
 
 // Labels may cross scenic bodies when space is tight, but never another label's
 // pointer region. The second pass trades decorative occlusion for a safe target.
@@ -54,10 +57,14 @@ export function WorldScene(props: Props) {
   const rendererLifetime = useRef<RendererLifetime | null>(null);
   const acquireRenderer = useRef<() => RendererLifetime | null>(() => null);
   const disposeActiveScene = useRef<() => void>(() => {});
+  const updateConnectivity = useRef<((nodes: ModelNode[]) => void) | null>(null);
   const [error, setError] = useState(false);
+  const [sceneAttempt, setSceneAttempt] = useState(0);
   const geometryKey = JSON.stringify({ world: props.project.world, layout: props.project.layout,
-    nodes: props.project.model.nodes.map(node => ({ id: node.id, kind: node.kind,
-      next: 'next' in node ? node.next : undefined, branches: node.kind === 'route' ? node.branches : undefined })) });
+    nodes: props.project.model.nodes.map(node => ({ id: node.id, kind: node.kind })) });
+  const connectivityKey = JSON.stringify(props.project.model.nodes.map(node => ({ id: node.id,
+    next: 'next' in node ? node.next : undefined, branches: node.kind === 'route' ? node.branches : undefined })));
+  const appliedConnectivityKey = useRef(connectivityKey);
 
   useEffect(() => {
     if (!mount.current) return;
@@ -104,17 +111,18 @@ export function WorldScene(props: Props) {
 
   useEffect(() => {
     if (!mount.current) return;
+    appliedConnectivityKey.current = connectivityKey;
     const host = mount.current, lifetime = acquireRenderer.current(); if (!lifetime) return;
     const { renderer } = lifetime;
     host.dataset.status = 'loading'; setError(false);
     let alive = true, handle = 0;
     let cancelInteraction = () => {};
-    const cleanups: (() => void)[] = [], resources = new Set<{ dispose: () => void }>();
-    function own<T extends { dispose: () => void }>(resource: T): T { resources.add(resource); return resource; }
-    function release(resource: { dispose: () => void }) { resources.delete(resource); resource.dispose(); }
+    const cleanups: (() => void)[] = [], resources = new Set<Disposable>();
+    function own<T extends Disposable>(resource: T, group?: Set<Disposable>): T { resources.add(resource); group?.add(resource); return resource; }
+    function release(resource: Disposable) { resources.delete(resource); resource.dispose(); }
     const cleanup = () => {
       if (!alive) return;
-      alive = false; invalidate.current = () => {}; cancelPreview.current = () => {};
+      alive = false; invalidate.current = () => {}; cancelPreview.current = () => {}; updateConnectivity.current = null;
       cancelAnimationFrame(handle); cancelInteraction(); lifetime.releasePointers();
       for (const dispose of cleanups.reverse()) dispose();
       for (const resource of [...resources].reverse()) resource.dispose();
@@ -125,9 +133,8 @@ export function WorldScene(props: Props) {
     disposeActiveScene.current = cleanup;
     try {
     const project = props.project, world = project.world, theme = kit[world];
-    const layout = sceneLayout(project), extent = sceneExtent(layout), links = modelLinks(project.model.nodes);
+    const layout = sceneLayout(project), extent = sceneExtent(layout);
     const nodes = project.model.nodes, services = nodes.filter(node => node.kind === 'service');
-    const topology = flowTopology(nodes), shapes = connectionShapes(topology, layout);
     const dense = nodes.length > 30;
     const pixelRatio = Math.min(window.devicePixelRatio, props.quality === 'low' ? 1 : 1.6);
     if (renderer.getPixelRatio() !== pixelRatio) renderer.setPixelRatio(pixelRatio);
@@ -137,7 +144,7 @@ export function WorldScene(props: Props) {
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.13;
     renderer.setClearColor('#f2f0e7', 0);
     renderer.domElement.setAttribute('aria-label', m.interactiveWorldLabel(project.name));
-    host.dataset.world = world; host.dataset.edges = JSON.stringify(links); host.dataset.nodeCount = String(nodes.length);
+    host.dataset.world = world; host.dataset.nodeCount = String(nodes.length);
     const scene = new THREE.Scene();
     cleanups.push(() => scene.clear());
     const camera = new THREE.OrthographicCamera(-16, 16, 12, -12, .1, 2000);
@@ -160,32 +167,33 @@ export function WorldScene(props: Props) {
     scene.add(light, light.target);
     const materials = new Map<string, THREE.MeshStandardMaterial>();
     const geometries = new Map<string, THREE.BufferGeometry>();
+    const sceneAssets: GeometryAssets = { geometries, resources };
     const capacityPlates: { id: string; index: number; content: string; update: (content: string) => void }[] = [];
     function mat(color: string) {
       if (!materials.has(color)) materials.set(color, own(new THREE.MeshStandardMaterial({ color, roughness: .78 })));
       return materials.get(color)!;
     }
-    function rounded(w: number, h: number, d: number, radius = .04) {
+    function rounded(w: number, h: number, d: number, radius = .04, assets = sceneAssets) {
       const key = `${w}-${h}-${d}-${radius}`;
-      if (!geometries.has(key)) geometries.set(key, own(dense ? new THREE.BoxGeometry(w, h, d) : new RoundedBoxGeometry(w, h, d, 1, Math.min(radius, w / 3, h / 3, d / 3))));
-      return geometries.get(key)!;
+      if (!assets.geometries.has(key)) assets.geometries.set(key, own(dense ? new THREE.BoxGeometry(w, h, d) : new RoundedBoxGeometry(w, h, d, 1, Math.min(radius, w / 3, h / 3, d / 3)), assets.resources));
+      return assets.geometries.get(key)!;
     }
-    function box(parent: THREE.Object3D, x: number, y: number, z: number, w: number, h: number, d: number, color: string, radius = .04) {
-      const mesh = new THREE.Mesh(rounded(w, h, d, radius), mat(color)); mesh.position.set(x, y, z);
+    function box(parent: THREE.Object3D, x: number, y: number, z: number, w: number, h: number, d: number, color: string, radius = .04, assets = sceneAssets) {
+      const mesh = new THREE.Mesh(rounded(w, h, d, radius, assets), mat(color)); mesh.position.set(x, y, z);
       mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
     }
-    function cylinder(parent: THREE.Object3D, x: number, y: number, z: number, r: number, h: number, color: string, rz = 0) {
+    function cylinder(parent: THREE.Object3D, x: number, y: number, z: number, r: number, h: number, color: string, rz = 0, assets = sceneAssets) {
       const key = `c-${r}-${h}`;
-      if (!geometries.has(key)) geometries.set(key, own(new THREE.CylinderGeometry(r, r, h, dense ? 6 : 12)));
-      const mesh = new THREE.Mesh(geometries.get(key)!, mat(color)); mesh.position.set(x, y, z); mesh.rotation.z = rz;
+      if (!assets.geometries.has(key)) assets.geometries.set(key, own(new THREE.CylinderGeometry(r, r, h, dense ? 6 : 12), assets.resources));
+      const mesh = new THREE.Mesh(assets.geometries.get(key)!, mat(color)); mesh.position.set(x, y, z); mesh.rotation.z = rz;
       mesh.castShadow = true; parent.add(mesh); return mesh;
     }
-    function text(parent: THREE.Object3D, content: string, x: number, y: number, z: number, size: number, color: string, rotationX = 0) {
+    function text(parent: THREE.Object3D, content: string, x: number, y: number, z: number, size: number, color: string, rotationX = 0, assets = sceneAssets) {
       const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 128;
       const c = canvas.getContext('2d')!; c.font = '700 64px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = color; c.fillText(content, 512, 64);
-      const tex = own(new THREE.CanvasTexture(canvas)); tex.colorSpace = THREE.SRGBColorSpace;
-      const mesh = new THREE.Mesh(own(new THREE.PlaneGeometry(size * 8, size)), own(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide })));
-      geometries.set(`text-${tex.id}`, mesh.geometry); mesh.position.set(x, y, z); mesh.rotation.x = rotationX; parent.add(mesh);
+      const tex = own(new THREE.CanvasTexture(canvas), assets.resources); tex.colorSpace = THREE.SRGBColorSpace;
+      const mesh = new THREE.Mesh(own(new THREE.PlaneGeometry(size * 8, size), assets.resources), own(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide }), assets.resources));
+      assets.geometries.set(`text-${tex.id}`, mesh.geometry); mesh.position.set(x, y, z); mesh.rotation.x = rotationX; parent.add(mesh);
       return { mesh, update: (content: string) => { c.clearRect(0, 0, 1024, 128); c.fillText(content, 512, 64); tex.needsUpdate = true; } };
     }
     function person(parent: THREE.Object3D, x: number, z: number, shirt = theme.secondary) {
@@ -293,7 +301,6 @@ export function WorldScene(props: Props) {
     function register(g: THREE.Group, id: string) {
       g.traverse(obj => { if ((obj as THREE.Mesh).isMesh) { obj.userData.nodeId = id; pickables.push(obj); } });
     }
-    const edgeVisuals: { index: number; from: string; to: string; highlight: { visible: boolean }; meshes: { mesh: THREE.Mesh; material: THREE.Material | THREE.Material[] }[] }[] = [];
     const fadedMaterials = new Map<THREE.Material, THREE.Material>();
     const focusLinkMaterial = own(new THREE.MeshBasicMaterial({ color: theme.accent, transparent: true, depthTest: false, depthWrite: false }));
     const focusArrowMaterial = own(new THREE.MeshBasicMaterial({ color: palette.cream, transparent: true, depthTest: false, depthWrite: false }));
@@ -320,50 +327,78 @@ export function WorldScene(props: Props) {
       release(previous); mesh.visible = positions.length > 0;
     };
     const arrowPositions = (shape: ConnectionShape) => shape.arrow.flatMap(point => [point.x, point.y, point.z]);
-    const sharedEdges = new Set(sharedPositionLinks(topology, layout).map(link => link.index));
-    const coincidentEdges = new Set<number>();
-    // Links are the model's actual directed edges, never an invented service ordering.
-    for (const [index, link] of links.entries()) {
-      const a = layout[link.from], b = layout[link.to], distance = Math.hypot(b.x - a.x, b.z - a.z);
-      const sourceNode = nodes.find(node => node.id === link.from)!, targetNode = nodes.find(node => node.id === link.to)!;
-      const startTrim = sourceNode.kind === 'service' ? 1.15 : sourceNode.kind === 'queue' ? .7 : .65;
-      const endTrim = targetNode.kind === 'service' ? 1.15 : targetNode.kind === 'queue' ? .7 : .65;
-      const trimmedLength = distance - startTrim - endTrim, compact = trimmedLength <= .08;
-      const shape = shapes.get(index)!;
-      if (shape.coincident) {
-        coincidentEdges.add(index);
-        // Every zero-length declared edge gets a directed return symbol.
-        // Shared-position UI counts distinct endpoints only, not real self-loops.
-        edgeVisuals.push({ index, from: link.from, to: link.to, highlight: { visible: false }, meshes: [] });
-        continue;
+    function buildConnections(connectionNodes: ModelNode[]) {
+      const links = modelLinks(connectionNodes), topology = flowTopology(connectionNodes), shapes = connectionShapes(topology, layout);
+      const sharedEdges = new Set(sharedPositionLinks(topology, layout).map(link => link.index)), coincidentEdges = new Set<number>();
+      // This cache and resource group belong only to this connection generation.
+      // Scenic materials are reused; length-dependent buffers and percentage
+      // textures must never accumulate in the stationary world's geometry cache.
+      const assets: GeometryAssets = { geometries: new Map(), resources: new Set() };
+      const group = new THREE.Group(), edgeVisuals: EdgeVisual[] = [];
+      // Links are the model's actual directed edges, never an invented service ordering.
+      for (const [index, link] of links.entries()) {
+        const a = layout[link.from], b = layout[link.to], distance = Math.hypot(b.x - a.x, b.z - a.z);
+        const sourceNode = topology.nodes.get(link.from)!, targetNode = topology.nodes.get(link.to)!;
+        const startTrim = sourceNode.kind === 'service' ? 1.15 : sourceNode.kind === 'queue' ? .7 : .65;
+        const endTrim = targetNode.kind === 'service' ? 1.15 : targetNode.kind === 'queue' ? .7 : .65;
+        const trimmedLength = distance - startTrim - endTrim, compact = trimmedLength <= .08;
+        const shape = shapes.get(index)!;
+        if (shape.coincident) {
+          coincidentEdges.add(index);
+          // Every zero-length declared edge gets a directed return symbol.
+          // Shared-position UI counts distinct endpoints only, not real self-loops.
+          edgeVisuals.push({ index, from: link.from, to: link.to, highlight: { visible: false }, meshes: [] });
+          continue;
+        }
+        if (!dense && compact) continue;
+        const length = compact ? distance : trimmedLength;
+        const dx = (b.x - a.x) / distance, dz = (b.z - a.z) / distance;
+        const g = new THREE.Group(), offset = compact ? length / 2 : startTrim + length / 2;
+        g.position.set(a.x + dx * offset, 0, a.z + dz * offset); g.rotation.y = Math.atan2(dx, dz); group.add(g);
+        if (!compact && world === 'factory') {
+          box(g, 0, .25, 0, .67, .14, length, palette.dark, .04, assets);
+          for (const x of [-.38, .38]) box(g, x, .34, 0, .05, .14, length, '#819284', .04, assets);
+          if (!dense) for (let z = -length / 2 + .1; z < length / 2; z += .22) cylinder(g, 0, .34, z, .055, .65, '#9ca895', Math.PI / 2, assets);
+        } else if (!compact) box(g, 0, .07, 0, .65, .025, length, world === 'festival' ? '#bbc8a7' : '#c6bcaa', .04, assets);
+        // White chevrons communicate direction even in a monochrome view.
+        const arrowZ = Math.min(length / 2 - .08, 0);
+        if (!compact) for (const x of [-1, 1]) { const arrow = box(g, x * .09, world === 'factory' ? .411 : .092, arrowZ, .045, .015, .23, palette.cream, .005, assets); arrow.rotation.y = x * -.65; }
+        if (link.probability !== undefined && !dense) text(g, `${Math.round(link.probability * 100)}%`, 0, .13, -.2, .15, palette.ink, -Math.PI / 2, assets);
+        if (dense) {
+          const meshes: { mesh: THREE.Mesh; material: THREE.Material | THREE.Material[] }[] = [];
+          g.traverse(object => { const mesh = object as THREE.Mesh; if (mesh.isMesh) meshes.push({ mesh, material: mesh.material }); });
+          const highlight = new THREE.Group(); g.add(highlight); highlight.visible = false;
+          // Closely placed nodes have no floor segment after trimming. Their
+          // selected connection is lifted above the equipment instead of lost.
+          const surfaceY = compact ? 3.35 : world === 'factory' ? .44 : .12;
+          const spine: THREE.Mesh = box(highlight, 0, surfaceY, 0, .2, .02, length, theme.accent, .005, assets); spine.material = focusLinkMaterial; spine.renderOrder = 2;
+          for (const x of [-1, 1]) { const arrow: THREE.Mesh = box(highlight, x * .12, surfaceY + .02, arrowZ, .055, .02, .3, palette.cream, .005, assets); arrow.rotation.y = x * -.65; arrow.material = focusArrowMaterial; arrow.renderOrder = 3; }
+          edgeVisuals.push({ index, from: link.from, to: link.to, highlight, meshes });
+        }
       }
-      if (!dense && compact) continue;
-      const length = compact ? distance : trimmedLength;
-      const dx = (b.x - a.x) / distance, dz = (b.z - a.z) / distance;
-      const g = new THREE.Group(), offset = compact ? length / 2 : startTrim + length / 2;
-      g.position.set(a.x + dx * offset, 0, a.z + dz * offset); g.rotation.y = Math.atan2(dx, dz); scene.add(g);
-      if (!compact && world === 'factory') {
-        box(g, 0, .25, 0, .67, .14, length, palette.dark);
-        for (const x of [-.38, .38]) box(g, x, .34, 0, .05, .14, length, '#819284');
-        if (!dense) for (let z = -length / 2 + .1; z < length / 2; z += .22) cylinder(g, 0, .34, z, .055, .65, '#9ca895', Math.PI / 2);
-      } else if (!compact) box(g, 0, .07, 0, .65, .025, length, world === 'festival' ? '#bbc8a7' : '#c6bcaa');
-      // White chevrons communicate direction even in a monochrome view.
-      const arrowZ = Math.min(length / 2 - .08, 0);
-      if (!compact) for (const x of [-1, 1]) { const arrow = box(g, x * .09, world === 'factory' ? .411 : .092, arrowZ, .045, .015, .23, palette.cream, .005); arrow.rotation.y = x * -.65; }
-      if (link.probability !== undefined && !dense) text(g, `${Math.round(link.probability * 100)}%`, 0, .13, -.2, .15, palette.ink, -Math.PI / 2);
-      if (dense) {
-        const meshes: { mesh: THREE.Mesh; material: THREE.Material | THREE.Material[] }[] = [];
-        g.traverse(object => { const mesh = object as THREE.Mesh; if (mesh.isMesh) meshes.push({ mesh, material: mesh.material }); });
-        const highlight = new THREE.Group(); g.add(highlight); highlight.visible = false;
-        // Closely placed nodes have no floor segment after trimming. Their
-        // selected connection is lifted above the equipment instead of lost.
-        const surfaceY = compact ? 3.35 : world === 'factory' ? .44 : .12;
-        const spine: THREE.Mesh = box(highlight, 0, surfaceY, 0, .2, .02, length, theme.accent, .005); spine.material = focusLinkMaterial; spine.renderOrder = 2;
-        for (const x of [-1, 1]) { const arrow: THREE.Mesh = box(highlight, x * .12, surfaceY + .02, arrowZ, .055, .02, .3, palette.cream, .005); arrow.rotation.y = x * -.65; arrow.material = focusArrowMaterial; arrow.renderOrder = 3; }
-        edgeVisuals.push({ index, from: link.from, to: link.to, highlight, meshes });
-      }
+      return { group, assets, links, topology, shapes, sharedEdges, coincidentEdges, edgeVisuals };
     }
-    host.dataset.sharedPositionEdges = JSON.stringify([...sharedEdges].map(index => ({ index, from: links[index].from, to: links[index].to })));
+    function disposeConnections(previous: ReturnType<typeof buildConnections>) {
+      previous.group.removeFromParent(); previous.group.clear();
+      for (const resource of [...previous.assets.resources].reverse()) {
+        // Percentage labels own their materials. Remove any faded derivative
+        // with them, while retaining derivatives of shared scenic materials.
+        if (resource instanceof THREE.Material) {
+          const copy = fadedMaterials.get(resource);
+          if (copy) { release(copy); fadedMaterials.delete(resource); }
+        }
+        release(resource);
+      }
+      previous.assets.resources.clear(); previous.assets.geometries.clear();
+    }
+    let connections = buildConnections(nodes);
+    let { links, topology, shapes, sharedEdges, coincidentEdges, edgeVisuals } = connections;
+    scene.add(connections.group);
+    function describeConnections() {
+      host.dataset.edges = JSON.stringify(links);
+      host.dataset.sharedPositionEdges = JSON.stringify([...sharedEdges].map(index => ({ index, from: links[index].from, to: links[index].to })));
+    }
+    describeConnections();
     for (const [index, node] of services.entries()) {
       const g = nodeGroup(node); g.scale.setScalar(1.12);
       box(g, 0, .025, 0, 2.85, .07, 2.7, world === 'factory' ? '#c3c8ae' : '#c4c9b5', .1);
@@ -521,7 +556,8 @@ export function WorldScene(props: Props) {
     const corners: THREE.Vector3[] = [];
     for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) corners.push(new THREE.Vector3(x, y, z));
     let hover: string | null = null, renderCount = 0, edgeFocus: string | null | undefined;
-    let presentedFlow: Props['flow'], presentedWalk: FlowWalk | null = null, presentedManual: number | null | undefined;
+    let presentedFlow: Props['flow'], presentedWalk: FlowWalk | null | undefined, presentedManual: number | null | undefined;
+    let flowDirty = true;
     let manuallyShown: number | null = null, currentConnection: number | null = null;
     let coincidenceFocus = '';
     let manualContext: { flow: Props['flow']; selected: string | null; moving: boolean } | null = null;
@@ -580,7 +616,7 @@ export function WorldScene(props: Props) {
       if (!down || down.pointerId !== e.pointerId || !down.hit || !down.origin || down.toggle || !latest.current.moving) return;
       if (Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5 && !down.dragging) return;
       hit(e); const point = new THREE.Vector3(); if (!raycaster.ray.intersectPlane(ground, point)) return;
-      if (!down.dragging) { down.dragging = true; down.gesture = beginMoveGesture(project, down.ids, down.hit); latest.current.onSelect(down.hit, down.ids.includes(down.hit) && latest.current.selectedIds?.includes(down.hit) ? 'inspect' : 'single'); }
+      if (!down.dragging) { down.dragging = true; down.gesture = beginMoveGesture(latest.current.project, down.ids, down.hit); latest.current.onSelect(down.hit, down.ids.includes(down.hit) && latest.current.selectedIds?.includes(down.hit) ? 'inspect' : 'single'); }
       down.preview = down.gesture!.preview({ x: point.x - down.origin.x, z: point.z - down.origin.z });
       previewPoints.clear();
       if (down.preview && !down.preview.error) for (const id of down.preview.ids) { const p = down.preview.points[id]; previewPoints.set(id, p); stageGroups.get(id)?.position.set(p.x, .08, p.z); }
@@ -681,11 +717,15 @@ export function WorldScene(props: Props) {
       }
       if (manuallyShown !== null && (manualContext?.flow !== current.flow || manualContext?.selected !== current.selected || manualContext?.moving !== Boolean(current.moving))) manuallyShown = null;
       const activeFlow = current.moving ? null : current.flow;
-      if (activeFlow !== presentedFlow || manuallyShown !== presentedManual) {
+      if (flowDirty || activeFlow !== presentedFlow || manuallyShown !== presentedManual) {
+        flowDirty = false;
         presentedFlow = activeFlow; presentedManual = manuallyShown;
         if ((activeFlow?.walk ?? null) !== presentedWalk) {
           presentedWalk = activeFlow?.walk ?? null;
-          flowEdges = new Set(presentedWalk?.links.map(link => link.index) ?? []);
+          flowEdges = new Set(presentedWalk?.links.filter(link => {
+            const actual = links[link.index];
+            return actual?.from === link.from && actual.to === link.to && actual.probability === link.probability;
+          }).map(link => link.index) ?? []);
           flowIds = new Set(presentedWalk?.ids ?? []);
           const overviewPositions: number[] = [];
           for (const index of flowEdges) {
@@ -693,7 +733,8 @@ export function WorldScene(props: Props) {
           }
           updateOverlay(overview, overviewPositions);
         }
-        currentConnection = manuallyShown ?? activeFlow?.walk.links[activeFlow.cursor]?.index ?? null;
+        const requestedConnection = manuallyShown ?? activeFlow?.walk.links[activeFlow.cursor]?.index ?? null;
+        currentConnection = requestedConnection !== null && (manuallyShown !== null || flowEdges.has(requestedConnection)) && shapes.has(requestedConnection) ? requestedConnection : null;
         const activeLink = currentConnection === null ? null : links[currentConnection];
         viewedIds = new Set(activeLink ? [activeLink.from, activeLink.to] : []);
         const shape = currentConnection === null ? null : shapes.get(currentConnection);
@@ -765,13 +806,13 @@ export function WorldScene(props: Props) {
         return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
       });
       const orderedLabels = [...labels].sort((a, b) => Number(current.selected === b.node.id) - Number(current.selected === a.node.id) || Number(selectionSet.has(b.node.id) || hover === b.node.id) - Number(selectionSet.has(a.node.id) || hover === a.node.id) || Number(b.node.kind === 'service') - Number(a.node.kind === 'service'));
-      const viewingFrom = currentConnection === null ? null : links[currentConnection].from;
+      const viewingFrom = currentConnection === null ? null : links[currentConnection]?.from;
       orderedLabels.sort((a, b) => Number(viewedIds.has(b.node.id)) - Number(viewedIds.has(a.node.id)) || Number(viewingFrom === b.node.id) - Number(viewingFrom === a.node.id));
       const paper = current.flow || manuallyShown !== null ? host.closest('.world-workspace')?.querySelector('.flow-guide-panel')?.getBoundingClientRect() : null;
       const labelViewportHeight = paper ? Math.min(host.clientHeight, paper.top - host.getBoundingClientRect().top + (host.clientWidth < 500 ? 56 : 42) - 8) : host.clientHeight;
       for (const label of orderedLabels) {
         const primary = selectionSet.has(label.node.id) || hover === label.node.id;
-        const queue = label.node.kind === 'queue' ? current.frame.queues[label.node.id] ?? 0 : nodes.filter(n => n.kind === 'queue' && n.next === label.node.id).reduce((sum, n) => sum + (current.frame.queues[n.id] ?? 0), 0);
+        const queue = label.node.kind === 'queue' ? current.frame.queues[label.node.id] ?? 0 : current.project.model.nodes.filter(n => n.kind === 'queue' && n.next === label.node.id).reduce((sum, n) => sum + (current.frame.queues[n.id] ?? 0), 0);
         const visibleLabel = primary || viewedIds.has(label.node.id) || (!dense && (label.node.kind === 'service'));
         const connector = connectors.get(label.node.id)!; connector.style.display = 'none';
         label.el.hidden = !visibleLabel; if (!visibleLabel) continue;
@@ -809,10 +850,42 @@ export function WorldScene(props: Props) {
       host.dataset.actorCount = String(count); host.dataset.renderPending = 'false'; host.dataset.status = 'ready';
       } catch { fail(); }
     }
+    updateConnectivity.current = nextNodes => {
+      if (!alive) return;
+      try {
+        // Build off-scene first. Every allocation is also in the scene registry,
+        // so a partial build failure follows the same complete fallback cleanup.
+        const next = buildConnections(nextNodes);
+        cancelInteraction();
+        // Retain the controls object and camera, but cancel its active gesture.
+        // Releasing capture alone leaves OrbitControls' two-touch state alive.
+        controls.disconnect(); lifetime.releasePointers(); controls.connect(renderer.domElement);
+        // Keep controls ahead of the scene handlers, as on initial setup.
+        renderer.domElement.removeEventListener('pointerdown', pointerDown); renderer.domElement.addEventListener('pointerdown', pointerDown);
+        renderer.domElement.removeEventListener('pointercancel', pointerCancel); renderer.domElement.addEventListener('pointercancel', pointerCancel);
+        disposeConnections(connections);
+        connections = next;
+        ({ links, topology, shapes, sharedEdges, coincidentEdges, edgeVisuals } = next);
+        scene.add(next.group); describeConnections();
+        manuallyShown = currentConnection = null; manualContext = null;
+        presentedFlow = undefined; presentedWalk = undefined; presentedManual = undefined; flowDirty = true;
+        flowIds.clear(); viewedIds.clear(); flowEdges.clear(); edgeFocus = undefined; coincidenceFocus = '';
+        for (const overlay of [overview, activeConnection, activeArrow, baseCoincident, focusedCoincident]) updateOverlay(overlay, []);
+        delete host.dataset.connectionFit;
+        renderer.shadowMap.needsUpdate = true; requestRender();
+      } catch { fail(); }
+    };
     fit(); requestRender();
     } catch { fail(); }
     return cleanup;
-  }, [geometryKey, props.quality, props.resetKey]);
+  }, [geometryKey, props.quality, props.resetKey, sceneAttempt]);
+  useEffect(() => {
+    if (appliedConnectivityKey.current === connectivityKey) return;
+    appliedConnectivityKey.current = connectivityKey;
+    if (updateConnectivity.current) updateConnectivity.current(props.project.model.nodes);
+    // A later link edit can retry a failed scene, just as a reset or geometry edit.
+    else setSceneAttempt(attempt => attempt + 1);
+  }, [connectivityKey]);
   useEffect(() => { rendererLifetime.current?.renderer.domElement.setAttribute('aria-label', m.interactiveWorldLabel(props.project.name)); }, [props.project.name]);
   // A sealed playback frame, selection or preference invalidates exactly one render.
   // Motion is bounded by frame.time; pausing does not leave a GPU animation loop running.
