@@ -1,0 +1,21 @@
+/** English product messages for SavedScenarios. Keep model data and canonical identifiers at the call site. */
+export const savedScenariosMessages = {
+  savedAModelSnapshotItIsIncludedInProject: "Saved a model snapshot. It is included in project files and local storage.",
+  couldNotSaveThisScenario: "Could not save this scenario.",
+  savedScenarios: "Saved scenarios",
+  keepAFewPossibilities: "Keep a few possibilities.",
+  namedModelSnapshotsTravelWithYourProjectRestoreOne: "Named model snapshots travel with your project. Restore one, change it, and run another experiment.",
+  scenarioName: "Scenario name",
+  saveCurrentPlan: "Save current plan",
+  saveBaseline: "Save baseline",
+  restoredScenario: (name: string) => `Restored “${name}”. Calculate the draft to get a new result.`,
+  restore: "Restore",
+  baselineCalculatedFrom: (name: string) => `Baseline calculated from “${name}”.`,
+  couldNotCalculateThisBaseline: "Could not calculate this baseline.",
+  useAsBaseline: "Use as baseline",
+  removeScenario: (name: string) => `Remove scenario ${name}`,
+  removeSavedScenarioUndoCanRestoreIt: "Remove saved scenario. Undo can restore it.",
+  removedTheSavedSnapshotUndoInTheWorkspaceCan: "Removed the saved snapshot. Undo in the workspace can restore it.",
+  noNamedScenariosYetSaveTheOriginalBeforeExploring: "No named scenarios yet. Save the original before exploring another setup.",
+  snapshotIdentity: (seed: number, minutes: number, modelHash: string) => `Seed ${seed} · ${minutes} min · ${modelHash}`,
+} as const;

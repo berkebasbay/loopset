@@ -1,3 +1,4 @@
+import { clientMessages as m } from '../ui/messages/client';
 import { responseId } from './protocol';
 import type { WorkerResponse } from './protocol';
 
@@ -46,39 +47,39 @@ export class WorkerClient<R extends { id: string }, T> {
         if (data.type === 'progress') { this.update({ progress: data.fraction }); return; }
         this.pending = null;
         if (data.type === 'error') {
-          this.stop(); this.update({ running: false, cancelling: false, error: `${data.message} Run again to retry.` });
+          this.stop(); this.update({ running: false, cancelling: false, error: m.runAgainToRetry(data.message) });
           pending.reject(new Error(this.state.error!));
         } else {
           if (!this.cancelMessage) this.stop();
           this.update({ running: false, cancelling: false, progress: 1 }); pending.resolve(data.result);
         }
       } catch {
-        if (this.worker === worker && this.pending === pending) this.fail(`The ${this.label} worker sent an incompatible or invalid response. Your draft and previous results are preserved. Run again to restart it; reload the page if this repeats.`);
+        if (this.worker === worker && this.pending === pending) this.fail(m.invalidWorkerResponse(this.label));
       }
     };
     worker.onerror = event => {
       if (this.worker !== worker) return;
-      this.fail(`${event.message || `The ${this.label} worker stopped unexpectedly.`} Run again to restart it.`);
+      this.fail(m.runAgainToRestartIt(event.message || m.workerStopped(this.label)));
     };
     worker.onmessageerror = () => {
       if (this.worker !== worker) return;
-      this.fail(`The ${this.label} worker response could not be read. Your draft and previous results are preserved. Run again to restart it.`);
+      this.fail(m.unreadableWorkerResponse(this.label));
     };
     return worker;
   }
   prepare() {
     try { this.ensureWorker(); }
-    catch { this.fail(`The ${this.label} worker could not start. Run again to retry.`); }
+    catch { this.fail(m.workerStartFailed(this.label)); }
   }
   run(request: R): Promise<T> {
     if (this.pending) {
-      const pending = this.pending; this.pending = null; this.stop(); pending.reject(new Error('Superseded by a new run.'));
+      const pending = this.pending; this.pending = null; this.stop(); pending.reject(new Error(m.supersededByANewRun));
     }
     this.update({ running: true, cancelling: false, progress: 0, error: null });
     return new Promise((resolve, reject) => {
       this.pending = { request, resolve, reject };
       try { this.ensureWorker().postMessage(request); }
-      catch { this.fail(`The ${this.label} request could not be sent to the worker. Your draft and previous results are preserved. Run again to retry.`); }
+      catch { this.fail(m.workerRequestFailed(this.label)); }
     });
   }
   cancel() {
@@ -86,9 +87,9 @@ export class WorkerClient<R extends { id: string }, T> {
     if (this.cancelMessage) {
       this.update({ cancelling: true });
       try { this.worker?.postMessage(this.cancelMessage(this.pending.request)); }
-      catch { this.fail('Cancellation could not be sent. Your draft and previous results are preserved. Run again to restart the worker.'); }
-    } else this.fail('Experiment cancelled. No partial estimate was accepted. Run again to retry.');
+      catch { this.fail(m.cancellationCouldNotBeSentYourDraftAndPrevious); }
+    } else this.fail(m.experimentCancelled);
   }
   clearError() { this.update({ error: null }); }
-  dispose() { const pending = this.pending; this.pending = null; this.stop(); pending?.reject(new Error('Run cancelled.')); }
+  dispose() { const pending = this.pending; this.pending = null; this.stop(); pending?.reject(new Error(m.runCancelled)); }
 }

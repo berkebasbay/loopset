@@ -1,3 +1,4 @@
+import { useSimulationMessages as m } from '../ui/messages/useSimulation';
 import { useEffect, useRef, useState } from 'react';
 import type { RunResult, SimulationModel } from '../model/types';
 import { WorkerClient } from './client';
@@ -17,7 +18,7 @@ export function useSimulation() {
       const request = { ...simulationEnvelope(crypto.randomUUID()), type: 'run' as const, model: structuredClone(model) };
       readSimulationRequest(request);
       return client.current!.run(request);
-    } catch { return Promise.reject(new Error('The model could not be sent to the worker. Your draft is preserved. Check the model and run again.')); }
+    } catch { return Promise.reject(new Error(m.theModelCouldNotBeSentToTheWorker)); }
   }
   return { run, cancel: () => client.current!.cancel(), ...state, clearError: () => client.current!.clearError() };
 }

@@ -1,3 +1,5 @@
+import { stepKindLabels } from '../ui/messages/labels';
+import { worldSceneMessages as m } from '../ui/messages/WorldScene';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -67,7 +69,7 @@ export function WorldScene(props: Props) {
     renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.13;
     renderer.setClearColor('#f2f0e7', 0);
-    renderer.domElement.setAttribute('aria-label', `${project.name} interactive world. Choose a labeled node, or use the model editor for keyboard editing.`);
+    renderer.domElement.setAttribute('aria-label', m.interactiveWorldLabel(project.name));
     renderer.domElement.setAttribute('role', 'img'); renderer.domElement.tabIndex = 0; renderer.domElement.dataset.testid = 'world-canvas';
     host.appendChild(renderer.domElement);
     host.dataset.world = world; host.dataset.edges = JSON.stringify(links); host.dataset.nodeCount = String(nodes.length);
@@ -160,7 +162,7 @@ export function WorldScene(props: Props) {
       box(scene, leftX + 2, .78, backZ + .11, 1.2, 1.45, .09, theme.edge);
       box(scene, leftX + 2.38, .78, backZ + .18, .08, .08, .08, '#e3bd6b');
       box(scene, extent.x - 1.3, .94, backZ + .13, 4.7, .7, .07, palette.cream);
-      text(scene, world === 'factory' ? 'Q / LITTLE FACTORY' : 'Q / SERVICE STUDIO', extent.x - 1.3, .95, backZ + .19, .24, theme.edge);
+      text(scene, world === 'factory' ? m.qLittleFactory : m.qServiceStudio, extent.x - 1.3, .95, backZ + .19, .24, theme.edge);
     } else {
       box(scene, extent.x, .18, backZ, extent.width, .28, .7, '#7c965e');
       for (let x = extent.minX + .5; x < extent.maxX; x += 1.2) {
@@ -183,7 +185,7 @@ export function WorldScene(props: Props) {
           box(scene, shelfX, y, backZ + 1, 2.9, .09, .9, theme.secondary);
           for (let i = 0; i < 4; i++) box(scene, shelfX - 1 + i * .66, y + .22, backZ + 1, .5, .35, .58, i % 2 ? '#c8a46c' : '#c3b69c');
         }
-        text(scene, 'SUPPLIES', shelfX, 1.9, backZ + 1.1, .18, theme.edge);
+        text(scene, m.supplies, shelfX, 1.9, backZ + 1.1, .18, theme.edge);
         const toolX = leftX + 3.2, toolZ = extent.maxZ - 2.2;
         box(scene, toolX, .76, toolZ, 2.15, .2, 1, '#a67e50');
         for (const x of [-.86, .86]) for (const z of [-.34, .34]) box(scene, toolX + x, .38, toolZ + z, .11, .75, .11, theme.edge);
@@ -195,7 +197,7 @@ export function WorldScene(props: Props) {
         box(scene, cartX, .55, cartZ, .75, .77, .65, theme.accent);
         for (const y of [.35, .62, .86]) { box(scene, cartX, y, cartZ + .34, .62, .19, .035, '#b34f2c'); box(scene, cartX, y + .02, cartZ + .37, .24, .035, .035, palette.cream); }
         for (const x of [-.25, .25]) cylinder(scene, cartX + x, .14, cartZ, .12, .07, palette.dark, Math.PI / 2);
-        text(scene, 'MAINTENANCE', toolX, .078, toolZ + .95, .17, '#738267', -Math.PI / 2);
+        text(scene, m.maintenance, toolX, .078, toolZ + .95, .17, '#738267', -Math.PI / 2);
 
         box(scene, leftX + .5, .6, extent.z - 1.2, .7, 1.1, 1.3, theme.secondary);
         for (let i = 0; i < 3; i++) box(scene, leftX + .88, .33 + i * .32, extent.z - 1.2, .03, .2, 1.05, '#92a58b');
@@ -204,12 +206,12 @@ export function WorldScene(props: Props) {
           box(scene, extent.maxX - 3 + dx, .6, backZ + 1, .9, .3, .9, theme.secondary, .1);
           box(scene, extent.maxX - 3 + dx, .93, backZ + .6, .9, .6, .18, theme.secondary, .08);
         }
-        text(scene, 'WAITING LOUNGE', extent.maxX - 3, 1.8, backZ + 1, .17, theme.edge);
+        text(scene, m.waitingLounge, extent.maxX - 3, 1.8, backZ + 1, .17, theme.edge);
         box(scene, leftX + .4, 1, extent.z - 1, .5, 1.8, 2.4, '#cbbaa1');
         for (let i = 0; i < 4; i++) box(scene, leftX + .69, .4 + i * .4, extent.z - 1, .04, .06, 2.2, '#6f7d68');
       }
-      text(scene, 'QUEUE / LAB', extent.x - 6.3, .075, extent.maxZ - 1.2, .36, '#a9ac98', -Math.PI / 2);
-      text(scene, 'SYNTHETIC WORLD', extent.x - 6.3, .076, extent.maxZ - .72, .12, '#8a9581', -Math.PI / 2);
+      text(scene, m.queueLab, extent.x - 6.3, .075, extent.maxZ - 1.2, .36, '#a9ac98', -Math.PI / 2);
+      text(scene, m.syntheticWorld, extent.x - 6.3, .076, extent.maxZ - .72, .12, '#8a9581', -Math.PI / 2);
     }
     const pickables: THREE.Object3D[] = [], rings = new Map<string, THREE.Mesh>(), parts: Part[] = [];
     const stageGroups = new Map<string, THREE.Group>();
@@ -314,11 +316,11 @@ export function WorldScene(props: Props) {
           for (const x of [-.82, .82]) box(g, x, .41, 0, .12, .82, .66, theme.secondary);
           box(g, .45, 1.12, 0, .32, .38, .25, palette.dark); box(g, .45, 1.15, .14, .22, .16, .03, '#aed6af');
           person(g, 0, -.7);
-          text(g, index % 3 ? 'TICKETS' : 'WRISTBANDS', 0, 2.25, .51, .18, palette.cream);
+          text(g, index % 3 ? m.tickets : m.wristbands, 0, 2.25, .51, .18, palette.cream);
         } else {
           for (const x of [-.85, .85]) box(g, x, 1.15, -.15, .24, 2.25, .65, theme.secondary);
           box(g, 0, 2.24, -.15, 1.95, .28, .65, theme.secondary);
-          text(g, 'SECURITY', 0, 2.25, .19, .17, palette.cream);
+          text(g, m.security, 0, 2.25, .19, .17, palette.cream);
           box(g, 1.15, .9, .7, .3, .65, .38, palette.dark); person(g, 1.2, -.7);
           box(g, 0, .08, 0, 1.5, .06, 1.8, '#a5b89a');
         }
@@ -333,7 +335,7 @@ export function WorldScene(props: Props) {
         person(g, .45, -.8, theme.secondary);
         box(g, 0, 1.1, -.95, 2.6, 1.6, .13, index % 3 ? '#b4bda9' : '#cbbda6');
         box(g, 0, 1.92, -.95, 2.65, .08, .18, theme.edge);
-        text(g, ['WELCOME', 'SPECIALISTS', 'RESOLUTION'][index % 3], 0, 1.59, -.87, .15, theme.edge);
+        text(g, [m.welcome, m.specialists, m.resolution][index % 3], 0, 1.59, -.87, .15, theme.edge);
         for (const x of [-.6, .6]) { box(g, x, .43, .95, .55, .16, .55, theme.secondary); box(g, x, .7, 1.18, .55, .47, .12, theme.secondary); }
       }
       // Server count is represented by a numbered capacity plate, never fake busy workers.
@@ -350,7 +352,7 @@ export function WorldScene(props: Props) {
         if (world === 'factory') {
           for (const x of [-.57, .57]) box(g, x, .31, -.5, .06, .55, .08, theme.secondary);
           box(g, 0, .56, -.5, 1.18, .07, .08, theme.secondary);
-          text(g, 'BUFFER', 0, .39, -.44, .11, theme.edge);
+          text(g, m.buffer, 0, .39, -.44, .11, theme.edge);
         } else {
           for (const z of [-.4, .6, 1.3]) for (const x of [-.6, .6]) {
             cylinder(g, x, .35, z, .04, .7, palette.dark); cylinder(g, x, .04, z, .14, .07, palette.dark);
@@ -364,12 +366,12 @@ export function WorldScene(props: Props) {
           box(g, 0, .55, -.2, 1.2, .95, .7, incoming ? theme.secondary : '#bc9568');
           box(g, 0, 1.08, -.2, 1.3, .12, .8, palette.cream);
           box(g, 0, .57, .18, .85, .5, .025, incoming ? '#9cb195' : '#ead6ad');
-          text(g, incoming ? 'IN' : 'OUT', 0, .59, .21, .18, theme.edge);
+          text(g, incoming ? m.in : m.out, 0, .59, .21, .18, theme.edge);
           for (const x of [-.5, .5]) cylinder(g, x, .13, .2, .13, .12, palette.dark, Math.PI / 2);
         } else {
           for (const x of [-.6, .6]) cylinder(g, x, .98, 0, .06, 1.95, theme.edge);
           box(g, 0, 1.85, 0, 1.5, .43, .15, incoming ? theme.accent : theme.secondary);
-          text(g, incoming ? 'ENTRY' : 'EXIT', 0, 1.87, .085, .17, palette.cream);
+          text(g, incoming ? m.entry : m.exit, 0, 1.87, .085, .17, palette.cream);
         }
       } else if (node.kind === 'delay') {
         box(g, 0, .06, 0, 1.45, .12, 1.45, '#b7c0a8');
@@ -379,7 +381,7 @@ export function WorldScene(props: Props) {
       } else {
         const plate = box(g, 0, .12, 0, 1.2, .15, 1.2, theme.secondary); plate.rotation.y = Math.PI / 4;
         cylinder(g, 0, .69, 0, .045, 1.1, theme.edge);
-        box(g, 0, 1.1, 0, 1.35, .38, .12, palette.cream); text(g, 'SPLIT', 0, 1.11, .07, .15, theme.edge);
+        box(g, 0, 1.1, 0, 1.35, .38, .12, palette.cream); text(g, m.split, 0, 1.11, .07, .15, theme.edge);
       }
       register(g, node.id);
     }
@@ -407,9 +409,9 @@ export function WorldScene(props: Props) {
     nodes.forEach((node, index) => {
       const el = document.createElement('button'); el.className = `station-label node-${node.kind}`; el.dataset.stationId = node.id; el.type = 'button';
       el.innerHTML = '<span class="station-number"></span><span class="station-name"></span><span class="station-queue"></span>';
-      el.querySelector('.station-number')!.textContent = node.kind === 'service' ? String(services.findIndex(s => s.id === node.id) + 1).padStart(2, '0') : node.kind === 'queue' ? 'Q' : node.kind === 'source' ? 'IN' : node.kind === 'sink' ? 'OUT' : node.kind === 'delay' ? 'T' : '↗';
+      el.querySelector('.station-number')!.textContent = node.kind === 'service' ? String(services.findIndex(s => s.id === node.id) + 1).padStart(2, '0') : node.kind === 'queue' ? m.q : node.kind === 'source' ? m.in : node.kind === 'sink' ? m.out : node.kind === 'delay' ? m.t : '↗';
       el.querySelector('.station-name')!.textContent = node.label;
-      el.setAttribute('aria-label', `Select ${node.label}, ${node.kind}`);
+      el.setAttribute('aria-label', m.select(node.label, stepKindLabels[node.kind]));
       const connector = document.createElementNS('http://www.w3.org/2000/svg', 'line'); connectorLayer.appendChild(connector); connectors.set(node.id, connector);
       el.addEventListener('click', event => latest.current.onSelect(node.id, event.shiftKey || event.ctrlKey || event.metaKey ? 'toggle' : latest.current.moving && latest.current.selectedIds?.includes(node.id) ? 'inspect' : 'single'));
       el.addEventListener('pointerenter', () => { hover = node.id; requestRender(); });
@@ -523,7 +525,7 @@ export function WorldScene(props: Props) {
       const preview = down?.dragging ? down.preview : null;
       moveReadout.hidden = !preview;
       if (preview) {
-        moveReadout.textContent = preview.error ?? `Move ${preview.ids.length} step${preview.ids.length === 1 ? '' : 's'} · Δx ${preview.delta.x.toFixed(2)}, Δz ${preview.delta.z.toFixed(2)} · ${preview.guides.length ? 'Aligned with other steps' : '½-unit grid'} · Visual alignment only; timing is unchanged.`;
+        moveReadout.textContent = preview.error ?? m.movePreview(preview.ids.length, preview.delta.x.toFixed(2), preview.delta.z.toFixed(2), preview.guides.length > 0);
         host.dataset.movePreview = JSON.stringify({ ids: preview.ids, delta: preview.delta, points: preview.points, error: preview.error });
         host.dataset.alignmentGuides = JSON.stringify(preview.guides);
       }
@@ -591,8 +593,8 @@ export function WorldScene(props: Props) {
         label.el.classList.toggle('is-selected', selectionSet.has(label.node.id)); label.el.classList.toggle('is-hovered', hover === label.node.id);
         label.el.setAttribute('aria-pressed', String(selectionSet.has(label.node.id)));
         const currentName = currentNodes.get(label.node.id)?.label ?? label.node.label;
-        label.el.querySelector('.station-name')!.textContent = currentName; label.el.setAttribute('aria-label', `Select ${currentName}, ${label.node.kind}`);
-        label.el.querySelector('.station-queue')!.textContent = queue ? `${queue} waiting` : '';
+        label.el.querySelector('.station-name')!.textContent = currentName; label.el.setAttribute('aria-label', m.select(currentName, stepKindLabels[label.node.kind]));
+        label.el.querySelector('.station-queue')!.textContent = queue ? m.waiting(queue) : '';
         label.el.classList.toggle('has-queue', queue > 0);
         const visual = visualPoint(label.node.id);
         const point = new THREE.Vector3(visual.x, label.position.y, visual.z).project(camera), w = host.clientWidth, h = host.clientHeight;
@@ -634,6 +636,6 @@ export function WorldScene(props: Props) {
   useEffect(() => { invalidate.current(); }, [props.frame, props.selected, props.selectedIds, props.reducedMotion, props.moving]);
   useEffect(() => { cancelPreview.current(); }, [props.project.id, props.project.revision, props.moving]);
   return <div ref={mount} className={`world-scene ${props.moving ? 'is-moving' : ''}`} data-testid="world-scene">
-    {error && <div className="scene-fallback"><h3>Your browser could not open the 3D view.</h3><p>Use the model editor to view and edit every node. Try a browser with WebGL support for the world.</p></div>}
+    {error && <div className="scene-fallback"><h3>{m.yourBrowserCouldNotOpenThe3dView}</h3><p>{m.useTheModelEditorToViewAndEditEvery}</p></div>}
   </div>;
 }

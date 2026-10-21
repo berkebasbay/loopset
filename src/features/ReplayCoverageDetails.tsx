@@ -1,3 +1,4 @@
+import { replayCoverageDetailsMessages as m } from '../ui/messages/ReplayCoverageDetails';
 import { useMemo, useState } from 'react';
 import type { RunResult } from '../model/types';
 import { replayManifest } from '../playback';
@@ -12,17 +13,17 @@ export function ReplayCoverageDetails({ run }: { run: RunResult }) {
   const manifest = useMemo(() => open ? replayManifest(run) : null, [open, run]);
   const [showIndex, setShowIndex] = useState(false);
   return <details className="ql-replay-coverage" open={open} onToggle={event => setOpenFor(event.currentTarget.open ? identity : null)}>
-    <summary>Replay coverage</summary>
+    <summary>{m.replayCoverage}</summary>
     {manifest && <div className="ql-provenance-body">
       {manifest.coverage.length ? <>
-        <p>These intervals contain recorded instantaneous states. Both endpoints are included.</p>
-        <ul aria-label="Available replay intervals">{manifest.coverage.map((interval, index) => <li key={index}><code>{String(interval.start)}</code>–<code>{String(interval.end)}</code> seconds</li>)}</ul>
-        {!manifest.traceComplete && <p>Replay stops at the last fully retained timestamp. No instantaneous state is available after this coverage.</p>}
-      </> : <p>No detailed replay interval was retained for this run. The timeline cannot show an observed instantaneous state.</p>}
-      <p>{run.status === 'completed' ? 'Numerical results cover the full requested run, independently of replay retention.' : `Numerical results are incomplete; execution stopped at ${run.simulatedUntil} seconds.`}</p>
+        <p>{m.intervalEndpointsHelp}</p>
+        <ul aria-label={m.availableReplayIntervals}>{manifest.coverage.map((interval, index) => <li key={index}><code>{String(interval.start)}</code>–<code>{String(interval.end)}</code>{m.seconds}</li>)}</ul>
+        {!manifest.traceComplete && <p>{m.replayStopsAtTheLastFullyRetainedTimestampNo}</p>}
+      </> : <p>{m.noDetailedReplayIntervalWasRetainedForThisRun}</p>}
+      <p>{run.status === 'completed' ? m.completeNumericalCoverage : m.incompleteNumericalCoverage(run.simulatedUntil)}</p>
       <details open={showIndex} onToggle={event => setShowIndex(event.currentTarget.open)}>
-        <summary>Replay index evidence</summary>
-        {showIndex && <><p>Presentation checkpoints and event ranges support seeking. Estimated allocations below are accounting values, not a measurement or guarantee of total memory use.</p><pre className="ql-provenance-json" tabIndex={0} role="region" aria-label="Replay index data">{JSON.stringify(manifest, null, 2)}</pre></>}
+        <summary>{m.replayIndexEvidence}</summary>
+        {showIndex && <><p>{m.indexAccountingHelp}</p><pre className="ql-provenance-json" tabIndex={0} role="region" aria-label={m.replayIndexData}>{JSON.stringify(manifest, null, 2)}</pre></>}
       </details>
     </div>}
   </details>;

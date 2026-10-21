@@ -1,3 +1,4 @@
+import { editorHistoryMessages as m } from '../ui/messages/editorHistory';
 import type { Point, Project } from '../model/types';
 
 export const HISTORY_ACTION_LIMIT = 50;
@@ -68,43 +69,43 @@ function apply(entry: HistoryEntry, project: Project, direction: 'before' | 'aft
 export function describeProjectEdit(before: Project, after: Project): string {
   if (!equal(before.model, after.model) || !equal(before.layout, after.layout) || before.world !== after.world) {
     const scenario = after.scenarios?.find(item => item.world === after.world && equal(item.model, after.model) && equal(item.layout, after.layout));
-    if (scenario && equal(before.scenarios, after.scenarios)) return `Restore scenario ${scenario.name}`;
+    if (scenario && equal(before.scenarios, after.scenarios)) return m.restoreScenario(scenario.name);
   }
   const oldIds = new Set(before.model.nodes.map(node => node.id)), newIds = new Set(after.model.nodes.map(node => node.id));
   const added = after.model.nodes.filter(node => !oldIds.has(node.id)), removed = before.model.nodes.filter(node => !newIds.has(node.id));
-  if (added.length === 1 && removed.length === 1 && added[0].samplingId === removed[0].samplingId) return `Rename ${removed[0].label} ID`;
-  if (added.length) return `Add ${added[0].label || added[0].kind}`;
-  if (removed.length) return `Delete ${removed[0].label || removed[0].kind}`;
+  if (added.length === 1 && removed.length === 1 && added[0].samplingId === removed[0].samplingId) return m.renameId(removed[0].label);
+  if (added.length) return m.add(added[0].label || added[0].kind);
+  if (removed.length) return m.delete(removed[0].label || removed[0].kind);
   const beforeScenarios = before.scenarios ?? [], afterScenarios = after.scenarios ?? [];
   const addedScenario = afterScenarios.find(item => !beforeScenarios.some(previous => previous.id === item.id));
-  if (addedScenario) return `Save scenario ${addedScenario.name}`;
+  if (addedScenario) return m.saveScenario(addedScenario.name);
   const removedScenario = beforeScenarios.find(item => !afterScenarios.some(next => next.id === item.id));
-  if (removedScenario) return `Remove scenario ${removedScenario.name}`;
-  if (before.world !== after.world) return 'Change visual world';
+  if (removedScenario) return m.removeScenario(removedScenario.name);
+  if (before.world !== after.world) return m.changeVisualWorld;
   for (const node of after.model.nodes) {
     const previous = before.model.nodes.find(item => item.id === node.id); if (!previous || equal(previous, node)) continue;
-    const names: Record<string, string> = { label: 'name', next: 'connection', duration: 'processing time', servers: 'parallel servers', resources: 'resource requirements', arrival: 'arrivals', classes: 'entity classes', capacity: 'waiting capacity', discipline: 'queue discipline', patience: 'patience', branches: 'route destinations', samplingId: 'sampling ID' };
+    const names: Record<string, string> = { label: m.name, next: m.connection, duration: m.processingTime, servers: m.parallelServers, resources: m.resourceRequirements, arrival: m.arrivals, classes: m.entityClasses, capacity: m.waitingCapacity, discipline: m.queueDiscipline, patience: m.patience, branches: m.routeDestinations, samplingId: m.samplingId };
     const changed = Object.keys(node).filter(key => !equal((previous as unknown as Record<string, unknown>)[key], (node as unknown as Record<string, unknown>)[key]));
-    return `Change ${previous.label || previous.kind} ${changed.length === 1 ? names[changed[0]] ?? changed[0] : 'settings'}`;
+    return m.change(previous.label || previous.kind, changed.length === 1 ? names[changed[0]] ?? changed[0] : m.settings);
   }
   const addedPool = after.model.resources.find(pool => !before.model.resources.some(old => old.id === pool.id));
-  if (addedPool) return `Add ${addedPool.label || 'resource pool'}`;
+  if (addedPool) return m.add(addedPool.label || m.resourcePool);
   const removedPool = before.model.resources.find(pool => !after.model.resources.some(next => next.id === pool.id));
-  if (removedPool) return `Delete ${removedPool.label || 'resource pool'}`;
+  if (removedPool) return m.delete(removedPool.label || m.resourcePool);
   for (const pool of after.model.resources) {
     const previous = before.model.resources.find(item => item.id === pool.id);
-    if (previous && !equal(previous, pool)) return `Change ${previous.label || 'resource pool'} settings`;
+    if (previous && !equal(previous, pool)) return m.changeSettings(previous.label || m.resourcePool);
   }
   for (const key of ['name', 'horizon', 'warmup', 'seed', 'slaSeconds', 'currency'] as const) if (!equal(before.model[key], after.model[key])) {
-    return `Change ${{ name: 'model name', horizon: 'run horizon', warmup: 'warm-up', seed: 'random seed', slaSeconds: 'SLA wait target', currency: 'currency' }[key]}`;
+    return m.changeModelField(m.modelFields[key]);
   }
-  if (before.name !== after.name) return 'Rename project';
-  if (before.description !== after.description) return 'Edit project description';
+  if (before.name !== after.name) return m.renameProject;
+  if (before.description !== after.description) return m.editProjectDescription;
   if (!equal(before.layout, after.layout)) {
     const ids = [...new Set([...Object.keys(before.layout), ...Object.keys(after.layout)])].filter(id => !equal(before.layout[id], after.layout[id]));
-    return ids.length === 1 ? `Move ${after.model.nodes.find(node => node.id === ids[0])?.label ?? 'step'}` : `Move ${ids.length} steps`;
+    return ids.length === 1 ? m.move(after.model.nodes.find(node => node.id === ids[0])?.label ?? m.step) : m.moveSteps(ids.length);
   }
-  return 'Edit project settings';
+  return m.editProjectSettings;
 }
 
 export function commitEdit(history: EditorHistory, before: Project, requested: Project, label = describeProjectEdit(before, requested)): { history: EditorHistory; project: Project; entry?: HistoryEntry } {

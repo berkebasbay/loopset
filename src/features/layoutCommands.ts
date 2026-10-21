@@ -1,3 +1,4 @@
+import { layoutCommandsMessages as m } from '../ui/messages/layoutCommands';
 import type { Point, Project } from '../model/types';
 import { sceneLayout } from '../scene/graph';
 
@@ -30,13 +31,13 @@ export function previewTranslation(project: Project, selectedIds: readonly strin
   const ids = [...new Set(selectedIds)].filter(id => existing.has(id));
   const layout = sceneLayout(project);
   const fail = (error: string): LayoutTranslation => ({ ids, delta: { x: 0, z: 0 }, points: Object.create(null), guides: [], error });
-  if (!ids.length) return fail('Select at least one existing step to move.');
-  if (![requested.x, requested.z].every(Number.isFinite)) return fail('Enter a finite visual move amount.');
+  if (!ids.length) return fail(m.selectAtLeastOneExistingStepToMove);
+  if (![requested.x, requested.z].every(Number.isFinite)) return fail(m.enterAFiniteVisualMoveAmount);
   const range = (axis: 'x' | 'z') => ({ min: Math.max(...ids.map(id => -LAYOUT_LIMIT - layout[id][axis])), max: Math.min(...ids.map(id => LAYOUT_LIMIT - layout[id][axis])) });
   const xr = range('x'), zr = range('z');
-  if (xr.min > xr.max || zr.min > zr.max) return fail('These steps span more than the visual workspace. Repair individual visual positions in Identity & visual position before moving this group.');
+  if (xr.min > xr.max || zr.min > zr.max) return fail(m.theseStepsSpanMoreThanTheVisualWorkspaceRepair);
   // Do not silently reposition an out-of-bounds imported/fallback group on the other axis.
-  if (xr.min > 0 || xr.max < 0 || zr.min > 0 || zr.max < 0) return fail('A selected step is outside the visual workspace. Repair its visual position in Identity & visual position before moving this group.');
+  if (xr.min > 0 || xr.max < 0 || zr.min > 0 || zr.max < 0) return fail(m.aSelectedStepIsOutsideTheVisualWorkspaceRepair);
   const clamp = (v: number, r: { min: number; max: number }) => Math.max(r.min, Math.min(r.max, v));
   const anchor = options.anchor && ids.includes(options.anchor) ? options.anchor : ids[0];
   const delta = { ...requested };
