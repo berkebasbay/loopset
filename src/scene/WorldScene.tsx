@@ -10,6 +10,7 @@ import { modelLinks, sceneExtent, sceneLayout } from './graph';
 import { beginMoveGesture, type LayoutTranslation, type MoveGesture } from '../features/layoutCommands';
 import type { SelectionIntent } from '../features/editorSelection';
 import { connectionFraming, connectionShapes, flowTopology, ribbonPositions, sharedPositionLinks, type ConnectionShape, type FlowWalk } from './flowPresentation';
+import { batchStaticMeshes } from './batchStaticMeshes';
 
 interface Props {
   project: Project; frame: WorldFrame; selected: string | null; selectedIds?: string[]; reducedMotion: boolean;
@@ -299,6 +300,9 @@ export function WorldScene(props: Props) {
       ring.rotation.x = -Math.PI / 2; ring.position.y = .015; g.add(ring); rings.set(node.id, ring); return g;
     }
     function register(g: THREE.Group, id: string) {
+      // Dense artwork has many small opaque pieces. Keep batches inside their
+      // node so ordinary picking, live drag transforms and history still apply.
+      if (dense) batchStaticMeshes(g, new Set(parts.map(part => part.mesh)), own);
       g.traverse(obj => { if ((obj as THREE.Mesh).isMesh) { obj.userData.nodeId = id; pickables.push(obj); } });
     }
     const fadedMaterials = new Map<THREE.Material, THREE.Material>();
