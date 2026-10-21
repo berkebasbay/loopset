@@ -32,3 +32,11 @@
 .station-title>div{min-width:0}.station-title h2{overflow-wrap:anywhere}
 @media(max-width:740px){.station-label{max-width:min(190px,calc(100% - 24px))}}
 @media(max-width:740px){.world-toolbar{height:auto;min-height:54px;flex-wrap:wrap;gap:6px;padding-top:7px;padding-bottom:7px}.world-tools{margin-left:auto}}
+
+/* Opaque scene text backgrounds keep contrast independent of the 3D view. */
+.live-label,.scene-unit,.scene-caption,.world-compass>span{background:#f2f1e7}
+.live-label,.scene-unit,.world-compass>span{padding:2px 4px;border-radius:2px}
+.scene-unit,.scene-caption,.world-compass>span{color:#53684a}
+.scene-caption{padding:3px 5px;border-radius:3px}
+/* Keep the native range track and thumb inside a usable pointer target. */
+.playback-bar input[type=range]{height:24px;background:transparent}
