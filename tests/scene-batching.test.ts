@@ -22,6 +22,19 @@ function vertices(root: THREE.Object3D) {
 }
 
 describe('stationary node artwork batching', () => {
+  it('preserves explicit root and nested group render ordering', () => {
+    const material = new THREE.MeshStandardMaterial(), root = new THREE.Group(), nested = new THREE.Group();
+    const make = () => new THREE.Mesh(new THREE.BoxGeometry(), material);
+    const first = make(), second = make(); nested.add(first, second); nested.renderOrder = 2; root.add(nested);
+    const ordinaryA = make(), ordinaryB = make(); root.add(ordinaryA, ordinaryB);
+    batchStaticMeshes(root, new Set(), geometry => geometry);
+    expect(first.parent).toBe(nested); expect(second.parent).toBe(nested);
+    expect(nested.renderOrder).toBe(2); expect(ordinaryA.parent).toBeNull(); expect(ordinaryB.parent).toBeNull();
+    const orderedRoot = new THREE.Group(), a = make(), b = make(); orderedRoot.add(a, b); orderedRoot.renderOrder = 3;
+    batchStaticMeshes(orderedRoot, new Set(), () => { throw new Error('An ordered root must keep its original meshes.'); });
+    expect(a.parent).toBe(orderedRoot); expect(b.parent).toBe(orderedRoot);
+  });
+
   it('preserves transformed triangles, normals, UVs, material and shadow flags', () => {
     const root = new THREE.Group(), child = new THREE.Group();
     root.position.set(7, -2, 4); root.scale.setScalar(1.12); root.rotation.y = .38;

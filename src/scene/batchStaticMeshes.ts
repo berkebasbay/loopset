@@ -3,12 +3,14 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /** Batch stationary opaque artwork within one semantic, movable node. */
 export function batchStaticMeshes(group: THREE.Group, dynamic: ReadonlySet<THREE.Object3D>, own: (geometry: THREE.BufferGeometry) => THREE.BufferGeometry) {
+  // Reparenting must not change Three's inherited Group render ordering.
+  if (group.renderOrder !== 0) return;
   group.updateWorldMatrix(true, true);
   const inverse = group.matrixWorld.clone().invert();
   const buckets = new Map<string, { mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>; matrix: THREE.Matrix4 }[]>();
   const visit = (object: THREE.Object3D) => {
     // A moving or hidden parent also excludes its descendants.
-    if (dynamic.has(object) || !object.visible) return;
+    if (dynamic.has(object) || !object.visible || (object instanceof THREE.Group && object.renderOrder !== 0)) return;
     if (object instanceof THREE.Mesh && object.type === 'Mesh' && !object.children.length && object.material instanceof THREE.MeshStandardMaterial && !object.material.transparent) {
       const mesh = object as THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>, geometry = mesh.geometry;
       const matrix = inverse.clone().multiply(mesh.matrixWorld);
