@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { Project, ModelNode } from '../model/types';
+import type { Project, ModelNode, Point } from '../model/types';
 import type { WorldFrame } from '../playback';
 import { modelLinks, sceneExtent, sceneLayout } from './graph';
+import { beginMoveGesture, type LayoutTranslation, type MoveGesture } from '../features/layoutCommands';
+import type { SelectionIntent } from '../features/editorSelection';
 
 interface Props {
-  project: Project; frame: WorldFrame; selected: string | null; reducedMotion: boolean;
-  onSelect: (id: string) => void; onMove?: (id: string, x: number, z: number) => void;
+  project: Project; frame: WorldFrame; selected: string | null; selectedIds?: string[]; reducedMotion: boolean;
+  onSelect: (id: string | null, intent?: SelectionIntent) => void; onMove?: (ids: string[], delta: Point) => void;
   moving?: boolean; quality?: 'high' | 'low'; resetKey?: number;
 }
 type Label = { el: HTMLButtonElement; node: ModelNode; position: THREE.Vector3 };
@@ -43,6 +45,7 @@ const palette = { cream: '#f4eee0', dark: '#294a40', metal: '#577166', box: '#be
 export function WorldScene(props: Props) {
   const mount = useRef<HTMLDivElement>(null); const latest = useRef(props); latest.current = props;
   const invalidate = useRef<() => void>(() => {});
+  const cancelPreview = useRef<() => void>(() => {});
   const [error, setError] = useState(false);
   const geometryKey = JSON.stringify({ world: props.project.world, layout: props.project.layout,
     nodes: props.project.model.nodes.map(node => ({ id: node.id, kind: node.kind,
@@ -390,6 +393,14 @@ export function WorldScene(props: Props) {
     if (actorTops) { actorTops.count = 0; actorTops.frustumCulled = false; scene.add(actorTops); }
     const dummy = new THREE.Object3D();
     const labelLayer = document.createElement('div'); labelLayer.className = 'scene-label-layer'; host.appendChild(labelLayer);
+    const moveReadout = document.createElement('div'); moveReadout.className = 'move-guide-readout'; moveReadout.hidden = true; host.appendChild(moveReadout);
+    const guideLines = (['x', 'z'] as const).map(() => {
+      const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+      const line = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: '#416a3b', dashSize: .22, gapSize: .14, depthTest: false, depthWrite: false, transparent: true, opacity: .85 }));
+      line.visible = false; line.renderOrder = 4; scene.add(line); return line;
+    });
+    const previewPoints = new Map<string, Point>();
+    const visualPoint = (id: string) => previewPoints.get(id) ?? layout[id];
     const connectorLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); connectorLayer.classList.add('scene-label-connectors'); connectorLayer.setAttribute('aria-hidden', 'true'); labelLayer.appendChild(connectorLayer);
     const connectors = new Map<string, SVGLineElement>();
     const labels: Label[] = [];
@@ -400,7 +411,7 @@ export function WorldScene(props: Props) {
       el.querySelector('.station-name')!.textContent = node.label;
       el.setAttribute('aria-label', `Select ${node.label}, ${node.kind}`);
       const connector = document.createElementNS('http://www.w3.org/2000/svg', 'line'); connectorLayer.appendChild(connector); connectors.set(node.id, connector);
-      el.addEventListener('click', () => latest.current.onSelect(node.id));
+      el.addEventListener('click', event => latest.current.onSelect(node.id, event.shiftKey || event.ctrlKey || event.metaKey ? 'toggle' : latest.current.moving && latest.current.selectedIds?.includes(node.id) ? 'inspect' : 'single'));
       el.addEventListener('pointerenter', () => { hover = node.id; requestRender(); });
       el.addEventListener('pointerleave', () => { hover = null; requestRender(); }); labelLayer.appendChild(el);
       const p = layout[node.id]; labels.push({ el, node, position: new THREE.Vector3(p.x, node.kind === 'service' ? (world === 'festival' ? 3 : 2.8) : node.kind === 'queue' ? .25 : 2.2, p.z) });
@@ -430,36 +441,58 @@ export function WorldScene(props: Props) {
       renderer.setSize(w, h); fit();
     }); observer.observe(host);
     const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    let down: { x: number; y: number; hit: string | null } | null = null;
+    let down: { x: number; y: number; hit: string | null; pointerId: number; toggle: boolean; origin: Point | null; ids: string[]; preview: LayoutTranslation | null; gesture: MoveGesture | null; dragging: boolean } | null = null;
     function hit(e: PointerEvent) {
       const rect = renderer.domElement.getBoundingClientRect(); pointer.set((e.clientX - rect.left) / rect.width * 2 - 1, -(e.clientY - rect.top) / rect.height * 2 + 1);
       raycaster.setFromCamera(pointer, camera); return raycaster.intersectObjects(pickables, false)[0]?.object.userData.nodeId as string | undefined;
     }
     function pointerDown(e: PointerEvent) {
-      down = { x: e.clientX, y: e.clientY, hit: hit(e) ?? null };
-      if (latest.current.moving && down.hit) { controls.enabled = false; renderer.domElement.setPointerCapture(e.pointerId); }
+      if (e.button !== 0 || down) return;
+      const nodeId = hit(e) ?? null, point = new THREE.Vector3();
+      const origin = raycaster.ray.intersectPlane(ground, point) ? { x: point.x, z: point.z } : null;
+      const selectedIds = latest.current.selectedIds ?? (latest.current.selected ? [latest.current.selected] : []);
+      down = { x: e.clientX, y: e.clientY, hit: nodeId, pointerId: e.pointerId, toggle: e.shiftKey || e.ctrlKey || e.metaKey, origin,
+        ids: nodeId ? selectedIds.includes(nodeId) ? [...selectedIds] : [nodeId] : [], preview: null, gesture: null, dragging: false };
+      if (latest.current.moving && nodeId) { controls.enabled = false; renderer.domElement.setPointerCapture(e.pointerId); }
     }
     function pointerUp(e: PointerEvent) {
-      if (!down) return;
+      if (!down || down.pointerId !== e.pointerId) return;
+      if (down.dragging) updateDrag(e);
+      const completed = down;
       const delta = Math.hypot(e.clientX - down.x, e.clientY - down.y);
-      if (delta < 5 && down.hit) latest.current.onSelect(down.hit);
-      if (latest.current.moving && down.hit && delta >= 5) {
-        hit(e); const point = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(ground, point)) latest.current.onMove?.(down.hit, Math.max(-100, Math.min(100, Math.round(point.x * 2) / 2)), Math.max(-100, Math.min(100, Math.round(point.z * 2) / 2)));
-      }
-      if (renderer.domElement.hasPointerCapture(e.pointerId)) renderer.domElement.releasePointerCapture(e.pointerId);
-      down = null; controls.enabled = true; requestRender();
+      if (delta < 5) latest.current.onSelect(completed.hit, completed.toggle ? 'toggle' : latest.current.moving && completed.hit && latest.current.selectedIds?.includes(completed.hit) ? 'inspect' : 'single');
+      const commit = completed.dragging ? completed.gesture?.finish() : null;
+      pointerCancel();
+      if (commit) latest.current.onMove?.(commit.ids, commit.delta);
+    }
+    function updateDrag(e: PointerEvent) {
+      if (!down || down.pointerId !== e.pointerId || !down.hit || !down.origin || down.toggle || !latest.current.moving) return;
+      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5 && !down.dragging) return;
+      hit(e); const point = new THREE.Vector3(); if (!raycaster.ray.intersectPlane(ground, point)) return;
+      if (!down.dragging) { down.dragging = true; down.gesture = beginMoveGesture(project, down.ids, down.hit); latest.current.onSelect(down.hit, down.ids.includes(down.hit) && latest.current.selectedIds?.includes(down.hit) ? 'inspect' : 'single'); }
+      down.preview = down.gesture!.preview({ x: point.x - down.origin.x, z: point.z - down.origin.z });
+      previewPoints.clear();
+      if (down.preview && !down.preview.error) for (const id of down.preview.ids) { const p = down.preview.points[id]; previewPoints.set(id, p); stageGroups.get(id)?.position.set(p.x, .08, p.z); }
+      renderer.shadowMap.needsUpdate = true; requestRender();
     }
     function pointerMove(e: PointerEvent) {
       const nodeId = hit(e) ?? null;
       if (!down) { renderer.domElement.style.cursor = nodeId ? latest.current.moving ? 'move' : 'pointer' : 'grab'; if (hover !== nodeId) { hover = nodeId; requestRender(); } }
-      else if (latest.current.moving && down.hit) {
-        const point = new THREE.Vector3(); if (raycaster.ray.intersectPlane(ground, point)) {
-          stageGroups.get(down.hit)?.position.set(Math.round(point.x * 2) / 2, .08, Math.round(point.z * 2) / 2); renderer.shadowMap.needsUpdate = true; requestRender();
-        }
-      }
+      else updateDrag(e);
     }
-    const pointerCancel = () => { if (down?.hit) { const p = layout[down.hit]; stageGroups.get(down.hit)?.position.set(p.x, .08, p.z); } down = null; controls.enabled = true; requestRender(); };
+    const pointerCancel = () => {
+      const pointerId = down?.pointerId;
+      down?.gesture?.cancel();
+      for (const id of previewPoints.keys()) { const p = layout[id]; stageGroups.get(id)?.position.set(p.x, .08, p.z); }
+      previewPoints.clear(); down = null; controls.enabled = true; moveReadout.hidden = true; guideLines.forEach(line => { line.visible = false; });
+      delete host.dataset.movePreview; delete host.dataset.alignmentGuides;
+      if (pointerId !== undefined && renderer.domElement.hasPointerCapture(pointerId)) renderer.domElement.releasePointerCapture(pointerId);
+      renderer.shadowMap.needsUpdate = true; requestRender();
+    };
+    cancelPreview.current = pointerCancel;
+    const cancelEvent = () => pointerCancel();
+    const lostCapture = (event: PointerEvent) => { if (latest.current.moving && down?.pointerId === event.pointerId) pointerCancel(); };
+    const moveKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && down?.dragging) { event.preventDefault(); event.stopPropagation(); pointerCancel(); } };
     const pointerLeave = () => { hover = null; requestRender(); };
     const visible = () => { if (!document.hidden) requestRender(); };
     const cameraChanged = () => {
@@ -472,9 +505,9 @@ export function WorldScene(props: Props) {
       const target = new THREE.Vector3(point.x, .8, point.z), delta = target.clone().sub(controls.target);
       controls.target.copy(target); camera.position.add(delta); camera.zoom = Math.max(camera.zoom, Math.min(3, Math.max(extent.width, extent.depth) / 8)); camera.updateProjectionMatrix(); controls.update(); requestRender();
     };
-    renderer.domElement.addEventListener('pointercancel', pointerCancel); renderer.domElement.addEventListener('pointerleave', pointerLeave);
+    renderer.domElement.addEventListener('pointercancel', pointerCancel); renderer.domElement.addEventListener('lostpointercapture', lostCapture); renderer.domElement.addEventListener('pointerleave', pointerLeave);
     renderer.domElement.addEventListener('pointerdown', pointerDown); renderer.domElement.addEventListener('pointerup', pointerUp); renderer.domElement.addEventListener('pointermove', pointerMove);
-    host.addEventListener('queuelab:fit', fit); host.addEventListener('queuelab:focus', focusSelected); controls.addEventListener('change', cameraChanged); document.addEventListener('visibilitychange', visible);
+    host.addEventListener('queuelab:fit', fit); host.addEventListener('queuelab:focus', focusSelected); host.addEventListener('queuelab:cancel-move', cancelEvent); host.addEventListener('keydown', moveKey); controls.addEventListener('change', cameraChanged); document.addEventListener('visibilitychange', visible);
     function draw() {
       handle = 0; if (!alive || document.hidden) return;
       const started = performance.now(), current = latest.current;
@@ -484,16 +517,35 @@ export function WorldScene(props: Props) {
         const content = `${String(plate.index + 1).padStart(2, '0')} / ${node?.kind === 'service' && Number.isFinite(node.servers) ? node.servers : '—'}×`;
         if (content !== plate.content) { plate.update(content); plate.content = content; }
       }
-      const neighbors = dense ? new Set(links.filter(link => link.from === current.selected || link.to === current.selected).flatMap(link => [link.from, link.to])) : new Set<string>();
-      for (const [id, ring] of rings) {
-        ring.visible = current.selected === id || hover === id || neighbors.has(id);
-        (ring.material as THREE.MeshBasicMaterial).color.set(current.selected === id ? theme.accent : theme.secondary);
+      const selectionSet = new Set(current.selectedIds ?? (current.selected ? [current.selected] : []));
+      host.dataset.selectedIds = JSON.stringify([...selectionSet]);
+      host.dataset.primarySelection = current.selected ?? '';
+      const preview = down?.dragging ? down.preview : null;
+      moveReadout.hidden = !preview;
+      if (preview) {
+        moveReadout.textContent = preview.error ?? `Move ${preview.ids.length} step${preview.ids.length === 1 ? '' : 's'} · Δx ${preview.delta.x.toFixed(2)}, Δz ${preview.delta.z.toFixed(2)} · ${preview.guides.length ? 'Aligned with other steps' : '½-unit grid'} · Visual alignment only; timing is unchanged.`;
+        host.dataset.movePreview = JSON.stringify({ ids: preview.ids, delta: preview.delta, points: preview.points, error: preview.error });
+        host.dataset.alignmentGuides = JSON.stringify(preview.guides);
       }
-      const selectedEdgeFocus = current.selected !== null && currentNodes.has(current.selected) ? current.selected : null;
+      for (const [i, line] of guideLines.entries()) {
+        const guide = preview?.guides[i]; line.visible = Boolean(guide);
+        if (!guide) continue;
+        const from = Math.min(guide.from, guide.to) - .7, to = Math.max(guide.from, guide.to) + .7;
+        const positions = line.geometry.getAttribute('position') as THREE.BufferAttribute;
+        positions.setXYZ(0, guide.axis === 'x' ? guide.value : from, .14, guide.axis === 'x' ? from : guide.value);
+        positions.setXYZ(1, guide.axis === 'x' ? guide.value : to, .14, guide.axis === 'x' ? to : guide.value);
+        positions.needsUpdate = true; line.geometry.computeBoundingSphere(); line.computeLineDistances();
+      }
+      const neighbors = dense ? new Set(links.filter(link => selectionSet.has(link.from) || selectionSet.has(link.to)).flatMap(link => [link.from, link.to])) : new Set<string>();
+      for (const [id, ring] of rings) {
+        ring.visible = selectionSet.has(id) || hover === id || neighbors.has(id);
+        (ring.material as THREE.MeshBasicMaterial).color.set(selectionSet.has(id) ? theme.accent : theme.secondary);
+      }
+      const selectedEdgeFocus = [...selectionSet].filter(id => currentNodes.has(id)).sort().join('|') || null;
       if (edgeFocus !== selectedEdgeFocus) {
         edgeFocus = selectedEdgeFocus;
         for (const edge of edgeVisuals) {
-          const incident = edge.from === edgeFocus || edge.to === edgeFocus;
+          const incident = selectionSet.has(edge.from) || selectionSet.has(edge.to);
           edge.highlight.visible = incident;
           for (const item of edge.meshes) item.mesh.material = edgeFocus !== null && !incident
             ? Array.isArray(item.material) ? item.material.map(faded) : faded(item.material) : item.material;
@@ -503,7 +555,7 @@ export function WorldScene(props: Props) {
       }
       const grouped: Record<string, number> = {}, count = Math.min(current.frame.actors.length, 500); actors.count = count; if (actorTops) actorTops.count = count;
       current.frame.actors.slice(0, count).forEach((actor, index) => {
-        const node = currentNodes.get(actor.nodeId), p = layout[actor.nodeId] ?? { x: 0, z: 0 };
+        const node = currentNodes.get(actor.nodeId), p = visualPoint(actor.nodeId) ?? { x: 0, z: 0 };
         const rank = grouped[`${actor.nodeId}-${actor.state}`] ?? 0; grouped[`${actor.nodeId}-${actor.state}`] = rank + 1;
         const waiting = actor.state === 'waiting';
         const cell = rank % 24, x = waiting ? p.x + (cell % 4) * .27 - .4 : p.x + (rank % 3) * .3 - .3;
@@ -524,24 +576,26 @@ export function WorldScene(props: Props) {
       const occupied: LabelRect[] = [];
       // Label callouts avoid projected machine bodies as well as one another.
       const bodyRects = services.map(node => {
-        const p = layout[node.id], points: THREE.Vector3[] = [];
+        const p = visualPoint(node.id), points: THREE.Vector3[] = [];
         for (const x of [-1.25, 1.25]) for (const y of [.55, world === 'festival' ? 2.55 : 2.4]) for (const z of [-.9, .9]) points.push(new THREE.Vector3(p.x + x, y, p.z + z).project(camera));
         const xs = points.map(v => (v.x * .5 + .5) * host.clientWidth), ys = points.map(v => (-v.y * .5 + .5) * host.clientHeight);
         return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
       });
-      const orderedLabels = [...labels].sort((a, b) => Number(current.selected === b.node.id || hover === b.node.id) - Number(current.selected === a.node.id || hover === a.node.id) || Number(b.node.kind === 'service') - Number(a.node.kind === 'service'));
+      const orderedLabels = [...labels].sort((a, b) => Number(current.selected === b.node.id) - Number(current.selected === a.node.id) || Number(selectionSet.has(b.node.id) || hover === b.node.id) - Number(selectionSet.has(a.node.id) || hover === a.node.id) || Number(b.node.kind === 'service') - Number(a.node.kind === 'service'));
       for (const label of orderedLabels) {
-        const primary = current.selected === label.node.id || hover === label.node.id;
+        const primary = selectionSet.has(label.node.id) || hover === label.node.id;
         const queue = label.node.kind === 'queue' ? current.frame.queues[label.node.id] ?? 0 : nodes.filter(n => n.kind === 'queue' && n.next === label.node.id).reduce((sum, n) => sum + (current.frame.queues[n.id] ?? 0), 0);
         const visibleLabel = primary || (!dense && (label.node.kind === 'service'));
         const connector = connectors.get(label.node.id)!; connector.style.display = 'none';
         label.el.hidden = !visibleLabel; if (!visibleLabel) continue;
-        label.el.classList.toggle('is-selected', current.selected === label.node.id); label.el.classList.toggle('is-hovered', hover === label.node.id);
+        label.el.classList.toggle('is-selected', selectionSet.has(label.node.id)); label.el.classList.toggle('is-hovered', hover === label.node.id);
+        label.el.setAttribute('aria-pressed', String(selectionSet.has(label.node.id)));
         const currentName = currentNodes.get(label.node.id)?.label ?? label.node.label;
         label.el.querySelector('.station-name')!.textContent = currentName; label.el.setAttribute('aria-label', `Select ${currentName}, ${label.node.kind}`);
         label.el.querySelector('.station-queue')!.textContent = queue ? `${queue} waiting` : '';
         label.el.classList.toggle('has-queue', queue > 0);
-        const point = label.position.clone().project(camera), w = host.clientWidth, h = host.clientHeight;
+        const visual = visualPoint(label.node.id);
+        const point = new THREE.Vector3(visual.x, label.position.y, visual.z).project(camera), w = host.clientWidth, h = host.clientHeight;
         if (Math.abs(point.x) > 1.1 || Math.abs(point.y) > 1.1) { label.el.hidden = true; continue; }
         const width = label.el.offsetWidth, height = label.el.offsetHeight;
         const placed = placeLabel({ x: (point.x * .5 + .5) * w - width / 2, y: (-point.y * .5 + .5) * h - height, width, height }, { width: w, height: h }, occupied, bodyRects);
@@ -553,17 +607,17 @@ export function WorldScene(props: Props) {
         const anchorX = (point.x * .5 + .5) * w, anchorY = (-point.y * .5 + .5) * h;
         if (Math.hypot(labelX + width / 2 - anchorX, y + height - anchorY) > 9) { connector.style.display = ''; connector.setAttribute('x1', String(labelX + width / 2)); connector.setAttribute('y1', String(y + height)); connector.setAttribute('x2', String(anchorX)); connector.setAttribute('y2', String(anchorY + 6)); connector.classList.toggle('is-selected', current.selected === label.node.id); }
       }
-      host.dataset.pickPoints = JSON.stringify(nodes.map(node => { const p = layout[node.id], v = new THREE.Vector3(p.x, node.kind === 'service' ? 1.3 : node.kind === 'queue' ? .2 : .6, p.z + .2).project(camera); return { id: node.id, x: (v.x * .5 + .5) * host.clientWidth, y: (-v.y * .5 + .5) * host.clientHeight }; }));
+      host.dataset.pickPoints = JSON.stringify(nodes.map(node => { const p = visualPoint(node.id), v = new THREE.Vector3(p.x, node.kind === 'service' ? 1.3 : node.kind === 'queue' ? .2 : .6, p.z + .2).project(camera); return { id: node.id, x: (v.x * .5 + .5) * host.clientWidth, y: (-v.y * .5 + .5) * host.clientHeight }; }));
       renderer.render(scene, camera); renderCount++;
       host.dataset.renderCount = String(renderCount); host.dataset.renderMs = String(performance.now() - started); host.dataset.drawCalls = String(renderer.info.render.calls);
       host.dataset.actorCount = String(count); host.dataset.renderPending = 'false'; host.dataset.status = 'ready';
     }
     fit(); requestRender();
     return () => {
-      alive = false; invalidate.current = () => {}; cancelAnimationFrame(handle); observer.disconnect(); controls.dispose();
-      renderer.domElement.removeEventListener('pointercancel', pointerCancel); renderer.domElement.removeEventListener('pointerleave', pointerLeave);
+      alive = false; invalidate.current = () => {}; cancelPreview.current = () => {}; cancelAnimationFrame(handle); observer.disconnect(); controls.dispose();
+      renderer.domElement.removeEventListener('pointercancel', pointerCancel); renderer.domElement.removeEventListener('lostpointercapture', lostCapture); renderer.domElement.removeEventListener('pointerleave', pointerLeave);
       renderer.domElement.removeEventListener('pointerdown', pointerDown); renderer.domElement.removeEventListener('pointerup', pointerUp); renderer.domElement.removeEventListener('pointermove', pointerMove);
-      host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focusSelected); controls.removeEventListener('change', cameraChanged); document.removeEventListener('visibilitychange', visible);
+      host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focusSelected); host.removeEventListener('queuelab:cancel-move', cancelEvent); host.removeEventListener('keydown', moveKey); controls.removeEventListener('change', cameraChanged); document.removeEventListener('visibilitychange', visible);
       const disposedMaterials = new Set<THREE.Material>(), disposedGeometries = new Set<THREE.BufferGeometry>();
       scene.traverse(obj => { const mesh = obj as THREE.Mesh; if (mesh.geometry && !disposedGeometries.has(mesh.geometry)) { mesh.geometry.dispose(); disposedGeometries.add(mesh.geometry); }
         if (mesh.material) for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) if (!disposedMaterials.has(m)) { m.dispose(); disposedMaterials.add(m); } });
@@ -572,12 +626,13 @@ export function WorldScene(props: Props) {
       for (const material of fadedMaterials.values()) if (!disposedMaterials.has(material)) material.dispose();
       if (!disposedMaterials.has(focusLinkMaterial)) focusLinkMaterial.dispose();
       if (!disposedMaterials.has(focusArrowMaterial)) focusArrowMaterial.dispose();
-      for (const texture of textures) texture.dispose(); actors.dispose(); actorTops?.dispose(); light.shadow.dispose(); renderer.dispose(); renderer.domElement.remove(); labelLayer.remove();
+      for (const texture of textures) texture.dispose(); actors.dispose(); actorTops?.dispose(); light.shadow.dispose(); renderer.dispose(); renderer.domElement.remove(); labelLayer.remove(); moveReadout.remove();
     };
   }, [geometryKey, props.quality, props.resetKey]);
   // A sealed playback frame, selection or preference invalidates exactly one render.
   // Motion is bounded by frame.time; pausing does not leave a GPU animation loop running.
-  useEffect(() => { invalidate.current(); }, [props.frame, props.selected, props.reducedMotion, props.moving]);
+  useEffect(() => { invalidate.current(); }, [props.frame, props.selected, props.selectedIds, props.reducedMotion, props.moving]);
+  useEffect(() => { cancelPreview.current(); }, [props.project.id, props.project.revision, props.moving]);
   return <div ref={mount} className={`world-scene ${props.moving ? 'is-moving' : ''}`} data-testid="world-scene">
     {error && <div className="scene-fallback"><h3>Your browser could not open the 3D view.</h3><p>Use the model editor to view and edit every node. Try a browser with WebGL support for the world.</p></div>}
   </div>;
