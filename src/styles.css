@@ -29,5 +29,6 @@
 
 .world-mini img{width:100%;height:100%;object-fit:contain;border-radius:5px}
 .station-label{max-width:min(240px,calc(100% - 24px))}.station-label .station-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.station-title>div{min-width:0}.station-title h2{overflow-wrap:anywhere}
 @media(max-width:740px){.station-label{max-width:min(190px,calc(100% - 24px))}}
 @media(max-width:740px){.world-toolbar{height:auto;min-height:54px;flex-wrap:wrap;gap:6px;padding-top:7px;padding-bottom:7px}.world-tools{margin-left:auto}}
