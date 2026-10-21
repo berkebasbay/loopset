@@ -20,6 +20,7 @@ interface Props {
 type Label = { el: HTMLButtonElement; node: ModelNode; position: THREE.Vector3 };
 type Part = { nodeId: string; mesh: THREE.Object3D; kind: 'press' | 'scanner' | 'arm'; rest: number };
 type LabelRect = { x: number; y: number; width: number; height: number };
+type RendererLifetime = { renderer: THREE.WebGLRenderer; releasePointers: () => void; dispose: () => void };
 
 // Labels may cross scenic bodies when space is tight, but never another label's
 // pointer region. The second pass trades decorative occlusion for a safe target.
@@ -50,6 +51,9 @@ export function WorldScene(props: Props) {
   const mount = useRef<HTMLDivElement>(null); const latest = useRef(props); latest.current = props;
   const invalidate = useRef<() => void>(() => {});
   const cancelPreview = useRef<() => void>(() => {});
+  const rendererLifetime = useRef<RendererLifetime | null>(null);
+  const acquireRenderer = useRef<() => RendererLifetime | null>(() => null);
+  const disposeActiveScene = useRef<() => void>(() => {});
   const [error, setError] = useState(false);
   const geometryKey = JSON.stringify({ world: props.project.world, layout: props.project.layout,
     nodes: props.project.model.nodes.map(node => ({ id: node.id, kind: node.kind,
@@ -57,35 +61,96 @@ export function WorldScene(props: Props) {
 
   useEffect(() => {
     if (!mount.current) return;
-    const host = mount.current; host.dataset.status = 'loading'; setError(false);
-    let renderer: THREE.WebGLRenderer;
-    try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'default' }); }
-    catch { setError(true); return; }
+    const host = mount.current;
+    acquireRenderer.current = () => {
+      if (rendererLifetime.current) return rendererLifetime.current;
+      let renderer: THREE.WebGLRenderer;
+      try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'default' }); }
+      catch { host.dataset.status = 'error'; setError(true); return null; }
+      const canvas = renderer.domElement, pointers = new Set<number>();
+      // Capture may still be pending when a scene is replaced during pointerdown.
+      const trackPointer = (event: PointerEvent) => { pointers.add(event.pointerId); };
+      const forgetPointer = (event: PointerEvent) => { if (!canvas.hasPointerCapture(event.pointerId)) pointers.delete(event.pointerId); };
+      const releasePointers = () => {
+        for (const id of pointers) if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
+        pointers.clear();
+      };
+      let disposed = false;
+      const lifetime: RendererLifetime = { renderer, releasePointers, dispose: () => {
+        if (disposed) return;
+        disposed = true; releasePointers();
+        canvas.removeEventListener('pointerdown', trackPointer, true); canvas.removeEventListener('gotpointercapture', trackPointer);
+        canvas.removeEventListener('lostpointercapture', forgetPointer);
+        document.removeEventListener('pointerup', forgetPointer); document.removeEventListener('pointercancel', forgetPointer);
+        renderer.dispose(); renderer.forceContextLoss(); canvas.remove();
+        if (rendererLifetime.current === lifetime) rendererLifetime.current = null;
+      } };
+      rendererLifetime.current = lifetime;
+      try {
+        canvas.addEventListener('pointerdown', trackPointer, true); canvas.addEventListener('gotpointercapture', trackPointer);
+        canvas.addEventListener('lostpointercapture', forgetPointer);
+        document.addEventListener('pointerup', forgetPointer); document.addEventListener('pointercancel', forgetPointer);
+        canvas.setAttribute('role', 'img'); canvas.tabIndex = 0; canvas.dataset.testid = 'world-canvas';
+        host.appendChild(canvas); return lifetime;
+      } catch { lifetime.dispose(); host.dataset.status = 'error'; setError(true); return null; }
+    };
+    return () => {
+      acquireRenderer.current = () => null;
+      // React may clean up the mount effect before the scene effect, including
+      // StrictMode replay. Scene teardown must finish before its renderer dies.
+      disposeActiveScene.current(); rendererLifetime.current?.dispose();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mount.current) return;
+    const host = mount.current, lifetime = acquireRenderer.current(); if (!lifetime) return;
+    const { renderer } = lifetime;
+    host.dataset.status = 'loading'; setError(false);
+    let alive = true, handle = 0;
+    let cancelInteraction = () => {};
+    const cleanups: (() => void)[] = [], resources = new Set<{ dispose: () => void }>();
+    function own<T extends { dispose: () => void }>(resource: T): T { resources.add(resource); return resource; }
+    function release(resource: { dispose: () => void }) { resources.delete(resource); resource.dispose(); }
+    const cleanup = () => {
+      if (!alive) return;
+      alive = false; invalidate.current = () => {}; cancelPreview.current = () => {};
+      cancelAnimationFrame(handle); cancelInteraction(); lifetime.releasePointers();
+      for (const dispose of cleanups.reverse()) dispose();
+      for (const resource of [...resources].reverse()) resource.dispose();
+      resources.clear(); renderer.renderLists.dispose(); host.dataset.renderPending = 'false';
+      if (disposeActiveScene.current === cleanup) disposeActiveScene.current = () => {};
+    };
+    const fail = () => { cleanup(); lifetime.dispose(); host.dataset.status = 'error'; setError(true); };
+    disposeActiveScene.current = cleanup;
+    try {
     const project = props.project, world = project.world, theme = kit[world];
     const layout = sceneLayout(project), extent = sceneExtent(layout), links = modelLinks(project.model.nodes);
     const nodes = project.model.nodes, services = nodes.filter(node => node.kind === 'service');
     const topology = flowTopology(nodes), shapes = connectionShapes(topology, layout);
     const dense = nodes.length > 30;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, props.quality === 'low' ? 1 : 1.6));
+    const pixelRatio = Math.min(window.devicePixelRatio, props.quality === 'low' ? 1 : 1.6);
+    if (renderer.getPixelRatio() !== pixelRatio) renderer.setPixelRatio(pixelRatio);
     renderer.shadowMap.enabled = props.quality !== 'low' && !dense;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.13;
     renderer.setClearColor('#f2f0e7', 0);
     renderer.domElement.setAttribute('aria-label', m.interactiveWorldLabel(project.name));
-    renderer.domElement.setAttribute('role', 'img'); renderer.domElement.tabIndex = 0; renderer.domElement.dataset.testid = 'world-canvas';
-    host.appendChild(renderer.domElement);
     host.dataset.world = world; host.dataset.edges = JSON.stringify(links); host.dataset.nodeCount = String(nodes.length);
     const scene = new THREE.Scene();
+    cleanups.push(() => scene.clear());
     const camera = new THREE.OrthographicCamera(-16, 16, 12, -12, .1, 2000);
     const cameraDirection = new THREE.Vector3(24, 29, 33).normalize();
     camera.position.copy(cameraDirection.clone().multiplyScalar(80)); camera.lookAt(extent.x, 0, extent.z);
     const controls = new OrbitControls(camera, renderer.domElement);
+    cleanups.push(() => controls.dispose());
     controls.enableRotate = false; controls.enableDamping = false; controls.screenSpacePanning = true;
     controls.mouseButtons.LEFT = THREE.MOUSE.PAN; controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
     scene.add(new THREE.AmbientLight('#fff8e7', .65));
     scene.add(new THREE.HemisphereLight('#fcfbf3', '#6a806a', 1.35));
     const light = new THREE.DirectionalLight('#fff2d8', 3.1);
+    own(light.shadow);
     light.position.set(extent.x - 12, 26, extent.z + 8); light.target.position.set(extent.x, 0, extent.z);
     light.castShadow = true; light.shadow.mapSize.set(2048, 2048);
     const shadowSize = Math.max(extent.width, extent.depth) * .6;
@@ -94,15 +159,15 @@ export function WorldScene(props: Props) {
     light.shadow.camera.far = 200; light.shadow.normalBias = .035; light.shadow.bias = -.0002;
     scene.add(light, light.target);
     const materials = new Map<string, THREE.MeshStandardMaterial>();
-    const geometries = new Map<string, THREE.BufferGeometry>(); const textures: THREE.Texture[] = [];
+    const geometries = new Map<string, THREE.BufferGeometry>();
     const capacityPlates: { id: string; index: number; content: string; update: (content: string) => void }[] = [];
     function mat(color: string) {
-      if (!materials.has(color)) materials.set(color, new THREE.MeshStandardMaterial({ color, roughness: .78 }));
+      if (!materials.has(color)) materials.set(color, own(new THREE.MeshStandardMaterial({ color, roughness: .78 })));
       return materials.get(color)!;
     }
     function rounded(w: number, h: number, d: number, radius = .04) {
       const key = `${w}-${h}-${d}-${radius}`;
-      if (!geometries.has(key)) geometries.set(key, dense ? new THREE.BoxGeometry(w, h, d) : new RoundedBoxGeometry(w, h, d, 1, Math.min(radius, w / 3, h / 3, d / 3)));
+      if (!geometries.has(key)) geometries.set(key, own(dense ? new THREE.BoxGeometry(w, h, d) : new RoundedBoxGeometry(w, h, d, 1, Math.min(radius, w / 3, h / 3, d / 3))));
       return geometries.get(key)!;
     }
     function box(parent: THREE.Object3D, x: number, y: number, z: number, w: number, h: number, d: number, color: string, radius = .04) {
@@ -111,16 +176,16 @@ export function WorldScene(props: Props) {
     }
     function cylinder(parent: THREE.Object3D, x: number, y: number, z: number, r: number, h: number, color: string, rz = 0) {
       const key = `c-${r}-${h}`;
-      if (!geometries.has(key)) geometries.set(key, new THREE.CylinderGeometry(r, r, h, dense ? 6 : 12));
+      if (!geometries.has(key)) geometries.set(key, own(new THREE.CylinderGeometry(r, r, h, dense ? 6 : 12)));
       const mesh = new THREE.Mesh(geometries.get(key)!, mat(color)); mesh.position.set(x, y, z); mesh.rotation.z = rz;
       mesh.castShadow = true; parent.add(mesh); return mesh;
     }
     function text(parent: THREE.Object3D, content: string, x: number, y: number, z: number, size: number, color: string, rotationX = 0) {
       const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 128;
       const c = canvas.getContext('2d')!; c.font = '700 64px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = color; c.fillText(content, 512, 64);
-      const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; textures.push(tex);
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * 8, size), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
-      geometries.set(`text-${textures.length}`, mesh.geometry); mesh.position.set(x, y, z); mesh.rotation.x = rotationX; parent.add(mesh);
+      const tex = own(new THREE.CanvasTexture(canvas)); tex.colorSpace = THREE.SRGBColorSpace;
+      const mesh = new THREE.Mesh(own(new THREE.PlaneGeometry(size * 8, size)), own(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide })));
+      geometries.set(`text-${tex.id}`, mesh.geometry); mesh.position.set(x, y, z); mesh.rotation.x = rotationX; parent.add(mesh);
       return { mesh, update: (content: string) => { c.clearRect(0, 0, 1024, 128); c.fillText(content, 512, 64); tex.needsUpdate = true; } };
     }
     function person(parent: THREE.Object3D, x: number, z: number, shirt = theme.secondary) {
@@ -151,10 +216,10 @@ export function WorldScene(props: Props) {
     const fc = floor.getContext('2d')!; fc.fillStyle = theme.floor; fc.fillRect(0, 0, 512, 512);
     fc.strokeStyle = world === 'festival' ? '#c6d1ad' : '#cecbbd'; fc.lineWidth = 1;
     for (let a = 0; a <= 512; a += 64) { fc.beginPath(); fc.moveTo(a, 0); fc.lineTo(a, 512); fc.moveTo(0, a); fc.lineTo(512, a); fc.stroke(); }
-    const floorTex = new THREE.CanvasTexture(floor); floorTex.colorSpace = THREE.SRGBColorSpace;
-    floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(extent.width / 20, extent.depth / 12); textures.push(floorTex);
-    const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 1 });
-    const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(extent.width, extent.depth), floorMat);
+    const floorTex = own(new THREE.CanvasTexture(floor)); floorTex.colorSpace = THREE.SRGBColorSpace;
+    floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(extent.width / 20, extent.depth / 12);
+    const floorMat = own(new THREE.MeshStandardMaterial({ map: floorTex, roughness: 1 }));
+    const floorMesh = new THREE.Mesh(own(new THREE.PlaneGeometry(extent.width, extent.depth)), floorMat);
     floorMesh.rotation.x = -Math.PI / 2; floorMesh.position.set(extent.x, .045, extent.z); floorMesh.receiveShadow = true; scene.add(floorMesh); geometries.set('floor-plane', floorMesh.geometry);
     const backZ = extent.minZ + .18, leftX = extent.minX + .18;
     if (world !== 'festival') {
@@ -221,8 +286,8 @@ export function WorldScene(props: Props) {
     function nodeGroup(node: ModelNode) {
       const g = new THREE.Group(), p = layout[node.id]; g.position.set(p.x, .08, p.z); g.userData.nodeId = node.id; scene.add(g); stageGroups.set(node.id, g);
       const radius = node.kind === 'service' ? 1.5 : node.kind === 'queue' ? .85 : 1.05;
-      const ringGeo = new THREE.RingGeometry(radius, radius + .065, 40); geometries.set(`ring-${node.id}`, ringGeo);
-      const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: theme.accent, side: THREE.DoubleSide, depthWrite: false }));
+      const ringGeo = own(new THREE.RingGeometry(radius, radius + .065, 40)); geometries.set(`ring-${node.id}`, ringGeo);
+      const ring = new THREE.Mesh(ringGeo, own(new THREE.MeshBasicMaterial({ color: theme.accent, side: THREE.DoubleSide, depthWrite: false })));
       ring.rotation.x = -Math.PI / 2; ring.position.y = .015; g.add(ring); rings.set(node.id, ring); return g;
     }
     function register(g: THREE.Group, id: string) {
@@ -230,20 +295,20 @@ export function WorldScene(props: Props) {
     }
     const edgeVisuals: { index: number; from: string; to: string; highlight: { visible: boolean }; meshes: { mesh: THREE.Mesh; material: THREE.Material | THREE.Material[] }[] }[] = [];
     const fadedMaterials = new Map<THREE.Material, THREE.Material>();
-    const focusLinkMaterial = new THREE.MeshBasicMaterial({ color: theme.accent, transparent: true, depthTest: false, depthWrite: false });
-    const focusArrowMaterial = new THREE.MeshBasicMaterial({ color: palette.cream, transparent: true, depthTest: false, depthWrite: false });
+    const focusLinkMaterial = own(new THREE.MeshBasicMaterial({ color: theme.accent, transparent: true, depthTest: false, depthWrite: false }));
+    const focusArrowMaterial = own(new THREE.MeshBasicMaterial({ color: palette.cream, transparent: true, depthTest: false, depthWrite: false }));
     function faded(material: THREE.Material) {
-      if (!fadedMaterials.has(material)) { const copy = material.clone(); copy.transparent = true; copy.opacity = .16; copy.depthWrite = false; fadedMaterials.set(material, copy); }
+      if (!fadedMaterials.has(material)) { const copy = own(material.clone()); copy.transparent = true; copy.opacity = .16; copy.depthWrite = false; fadedMaterials.set(material, copy); }
       return fadedMaterials.get(material)!;
     }
     function overlayMesh(positions: number[], material: THREE.MeshBasicMaterial): THREE.Mesh {
-      const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      const geometry = own(new THREE.BufferGeometry()); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
       const mesh = new THREE.Mesh(geometry, material); mesh.frustumCulled = false; mesh.renderOrder = 5; scene.add(mesh); return mesh;
     }
-    const connectionMaterial = new THREE.MeshBasicMaterial({ color: palette.dark, side: THREE.DoubleSide, transparent: true, opacity: .8, depthTest: false, depthWrite: false });
-    const overviewMaterial = new THREE.MeshBasicMaterial({ color: theme.accent, side: THREE.DoubleSide, transparent: true, opacity: .65, depthTest: false, depthWrite: false });
-    const activeMaterial = new THREE.MeshBasicMaterial({ color: theme.accent, side: THREE.DoubleSide, transparent: true, opacity: 1, depthTest: false, depthWrite: false });
-    const arrowMaterial = new THREE.MeshBasicMaterial({ color: palette.dark, side: THREE.DoubleSide, transparent: true, opacity: 1, depthTest: false, depthWrite: false });
+    const connectionMaterial = own(new THREE.MeshBasicMaterial({ color: palette.dark, side: THREE.DoubleSide, transparent: true, opacity: .8, depthTest: false, depthWrite: false }));
+    const overviewMaterial = own(new THREE.MeshBasicMaterial({ color: theme.accent, side: THREE.DoubleSide, transparent: true, opacity: .65, depthTest: false, depthWrite: false }));
+    const activeMaterial = own(new THREE.MeshBasicMaterial({ color: theme.accent, side: THREE.DoubleSide, transparent: true, opacity: 1, depthTest: false, depthWrite: false }));
+    const arrowMaterial = own(new THREE.MeshBasicMaterial({ color: palette.dark, side: THREE.DoubleSide, transparent: true, opacity: 1, depthTest: false, depthWrite: false }));
     const overview = overlayMesh([], overviewMaterial), activeConnection = overlayMesh([], activeMaterial), activeArrow = overlayMesh([], arrowMaterial);
     const baseCoincident = overlayMesh([], connectionMaterial), focusedCoincident = overlayMesh([], connectionMaterial);
     overview.renderOrder = 6; activeConnection.renderOrder = 7; activeArrow.renderOrder = 8;
@@ -251,8 +316,8 @@ export function WorldScene(props: Props) {
     baseCoincident.visible = false; focusedCoincident.visible = false;
     const updateOverlay = (mesh: THREE.Mesh, positions: number[]) => {
       const previous = mesh.geometry;
-      mesh.geometry = new THREE.BufferGeometry(); mesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      previous.dispose(); mesh.visible = positions.length > 0;
+      mesh.geometry = own(new THREE.BufferGeometry()); mesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      release(previous); mesh.visible = positions.length > 0;
     };
     const arrowPositions = (shape: ConnectionShape) => shape.arrow.flatMap(point => [point.x, point.y, point.z]);
     const sharedEdges = new Set(sharedPositionLinks(topology, layout).map(link => link.index));
@@ -420,18 +485,18 @@ export function WorldScene(props: Props) {
     }
     // Only sealed trace actors are rendered. Playback caps each node/state tray;
     // the parent labels aggregation and retains exact queue and system counts.
-    const actorGeometry = world === 'factory' ? rounded(.24, .22, .24, .015) : new THREE.CapsuleGeometry(.09, .25, 3, 6);
+    const actorGeometry = world === 'factory' ? rounded(.24, .22, .24, .015) : own(new THREE.CapsuleGeometry(.09, .25, 3, 6));
     geometries.set('actors', actorGeometry);
-    const actors = new THREE.InstancedMesh(actorGeometry, mat(world === 'factory' ? palette.box : theme.accent), 500);
+    const actors = own(new THREE.InstancedMesh(actorGeometry, mat(world === 'factory' ? palette.box : theme.accent), 500));
     actors.castShadow = true; actors.count = 0; actors.frustumCulled = false; scene.add(actors);
-    const actorTops = world === 'factory' ? new THREE.InstancedMesh(rounded(.06, .012, .245, .003), mat('#edcf93'), 500) : null;
+    const actorTops = world === 'factory' ? own(new THREE.InstancedMesh(rounded(.06, .012, .245, .003), mat('#edcf93'), 500)) : null;
     if (actorTops) { actorTops.count = 0; actorTops.frustumCulled = false; scene.add(actorTops); }
     const dummy = new THREE.Object3D();
-    const labelLayer = document.createElement('div'); labelLayer.className = 'scene-label-layer'; host.appendChild(labelLayer);
-    const moveReadout = document.createElement('div'); moveReadout.className = 'move-guide-readout'; moveReadout.hidden = true; host.appendChild(moveReadout);
+    const labelLayer = document.createElement('div'); labelLayer.className = 'scene-label-layer'; cleanups.push(() => labelLayer.remove()); host.appendChild(labelLayer);
+    const moveReadout = document.createElement('div'); moveReadout.className = 'move-guide-readout'; moveReadout.hidden = true; cleanups.push(() => moveReadout.remove()); host.appendChild(moveReadout);
     const guideLines = (['x', 'z'] as const).map(() => {
-      const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
-      const line = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: '#416a3b', dashSize: .22, gapSize: .14, depthTest: false, depthWrite: false, transparent: true, opacity: .85 }));
+      const geometry = own(new THREE.BufferGeometry()); geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+      const line = new THREE.Line(geometry, own(new THREE.LineDashedMaterial({ color: '#416a3b', dashSize: .22, gapSize: .14, depthTest: false, depthWrite: false, transparent: true, opacity: .85 })));
       line.visible = false; line.renderOrder = 4; scene.add(line); return line;
     });
     const previewPoints = new Map<string, Point>();
@@ -455,7 +520,7 @@ export function WorldScene(props: Props) {
     const bounds = new THREE.Box3(new THREE.Vector3(extent.minX - .5, -.8, extent.minZ - .5), new THREE.Vector3(extent.maxX + .5, 3.6, extent.maxZ + .5));
     const corners: THREE.Vector3[] = [];
     for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) corners.push(new THREE.Vector3(x, y, z));
-    let handle = 0, alive = true, hover: string | null = null, renderCount = 0, edgeFocus: string | null | undefined;
+    let hover: string | null = null, renderCount = 0, edgeFocus: string | null | undefined;
     let presentedFlow: Props['flow'], presentedWalk: FlowWalk | null = null, presentedManual: number | null | undefined;
     let manuallyShown: number | null = null, currentConnection: number | null = null;
     let coincidenceFocus = '';
@@ -476,10 +541,16 @@ export function WorldScene(props: Props) {
       camera.left = -vertical * aspect / 2; camera.right = vertical * aspect / 2; camera.top = vertical / 2; camera.bottom = -vertical / 2;
       camera.zoom = 1; controls.minZoom = .65; controls.maxZoom = 6; camera.updateProjectionMatrix(); controls.update(); requestRender();
     }
+    const rendererSize = new THREE.Vector2();
     const observer = new ResizeObserver(() => {
+      if (!alive) return;
+      try {
       const w = host.clientWidth, h = host.clientHeight; if (!w || !h) return;
-      renderer.setSize(w, h); fit();
-    }); observer.observe(host);
+      renderer.getSize(rendererSize);
+      if (rendererSize.x !== w || rendererSize.y !== h) renderer.setSize(w, h);
+      fit();
+      } catch { fail(); }
+    }); cleanups.push(() => observer.disconnect()); observer.observe(host);
     const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     let down: { x: number; y: number; hit: string | null; pointerId: number; toggle: boolean; origin: Point | null; ids: string[]; preview: LayoutTranslation | null; gesture: MoveGesture | null; dragging: boolean } | null = null;
     function hit(e: PointerEvent) {
@@ -529,6 +600,7 @@ export function WorldScene(props: Props) {
       if (pointerId !== undefined && renderer.domElement.hasPointerCapture(pointerId)) renderer.domElement.releasePointerCapture(pointerId);
       renderer.shadowMap.needsUpdate = true; requestRender();
     };
+    cancelInteraction = pointerCancel;
     cancelPreview.current = pointerCancel;
     const cancelEvent = () => pointerCancel();
     const lostCapture = (event: PointerEvent) => { if (latest.current.moving && down?.pointerId === event.pointerId) pointerCancel(); };
@@ -570,11 +642,17 @@ export function WorldScene(props: Props) {
         minY: Math.min(...fitted.map(p => (-p.y * .5 + .5) * h)), maxY: Math.max(...fitted.map(p => (-p.y * .5 + .5) * h)), zoom: camera.zoom });
       requestRender();
     };
+    cleanups.push(() => {
+      renderer.domElement.removeEventListener('pointercancel', pointerCancel); renderer.domElement.removeEventListener('lostpointercapture', lostCapture); renderer.domElement.removeEventListener('pointerleave', pointerLeave);
+      renderer.domElement.removeEventListener('pointerdown', pointerDown); renderer.domElement.removeEventListener('pointerup', pointerUp); renderer.domElement.removeEventListener('pointermove', pointerMove);
+      host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focusSelected); host.removeEventListener('queuelab:show-connection', showConnection); host.removeEventListener('queuelab:cancel-move', cancelEvent); host.removeEventListener('keydown', moveKey); controls.removeEventListener('change', cameraChanged); document.removeEventListener('visibilitychange', visible);
+    });
     renderer.domElement.addEventListener('pointercancel', pointerCancel); renderer.domElement.addEventListener('lostpointercapture', lostCapture); renderer.domElement.addEventListener('pointerleave', pointerLeave);
     renderer.domElement.addEventListener('pointerdown', pointerDown); renderer.domElement.addEventListener('pointerup', pointerUp); renderer.domElement.addEventListener('pointermove', pointerMove);
     host.addEventListener('queuelab:fit', fit); host.addEventListener('queuelab:focus', focusSelected); host.addEventListener('queuelab:show-connection', showConnection); host.addEventListener('queuelab:cancel-move', cancelEvent); host.addEventListener('keydown', moveKey); controls.addEventListener('change', cameraChanged); document.addEventListener('visibilitychange', visible);
     function draw() {
       handle = 0; if (!alive || document.hidden) return;
+      try {
       const started = performance.now(), current = latest.current;
       const currentNodes = new Map(current.project.model.nodes.map(node => [node.id, node]));
       for (const plate of capacityPlates) {
@@ -727,26 +805,15 @@ export function WorldScene(props: Props) {
       host.dataset.camera = JSON.stringify({ position: camera.position.toArray(), target: controls.target.toArray(), zoom: camera.zoom, left: camera.left, right: camera.right, top: camera.top, bottom: camera.bottom });
       renderer.render(scene, camera); renderCount++;
       host.dataset.renderCount = String(renderCount); host.dataset.renderMs = String(performance.now() - started); host.dataset.drawCalls = String(renderer.info.render.calls);
+      host.dataset.rendererResources = JSON.stringify({ geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, programs: renderer.info.programs?.length ?? 0 });
       host.dataset.actorCount = String(count); host.dataset.renderPending = 'false'; host.dataset.status = 'ready';
+      } catch { fail(); }
     }
     fit(); requestRender();
-    return () => {
-      alive = false; invalidate.current = () => {}; cancelPreview.current = () => {}; cancelAnimationFrame(handle); observer.disconnect(); controls.dispose();
-      renderer.domElement.removeEventListener('pointercancel', pointerCancel); renderer.domElement.removeEventListener('lostpointercapture', lostCapture); renderer.domElement.removeEventListener('pointerleave', pointerLeave);
-      renderer.domElement.removeEventListener('pointerdown', pointerDown); renderer.domElement.removeEventListener('pointerup', pointerUp); renderer.domElement.removeEventListener('pointermove', pointerMove);
-      host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focusSelected); host.removeEventListener('queuelab:show-connection', showConnection); host.removeEventListener('queuelab:cancel-move', cancelEvent); host.removeEventListener('keydown', moveKey); controls.removeEventListener('change', cameraChanged); document.removeEventListener('visibilitychange', visible);
-      const disposedMaterials = new Set<THREE.Material>(), disposedGeometries = new Set<THREE.BufferGeometry>();
-      scene.traverse(obj => { const mesh = obj as THREE.Mesh; if (mesh.geometry && !disposedGeometries.has(mesh.geometry)) { mesh.geometry.dispose(); disposedGeometries.add(mesh.geometry); }
-        if (mesh.material) for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) if (!disposedMaterials.has(m)) { m.dispose(); disposedMaterials.add(m); } });
-      for (const geometry of geometries.values()) if (!disposedGeometries.has(geometry)) geometry.dispose();
-      for (const material of materials.values()) if (!disposedMaterials.has(material)) material.dispose();
-      for (const material of fadedMaterials.values()) if (!disposedMaterials.has(material)) material.dispose();
-      if (!disposedMaterials.has(focusLinkMaterial)) focusLinkMaterial.dispose();
-      if (!disposedMaterials.has(focusArrowMaterial)) focusArrowMaterial.dispose();
-      if (!disposedMaterials.has(connectionMaterial)) connectionMaterial.dispose();
-      for (const texture of textures) texture.dispose(); actors.dispose(); actorTops?.dispose(); light.shadow.dispose(); renderer.dispose(); renderer.domElement.remove(); labelLayer.remove(); moveReadout.remove();
-    };
+    } catch { fail(); }
+    return cleanup;
   }, [geometryKey, props.quality, props.resetKey]);
+  useEffect(() => { rendererLifetime.current?.renderer.domElement.setAttribute('aria-label', m.interactiveWorldLabel(props.project.name)); }, [props.project.name]);
   // A sealed playback frame, selection or preference invalidates exactly one render.
   // Motion is bounded by frame.time; pausing does not leave a GPU animation loop running.
   useEffect(() => { invalidate.current(); }, [props.frame, props.selected, props.selectedIds, props.reducedMotion, props.moving, props.flow]);
