@@ -270,8 +270,10 @@ export default function App() {
       if (event.defaultPrevented) return;
       if (event.key === 'Escape' && linkFrom && !panel) { event.preventDefault(); setLinkFrom(null); return; }
       if (event.key === 'Escape' && panel) { event.preventDefault(); setPanel(null); return; }
+      // WebKit pointer buttons can leave focus on BODY. Tool cancellation must
+      // still work there; a scene drag consumes its own first Escape above us.
+      if (event.key === 'Escape' && !editable && !panel && moving) { event.preventDefault(); document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:cancel-move')); setMoving(false); return; }
       if (event.key === 'Escape' && !editable && !panel && target?.closest('.world-workspace')) {
-        if (moving) { event.preventDefault(); document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:cancel-move')); setMoving(false); return; }
         if (selectionRef.current.ids.length) { event.preventDefault(); setSelected(null); return; }
       }
       if (event.key === 'Tab' && panel && !event.ctrlKey && !event.metaKey) {

@@ -28,4 +28,6 @@
 @media(max-width:740px){.scene-caption.has-status{display:flex;left:14px;right:14px;bottom:12px;font-size:10px;line-height:1.4;align-items:flex-start}.scene-caption.has-status>svg{flex-shrink:0;margin-top:1px}.mobile-selection{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:45px;padding:0 14px;border-top:1px solid #d8dfcc;background:#f5f5eb;color:#4c6741;font-size:11px}.mobile-selection>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mobile-selection>button{display:flex;align-items:center;gap:5px;flex-shrink:0;min-height:44px;font-size:11px;color:#355b2e;font-weight:600}}
 
 .world-mini img{width:100%;height:100%;object-fit:contain;border-radius:5px}
+.station-label{max-width:min(240px,calc(100% - 24px))}.station-label .station-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:740px){.station-label{max-width:min(190px,calc(100% - 24px))}}
 @media(max-width:740px){.world-toolbar{height:auto;min-height:54px;flex-wrap:wrap;gap:6px;padding-top:7px;padding-bottom:7px}.world-tools{margin-left:auto}}
