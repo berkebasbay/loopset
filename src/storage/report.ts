@@ -1,5 +1,6 @@
 import type { RunResult } from '../model/types';
 import { encodeCSV } from './csv';
+import { exportErrorMessages as messages } from '../ui/messages/exportErrors';
 
 export function resultRows(result: RunResult): unknown[][] {
   const s = result.summary;
@@ -57,7 +58,7 @@ export function resultReportHTML(result: RunResult): string {
 
 export function printResult(result: RunResult): void {
   const popup = window.open('', '_blank');
-  if (!popup) throw new Error('The print window was blocked. Allow this window or download the report HTML.');
+  if (!popup) throw new Error(messages.printWindowBlocked);
   popup.opener = null;
   popup.document.open(); popup.document.write(resultReportHTML(result)); popup.document.close();
   let printed = false;

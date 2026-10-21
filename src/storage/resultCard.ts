@@ -1,5 +1,6 @@
 import type { RunResult } from '../model/types';
 import { safeFilename } from './csv';
+import { exportErrorMessages as messages } from '../ui/messages/exportErrors';
 
 interface CardMetric { readonly label: string; readonly value: string; readonly detail: string }
 export interface ResultCardContent {
@@ -132,14 +133,14 @@ export async function resultCardPNG(result: RunResult): Promise<{ blob: Blob; fi
   finally { clearTimeout(fontDeadline); }
   const canvas = document.createElement('canvas'); canvas.width = WIDTH; canvas.height = HEIGHT;
   const context = canvas.getContext('2d');
-  if (!context) throw new Error('This browser could not create a result image. Download the CSV or HTML report instead.');
+  if (!context) throw new Error(messages.imageContextUnavailable);
   paintResultCard(context, content);
   let encodingDeadline: ReturnType<typeof setTimeout> | undefined;
   try {
     const blob = await new Promise<Blob>((resolve, reject) => {
-      encodingDeadline = setTimeout(() => reject(new Error('PNG encoding timed out. Try again or download the CSV or HTML report.')), 5000);
+      encodingDeadline = setTimeout(() => reject(new Error(messages.pngEncodingTimedOut)), 5000);
       canvas.toBlob(value => {
-        if (!value || !value.size || value.type !== 'image/png') reject(new Error('The browser could not encode the result PNG. Download the CSV or HTML report instead.'));
+        if (!value || !value.size || value.type !== 'image/png') reject(new Error(messages.pngEncodingFailed));
         else resolve(value);
       }, 'image/png');
     });

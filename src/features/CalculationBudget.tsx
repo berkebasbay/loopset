@@ -7,7 +7,7 @@ export function CalculationBudget({ budget }: { budget: WorkBudget }) {
   const { limits, minimumRuns, maximumRuns } = budget;
   return <section className="calculation-budget" aria-label={m.calculationWorkAndLimits}>
     <p className="budget-plan"><strong>{m.plannedRuns(count(minimumRuns), count(maximumRuns), maximumRuns)}</strong>{minimumRuns !== maximumRuns && <span>{m.heldOutRunsHappenOnlyIfATrainingCandidate}</span>}</p>
-    <table><caption>{m.arrivalWorkloadBeforeExecutionLimits}</caption><thead><tr><th>{m.plan}</th><th>{m.runs}</th><th>{m.arrivalsPerRun}</th></tr></thead><tbody>{budget.groups.map((group, index) => <tr key={index}><th>{group.label}</th><td>{count(group.runs)}</td><td>{group.stochastic ? '≈ ' : ''}{count(group.arrivalsPerRun)}{group.stochastic ? m.expected : m.scheduled}</td></tr>)}</tbody></table>
+    <table><caption>{m.arrivalWorkloadBeforeExecutionLimits}</caption><thead><tr><th>{m.plan}</th><th>{m.runs}</th><th>{m.arrivalsPerRun}</th></tr></thead><tbody>{budget.groups.map((group, index) => <tr key={index}><th>{group.label}</th><td>{count(group.runs)}</td><td>{m.arrivalWorkload(count(group.arrivalsPerRun), group.stochastic)}</td></tr>)}</tbody></table>
     <p>{m.includesWarmUpArrivalsRandomArrivalsCanDifferPaths}</p>
     <details open><summary>{m.limitsForEachModelRun}</summary><dl>
       <div><dt>{m.workUnitsEventsAndTransitions}</dt><dd>{count(limits.maxEvents)}</dd></div>

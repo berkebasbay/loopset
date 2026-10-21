@@ -18,7 +18,7 @@ export function RunProvenanceDetails({ run, summary = m.runSettingsIdentity }: {
         <div><dt>{m.externalDemand}</dt><dd><code>{run.demandHash}</code></dd></div>
         <div><dt>{m.engineRng}</dt><dd>{run.engineVersion} / {provenance?.rngVersion ?? m.notRecordedInThisRun}</dd></div>
         <div><dt>{m.actualSeed}</dt><dd>{run.seed}</dd></div>
-        <div><dt>{m.measurementSettings}</dt><dd>{m.horizon}{run.model.horizon}{m.secWarmUp}{run.model.warmup}{m.secSla}{run.model.slaSeconds}{m.sec}{run.model.currency}</dd></div>
+        <div><dt>{m.measurementSettings}</dt><dd>{m.measurementSummary(run.model.horizon, run.model.warmup, run.model.slaSeconds, run.model.currency)}</dd></div>
       </dl>
       {provenance ? <>
         <h4>{m.limitsUsedForThisRun}</h4>
