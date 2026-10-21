@@ -1,5 +1,6 @@
 .flow-guide{position:relative;flex-shrink:0;z-index:3;background:#f5f5eb;border-top:1px solid #d8dfcc;color:#38533c;font-size:11px}
 .station-label.is-flow-node{border-style:dashed;border-width:2px;background:#fffdf3;color:#38533c;max-width:min(240px,calc(100% - 24px));white-space:nowrap}.station-label.is-flow-node.is-selected{background:#fff3df;color:#824321}.station-label.is-flow-node .station-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.world-scene .station-label.node-queue.is-flow-node .station-name{display:block}
 .flow-guide-footprint{height:46px;display:flex;align-items:center;gap:10px;padding:0 16px}
 .flow-guide-opener{display:flex;align-items:center;gap:8px;min-width:0;min-height:44px;text-align:left;font-weight:600;flex:1}
 .flow-guide-opener>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
