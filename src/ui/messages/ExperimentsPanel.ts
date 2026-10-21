@@ -45,7 +45,7 @@ export const experimentsPanelMessages = {
   ms: " ms",
   completedModelRuns: "Completed model runs",
   processedWorkUnits: "Processed work units",
-  replicationHeading: (count: number) => `${count} independent runs`,
+  replicationHeading: (count: number) => `${count} independent ${count === 1 ? 'run' : 'runs'}`,
   actualRunSettingsIdentities: "Actual run settings & identities",
   sameDemandPairedDifferences: "Same demand. Paired differences.",
   thesePlansAreNotPaired: "These plans are not paired.",
