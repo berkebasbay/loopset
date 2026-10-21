@@ -27,4 +27,6 @@ export const worldSceneMessages = {
   yourBrowserCouldNotOpenThe3dView: "Your browser could not open the 3D view.",
   useTheModelEditorToViewAndEditEvery: "Use the model editor to view and edit every node. Try a browser with WebGL support for the world.",
   movePreview: (count: number, x: string, z: string, aligned: boolean) => `Move ${count} step${count === 1 ? '' : 's'} · Δx ${x}, Δz ${z} · ${aligned ? 'Aligned with other steps' : '½-unit grid'} · Visual alignment only; timing is unchanged.`,
+  viewingFrom: (name: string) => `From: ${name}`,
+  viewingTo: (name: string) => `To: ${name}`,
 } as const;

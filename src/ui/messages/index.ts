@@ -19,6 +19,7 @@ export { runProvenanceDetailsMessages } from './RunProvenanceDetails';
 export { savedScenariosMessages } from './SavedScenarios';
 export { selectionMoveControlsMessages } from './SelectionMoveControls';
 export { worldSceneMessages } from './WorldScene';
+export { flowGuideMessages } from './FlowGuide';
 export { clientMessages } from './client';
 export { editorHistoryMessages } from './editorHistory';
 export { experimentPlanMessages } from './experimentPlan';

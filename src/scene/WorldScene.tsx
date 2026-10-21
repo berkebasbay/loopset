@@ -9,11 +9,13 @@ import type { WorldFrame } from '../playback';
 import { modelLinks, sceneExtent, sceneLayout } from './graph';
 import { beginMoveGesture, type LayoutTranslation, type MoveGesture } from '../features/layoutCommands';
 import type { SelectionIntent } from '../features/editorSelection';
+import { connectionFraming, connectionShapes, flowTopology, ribbonPositions, sharedPositionLinks, type ConnectionShape, type FlowWalk } from './flowPresentation';
 
 interface Props {
   project: Project; frame: WorldFrame; selected: string | null; selectedIds?: string[]; reducedMotion: boolean;
   onSelect: (id: string | null, intent?: SelectionIntent) => void; onMove?: (ids: string[], delta: Point) => void;
   moving?: boolean; quality?: 'high' | 'low'; resetKey?: number;
+  flow?: { walk: FlowWalk; cursor: number } | null;
 }
 type Label = { el: HTMLButtonElement; node: ModelNode; position: THREE.Vector3 };
 type Part = { nodeId: string; mesh: THREE.Object3D; kind: 'press' | 'scanner' | 'arm'; rest: number };
@@ -62,6 +64,7 @@ export function WorldScene(props: Props) {
     const project = props.project, world = project.world, theme = kit[world];
     const layout = sceneLayout(project), extent = sceneExtent(layout), links = modelLinks(project.model.nodes);
     const nodes = project.model.nodes, services = nodes.filter(node => node.kind === 'service');
+    const topology = flowTopology(nodes), shapes = connectionShapes(topology, layout);
     const dense = nodes.length > 30;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, props.quality === 'low' ? 1 : 1.6));
     renderer.shadowMap.enabled = props.quality !== 'low' && !dense;
@@ -225,7 +228,7 @@ export function WorldScene(props: Props) {
     function register(g: THREE.Group, id: string) {
       g.traverse(obj => { if ((obj as THREE.Mesh).isMesh) { obj.userData.nodeId = id; pickables.push(obj); } });
     }
-    const edgeVisuals: { from: string; to: string; highlight: THREE.Group; meshes: { mesh: THREE.Mesh; material: THREE.Material | THREE.Material[] }[] }[] = [];
+    const edgeVisuals: { index: number; from: string; to: string; highlight: { visible: boolean }; meshes: { mesh: THREE.Mesh; material: THREE.Material | THREE.Material[] }[] }[] = [];
     const fadedMaterials = new Map<THREE.Material, THREE.Material>();
     const focusLinkMaterial = new THREE.MeshBasicMaterial({ color: theme.accent, transparent: true, depthTest: false, depthWrite: false });
     const focusArrowMaterial = new THREE.MeshBasicMaterial({ color: palette.cream, transparent: true, depthTest: false, depthWrite: false });
@@ -233,14 +236,43 @@ export function WorldScene(props: Props) {
       if (!fadedMaterials.has(material)) { const copy = material.clone(); copy.transparent = true; copy.opacity = .16; copy.depthWrite = false; fadedMaterials.set(material, copy); }
       return fadedMaterials.get(material)!;
     }
+    function overlayMesh(positions: number[], material: THREE.MeshBasicMaterial): THREE.Mesh {
+      const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      const mesh = new THREE.Mesh(geometry, material); mesh.frustumCulled = false; mesh.renderOrder = 5; scene.add(mesh); return mesh;
+    }
+    const connectionMaterial = new THREE.MeshBasicMaterial({ color: palette.dark, side: THREE.DoubleSide, transparent: true, opacity: .8, depthTest: false, depthWrite: false });
+    const overviewMaterial = new THREE.MeshBasicMaterial({ color: theme.accent, side: THREE.DoubleSide, transparent: true, opacity: .65, depthTest: false, depthWrite: false });
+    const activeMaterial = new THREE.MeshBasicMaterial({ color: theme.accent, side: THREE.DoubleSide, transparent: true, opacity: 1, depthTest: false, depthWrite: false });
+    const arrowMaterial = new THREE.MeshBasicMaterial({ color: palette.dark, side: THREE.DoubleSide, transparent: true, opacity: 1, depthTest: false, depthWrite: false });
+    const overview = overlayMesh([], overviewMaterial), activeConnection = overlayMesh([], activeMaterial), activeArrow = overlayMesh([], arrowMaterial);
+    const baseCoincident = overlayMesh([], connectionMaterial), focusedCoincident = overlayMesh([], connectionMaterial);
+    overview.renderOrder = 6; activeConnection.renderOrder = 7; activeArrow.renderOrder = 8;
+    overview.visible = false; activeConnection.visible = false; activeArrow.visible = false;
+    baseCoincident.visible = false; focusedCoincident.visible = false;
+    const updateOverlay = (mesh: THREE.Mesh, positions: number[]) => {
+      const previous = mesh.geometry;
+      mesh.geometry = new THREE.BufferGeometry(); mesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      previous.dispose(); mesh.visible = positions.length > 0;
+    };
+    const arrowPositions = (shape: ConnectionShape) => shape.arrow.flatMap(point => [point.x, point.y, point.z]);
+    const sharedEdges = new Set(sharedPositionLinks(topology, layout).map(link => link.index));
+    const coincidentEdges = new Set<number>();
     // Links are the model's actual directed edges, never an invented service ordering.
-    for (const link of links) {
+    for (const [index, link] of links.entries()) {
       const a = layout[link.from], b = layout[link.to], distance = Math.hypot(b.x - a.x, b.z - a.z);
       const sourceNode = nodes.find(node => node.id === link.from)!, targetNode = nodes.find(node => node.id === link.to)!;
       const startTrim = sourceNode.kind === 'service' ? 1.15 : sourceNode.kind === 'queue' ? .7 : .65;
       const endTrim = targetNode.kind === 'service' ? 1.15 : targetNode.kind === 'queue' ? .7 : .65;
       const trimmedLength = distance - startTrim - endTrim, compact = trimmedLength <= .08;
-      if ((!dense && compact) || distance === 0) continue;
+      const shape = shapes.get(index)!;
+      if (shape.coincident) {
+        coincidentEdges.add(index);
+        // Every zero-length declared edge gets a directed return symbol.
+        // Shared-position UI counts distinct endpoints only, not real self-loops.
+        edgeVisuals.push({ index, from: link.from, to: link.to, highlight: { visible: false }, meshes: [] });
+        continue;
+      }
+      if (!dense && compact) continue;
       const length = compact ? distance : trimmedLength;
       const dx = (b.x - a.x) / distance, dz = (b.z - a.z) / distance;
       const g = new THREE.Group(), offset = compact ? length / 2 : startTrim + length / 2;
@@ -263,9 +295,10 @@ export function WorldScene(props: Props) {
         const surfaceY = compact ? 3.35 : world === 'factory' ? .44 : .12;
         const spine: THREE.Mesh = box(highlight, 0, surfaceY, 0, .2, .02, length, theme.accent, .005); spine.material = focusLinkMaterial; spine.renderOrder = 2;
         for (const x of [-1, 1]) { const arrow: THREE.Mesh = box(highlight, x * .12, surfaceY + .02, arrowZ, .055, .02, .3, palette.cream, .005); arrow.rotation.y = x * -.65; arrow.material = focusArrowMaterial; arrow.renderOrder = 3; }
-        edgeVisuals.push({ from: link.from, to: link.to, highlight, meshes });
+        edgeVisuals.push({ index, from: link.from, to: link.to, highlight, meshes });
       }
     }
+    host.dataset.sharedPositionEdges = JSON.stringify([...sharedEdges].map(index => ({ index, from: links[index].from, to: links[index].to })));
     for (const [index, node] of services.entries()) {
       const g = nodeGroup(node); g.scale.setScalar(1.12);
       box(g, 0, .025, 0, 2.85, .07, 2.7, world === 'factory' ? '#c3c8ae' : '#c4c9b5', .1);
@@ -423,6 +456,11 @@ export function WorldScene(props: Props) {
     const corners: THREE.Vector3[] = [];
     for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) corners.push(new THREE.Vector3(x, y, z));
     let handle = 0, alive = true, hover: string | null = null, renderCount = 0, edgeFocus: string | null | undefined;
+    let presentedFlow: Props['flow'], presentedWalk: FlowWalk | null = null, presentedManual: number | null | undefined;
+    let manuallyShown: number | null = null, currentConnection: number | null = null;
+    let coincidenceFocus = '';
+    let manualContext: { flow: Props['flow']; selected: string | null; moving: boolean } | null = null;
+    let flowIds = new Set<string>(), viewedIds = new Set<string>(), flowEdges = new Set<number>();
     function requestRender() { if (alive && !handle && !document.hidden) { host.dataset.renderPending = 'true'; handle = requestAnimationFrame(draw); } }
     invalidate.current = requestRender;
     function fit() {
@@ -504,12 +542,37 @@ export function WorldScene(props: Props) {
     };
     const focusSelected = () => {
       const point = layout[latest.current.selected ?? '']; if (!point) return;
+      // Ordinary focus still centers the inspected step after connection framing.
+      const vertical = camera.top - camera.bottom; camera.top = vertical / 2; camera.bottom = -vertical / 2;
+      const horizontal = camera.right - camera.left; camera.left = -horizontal / 2; camera.right = horizontal / 2;
       const target = new THREE.Vector3(point.x, .8, point.z), delta = target.clone().sub(controls.target);
       controls.target.copy(target); camera.position.add(delta); camera.zoom = Math.max(camera.zoom, Math.min(3, Math.max(extent.width, extent.depth) / 8)); camera.updateProjectionMatrix(); controls.update(); requestRender();
     };
+    const showConnection = (event: Event) => {
+      const index: unknown = (event as CustomEvent).detail;
+      if (!Number.isInteger(index) || !shapes.has(index as number) || latest.current.moving) return;
+      const shape = shapes.get(index as number)!, link = links[index as number], a = layout[link.from], b = layout[link.to];
+      const points = shape.points.map(point => new THREE.Vector3(point.x, point.y, point.z));
+      for (const point of [a, b]) for (const x of [-1.7, 1.7]) for (const z of [-1.7, 1.7]) for (const y of [0, 3.8]) points.push(new THREE.Vector3(point.x + x, y, point.z + z));
+      const connectionBounds = new THREE.Box3().setFromPoints(points), center = connectionBounds.getCenter(new THREE.Vector3());
+      const delta = center.clone().sub(controls.target); controls.target.copy(center); camera.position.add(delta); camera.updateMatrixWorld(true);
+      const projected = points.map(point => point.clone().applyMatrix4(camera.matrixWorldInverse));
+      const w = host.clientWidth, h = host.clientHeight, hostRect = host.getBoundingClientRect();
+      const paper = host.closest('.world-workspace')?.querySelector('.flow-guide-panel')?.getBoundingClientRect();
+      const safeTop = 54, safeBottom = Math.max(safeTop + 60, Math.min(h - 46, paper ? paper.top - hostRect.top - 12 : h - 46));
+      const framing = connectionFraming(projected, { width: w, height: h, safeTop, safeBottom });
+      if (!framing) return;
+      Object.assign(camera, framing); camera.updateProjectionMatrix(); controls.update();
+      manuallyShown = index as number; manualContext = { flow: latest.current.flow, selected: latest.current.selected, moving: Boolean(latest.current.moving) }; presentedManual = undefined;
+      const fitted = points.map(point => point.clone().project(camera));
+      host.dataset.connectionFit = JSON.stringify({ index, from: link.from, to: link.to, safeTop, safeBottom,
+        minX: Math.min(...fitted.map(p => (p.x * .5 + .5) * w)), maxX: Math.max(...fitted.map(p => (p.x * .5 + .5) * w)),
+        minY: Math.min(...fitted.map(p => (-p.y * .5 + .5) * h)), maxY: Math.max(...fitted.map(p => (-p.y * .5 + .5) * h)), zoom: camera.zoom });
+      requestRender();
+    };
     renderer.domElement.addEventListener('pointercancel', pointerCancel); renderer.domElement.addEventListener('lostpointercapture', lostCapture); renderer.domElement.addEventListener('pointerleave', pointerLeave);
     renderer.domElement.addEventListener('pointerdown', pointerDown); renderer.domElement.addEventListener('pointerup', pointerUp); renderer.domElement.addEventListener('pointermove', pointerMove);
-    host.addEventListener('queuelab:fit', fit); host.addEventListener('queuelab:focus', focusSelected); host.addEventListener('queuelab:cancel-move', cancelEvent); host.addEventListener('keydown', moveKey); controls.addEventListener('change', cameraChanged); document.addEventListener('visibilitychange', visible);
+    host.addEventListener('queuelab:fit', fit); host.addEventListener('queuelab:focus', focusSelected); host.addEventListener('queuelab:show-connection', showConnection); host.addEventListener('queuelab:cancel-move', cancelEvent); host.addEventListener('keydown', moveKey); controls.addEventListener('change', cameraChanged); document.addEventListener('visibilitychange', visible);
     function draw() {
       handle = 0; if (!alive || document.hidden) return;
       const started = performance.now(), current = latest.current;
@@ -538,22 +601,62 @@ export function WorldScene(props: Props) {
         positions.setXYZ(1, guide.axis === 'x' ? guide.value : to, .14, guide.axis === 'x' ? to : guide.value);
         positions.needsUpdate = true; line.geometry.computeBoundingSphere(); line.computeLineDistances();
       }
+      if (manuallyShown !== null && (manualContext?.flow !== current.flow || manualContext?.selected !== current.selected || manualContext?.moving !== Boolean(current.moving))) manuallyShown = null;
+      const activeFlow = current.moving ? null : current.flow;
+      if (activeFlow !== presentedFlow || manuallyShown !== presentedManual) {
+        presentedFlow = activeFlow; presentedManual = manuallyShown;
+        if ((activeFlow?.walk ?? null) !== presentedWalk) {
+          presentedWalk = activeFlow?.walk ?? null;
+          flowEdges = new Set(presentedWalk?.links.map(link => link.index) ?? []);
+          flowIds = new Set(presentedWalk?.ids ?? []);
+          const overviewPositions: number[] = [];
+          for (const index of flowEdges) {
+            const shape = shapes.get(index); if (shape) overviewPositions.push(...ribbonPositions(shape.points, .065), ...arrowPositions(shape));
+          }
+          updateOverlay(overview, overviewPositions);
+        }
+        currentConnection = manuallyShown ?? activeFlow?.walk.links[activeFlow.cursor]?.index ?? null;
+        const activeLink = currentConnection === null ? null : links[currentConnection];
+        viewedIds = new Set(activeLink ? [activeLink.from, activeLink.to] : []);
+        const shape = currentConnection === null ? null : shapes.get(currentConnection);
+        updateOverlay(activeConnection, shape ? ribbonPositions(shape.points, .17) : []);
+        updateOverlay(activeArrow, shape ? arrowPositions(shape) : []);
+        host.dataset.flowGuide = JSON.stringify({ anchor: activeFlow?.walk.anchor ?? null, cursor: activeFlow?.cursor ?? null,
+          ids: activeFlow?.walk.ids ?? [], edges: [...flowEdges], viewing: activeLink ? { from: activeLink.from, to: activeLink.to, coincident: shape?.coincident } : null });
+        edgeFocus = undefined;
+      }
       const neighbors = dense ? new Set(links.filter(link => selectionSet.has(link.from) || selectionSet.has(link.to)).flatMap(link => [link.from, link.to])) : new Set<string>();
       for (const [id, ring] of rings) {
-        ring.visible = selectionSet.has(id) || hover === id || neighbors.has(id);
+        ring.visible = selectionSet.has(id) || hover === id || neighbors.has(id) || flowIds.has(id) || viewedIds.has(id);
         (ring.material as THREE.MeshBasicMaterial).color.set(selectionSet.has(id) ? theme.accent : theme.secondary);
       }
-      const selectedEdgeFocus = [...selectionSet].filter(id => currentNodes.has(id)).sort().join('|') || null;
+      const focusIds = [...selectionSet].filter(id => currentNodes.has(id)).sort();
+      const selectedEdgeFocus = focusIds.length ? JSON.stringify(focusIds) : null;
       if (edgeFocus !== selectedEdgeFocus) {
         edgeFocus = selectedEdgeFocus;
+        const guided = flowEdges.size > 0 || currentConnection !== null;
+        const emphasizedIndices = new Set(flowEdges); if (currentConnection !== null) emphasizedIndices.add(currentConnection);
+        const nextCoincidenceFocus = guided ? JSON.stringify([...emphasizedIndices].sort((a, b) => a - b)) : selectedEdgeFocus ?? 'all';
+        if (coincidentEdges.size && coincidenceFocus !== nextCoincidenceFocus) {
+          coincidenceFocus = nextCoincidenceFocus;
+          const basePositions: number[] = [], focusPositions: number[] = [];
+          for (const index of coincidentEdges) {
+            const link = links[index], shape = shapes.get(index)!;
+            const emphasized = guided ? emphasizedIndices.has(index) : selectionSet.has(link.from) || selectionSet.has(link.to);
+            (emphasized ? focusPositions : basePositions).push(...ribbonPositions(shape.points, .075), ...arrowPositions(shape));
+          }
+          updateOverlay(baseCoincident, basePositions); updateOverlay(focusedCoincident, focusPositions);
+          baseCoincident.material = guided || edgeFocus !== null ? faded(connectionMaterial) : connectionMaterial;
+        }
         for (const edge of edgeVisuals) {
           const incident = selectionSet.has(edge.from) || selectionSet.has(edge.to);
-          edge.highlight.visible = incident;
-          for (const item of edge.meshes) item.mesh.material = edgeFocus !== null && !incident
+          const emphasized = guided ? flowEdges.has(edge.index) || currentConnection === edge.index : incident;
+          edge.highlight.visible = !guided && incident;
+          for (const item of edge.meshes) item.mesh.material = (guided || edgeFocus !== null) && !emphasized
             ? Array.isArray(item.material) ? item.material.map(faded) : faded(item.material) : item.material;
         }
-        host.dataset.highlightedEdges = JSON.stringify(edgeVisuals.filter(edge => edge.highlight.visible).map(({ from, to }) => ({ from, to })));
-        host.dataset.dimmedEdgeCount = String(edgeFocus !== null ? edgeVisuals.filter(edge => !edge.highlight.visible).length : 0);
+        host.dataset.highlightedEdges = JSON.stringify((guided ? topology.links.filter(link => flowEdges.has(link.index) || currentConnection === link.index) : edgeVisuals.filter(edge => edge.highlight.visible)).map(({ from, to }) => ({ from, to })));
+        host.dataset.dimmedEdgeCount = String(guided ? edgeVisuals.filter(edge => !flowEdges.has(edge.index) && currentConnection !== edge.index).length : edgeFocus !== null ? edgeVisuals.filter(edge => !edge.highlight.visible).length : 0);
       }
       const grouped: Record<string, number> = {}, count = Math.min(current.frame.actors.length, 500); actors.count = count; if (actorTops) actorTops.count = count;
       current.frame.actors.slice(0, count).forEach((actor, index) => {
@@ -584,23 +687,34 @@ export function WorldScene(props: Props) {
         return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
       });
       const orderedLabels = [...labels].sort((a, b) => Number(current.selected === b.node.id) - Number(current.selected === a.node.id) || Number(selectionSet.has(b.node.id) || hover === b.node.id) - Number(selectionSet.has(a.node.id) || hover === a.node.id) || Number(b.node.kind === 'service') - Number(a.node.kind === 'service'));
+      const viewingFrom = currentConnection === null ? null : links[currentConnection].from;
+      orderedLabels.sort((a, b) => Number(viewedIds.has(b.node.id)) - Number(viewedIds.has(a.node.id)) || Number(viewingFrom === b.node.id) - Number(viewingFrom === a.node.id));
+      const paper = current.flow || manuallyShown !== null ? host.closest('.world-workspace')?.querySelector('.flow-guide-panel')?.getBoundingClientRect() : null;
+      const labelViewportHeight = paper ? Math.min(host.clientHeight, paper.top - host.getBoundingClientRect().top + (host.clientWidth < 500 ? 56 : 42) - 8) : host.clientHeight;
       for (const label of orderedLabels) {
         const primary = selectionSet.has(label.node.id) || hover === label.node.id;
         const queue = label.node.kind === 'queue' ? current.frame.queues[label.node.id] ?? 0 : nodes.filter(n => n.kind === 'queue' && n.next === label.node.id).reduce((sum, n) => sum + (current.frame.queues[n.id] ?? 0), 0);
-        const visibleLabel = primary || (!dense && (label.node.kind === 'service'));
+        const visibleLabel = primary || viewedIds.has(label.node.id) || (!dense && (label.node.kind === 'service'));
         const connector = connectors.get(label.node.id)!; connector.style.display = 'none';
         label.el.hidden = !visibleLabel; if (!visibleLabel) continue;
         label.el.classList.toggle('is-selected', selectionSet.has(label.node.id)); label.el.classList.toggle('is-hovered', hover === label.node.id);
+        label.el.classList.toggle('is-flow-node', viewedIds.has(label.node.id));
         label.el.setAttribute('aria-pressed', String(selectionSet.has(label.node.id)));
         const currentName = currentNodes.get(label.node.id)?.label ?? label.node.label;
-        label.el.querySelector('.station-name')!.textContent = currentName; label.el.setAttribute('aria-label', m.select(currentName, stepKindLabels[label.node.kind]));
+        label.el.title = currentName;
+        const activeLink = currentConnection === null ? null : links[currentConnection];
+        label.el.querySelector('.station-name')!.textContent = viewedIds.has(label.node.id) ? activeLink?.from === label.node.id ? m.viewingFrom(currentName) : m.viewingTo(currentName) : currentName;
+        label.el.setAttribute('aria-label', m.select(currentName, stepKindLabels[label.node.kind]));
         label.el.querySelector('.station-queue')!.textContent = queue ? m.waiting(queue) : '';
         label.el.classList.toggle('has-queue', queue > 0);
         const visual = visualPoint(label.node.id);
         const point = new THREE.Vector3(visual.x, label.position.y, visual.z).project(camera), w = host.clientWidth, h = host.clientHeight;
         if (Math.abs(point.x) > 1.1 || Math.abs(point.y) > 1.1) { label.el.hidden = true; continue; }
         const width = label.el.offsetWidth, height = label.el.offsetHeight;
-        const placed = placeLabel({ x: (point.x * .5 + .5) * w - width / 2, y: (-point.y * .5 + .5) * h - height, width, height }, { width: w, height: h }, occupied, bodyRects);
+        // The two viewed endpoints get stable top-to-bottom callouts. Their
+        // leaders retain exact object association even when equipment overlaps.
+        const labelY = paper && viewedIds.has(label.node.id) ? 47 : (-point.y * .5 + .5) * h - height;
+        const placed = placeLabel({ x: (point.x * .5 + .5) * w - width / 2, y: labelY, width, height }, { width: w, height: labelViewportHeight }, occupied, bodyRects);
         if (!placed) { label.el.hidden = true; continue; }
         const { x: labelX, y } = placed;
         occupied.push(placed); label.el.style.transform = `translate(${labelX}px,${y}px)`;
@@ -610,6 +724,7 @@ export function WorldScene(props: Props) {
         if (Math.hypot(labelX + width / 2 - anchorX, y + height - anchorY) > 9) { connector.style.display = ''; connector.setAttribute('x1', String(labelX + width / 2)); connector.setAttribute('y1', String(y + height)); connector.setAttribute('x2', String(anchorX)); connector.setAttribute('y2', String(anchorY + 6)); connector.classList.toggle('is-selected', current.selected === label.node.id); }
       }
       host.dataset.pickPoints = JSON.stringify(nodes.map(node => { const p = visualPoint(node.id), v = new THREE.Vector3(p.x, node.kind === 'service' ? 1.3 : node.kind === 'queue' ? .2 : .6, p.z + .2).project(camera); return { id: node.id, x: (v.x * .5 + .5) * host.clientWidth, y: (-v.y * .5 + .5) * host.clientHeight }; }));
+      host.dataset.camera = JSON.stringify({ position: camera.position.toArray(), target: controls.target.toArray(), zoom: camera.zoom, left: camera.left, right: camera.right, top: camera.top, bottom: camera.bottom });
       renderer.render(scene, camera); renderCount++;
       host.dataset.renderCount = String(renderCount); host.dataset.renderMs = String(performance.now() - started); host.dataset.drawCalls = String(renderer.info.render.calls);
       host.dataset.actorCount = String(count); host.dataset.renderPending = 'false'; host.dataset.status = 'ready';
@@ -619,7 +734,7 @@ export function WorldScene(props: Props) {
       alive = false; invalidate.current = () => {}; cancelPreview.current = () => {}; cancelAnimationFrame(handle); observer.disconnect(); controls.dispose();
       renderer.domElement.removeEventListener('pointercancel', pointerCancel); renderer.domElement.removeEventListener('lostpointercapture', lostCapture); renderer.domElement.removeEventListener('pointerleave', pointerLeave);
       renderer.domElement.removeEventListener('pointerdown', pointerDown); renderer.domElement.removeEventListener('pointerup', pointerUp); renderer.domElement.removeEventListener('pointermove', pointerMove);
-      host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focusSelected); host.removeEventListener('queuelab:cancel-move', cancelEvent); host.removeEventListener('keydown', moveKey); controls.removeEventListener('change', cameraChanged); document.removeEventListener('visibilitychange', visible);
+      host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focusSelected); host.removeEventListener('queuelab:show-connection', showConnection); host.removeEventListener('queuelab:cancel-move', cancelEvent); host.removeEventListener('keydown', moveKey); controls.removeEventListener('change', cameraChanged); document.removeEventListener('visibilitychange', visible);
       const disposedMaterials = new Set<THREE.Material>(), disposedGeometries = new Set<THREE.BufferGeometry>();
       scene.traverse(obj => { const mesh = obj as THREE.Mesh; if (mesh.geometry && !disposedGeometries.has(mesh.geometry)) { mesh.geometry.dispose(); disposedGeometries.add(mesh.geometry); }
         if (mesh.material) for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) if (!disposedMaterials.has(m)) { m.dispose(); disposedMaterials.add(m); } });
@@ -628,12 +743,13 @@ export function WorldScene(props: Props) {
       for (const material of fadedMaterials.values()) if (!disposedMaterials.has(material)) material.dispose();
       if (!disposedMaterials.has(focusLinkMaterial)) focusLinkMaterial.dispose();
       if (!disposedMaterials.has(focusArrowMaterial)) focusArrowMaterial.dispose();
+      if (!disposedMaterials.has(connectionMaterial)) connectionMaterial.dispose();
       for (const texture of textures) texture.dispose(); actors.dispose(); actorTops?.dispose(); light.shadow.dispose(); renderer.dispose(); renderer.domElement.remove(); labelLayer.remove(); moveReadout.remove();
     };
   }, [geometryKey, props.quality, props.resetKey]);
   // A sealed playback frame, selection or preference invalidates exactly one render.
   // Motion is bounded by frame.time; pausing does not leave a GPU animation loop running.
-  useEffect(() => { invalidate.current(); }, [props.frame, props.selected, props.selectedIds, props.reducedMotion, props.moving]);
+  useEffect(() => { invalidate.current(); }, [props.frame, props.selected, props.selectedIds, props.reducedMotion, props.moving, props.flow]);
   useEffect(() => { cancelPreview.current(); }, [props.project.id, props.project.revision, props.moving]);
   return <div ref={mount} className={`world-scene ${props.moving ? 'is-moving' : ''}`} data-testid="world-scene">
     {error && <div className="scene-fallback"><h3>{m.yourBrowserCouldNotOpenThe3dView}</h3><p>{m.useTheModelEditorToViewAndEditEvery}</p></div>}

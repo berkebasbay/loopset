@@ -90,6 +90,7 @@ export const appMessages = {
   noDetailedReplayWasRetainedFullRunNumericalResults: "No detailed replay was retained. Full-run numerical results are available.",
   representativeActors: (count: number, unit: string, inSystem: number) => `Showing ${count} representative ${unit} of ${inSystem}. Queue counts remain exact.`,
   selectedStepConnectionsAreHighlighted: "Selected step connections are highlighted.",
+  possibleModelFlowIsHighlighted: "Possible model flow is highlighted. Use the guide to view each connection.",
   dragASelectedStepToMoveTheGroupShift: "Drag a selected step to move the group · Shift-click toggles selection · Escape cancels",
   clickToInspectShiftClickSelectsSeveral: "Click to inspect · Shift-click selects several",
   dragToPanScrollToZoom: "Drag to pan · scroll to zoom",
