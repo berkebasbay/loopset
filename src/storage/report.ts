@@ -73,10 +73,25 @@ export function printResult(result: RunResult): void {
   const popup = window.open('', '_blank');
   if (!popup) throw new Error(messages.printWindowBlocked);
   popup.opener = null;
-  popup.document.open(); popup.document.write(resultReportHTML(result)); popup.document.close();
-  let printed = false;
-  const print = () => { if (printed) return; printed = true; popup.focus(); popup.print(); };
+  const reportDocument = popup.document;
+  reportDocument.open(); reportDocument.write(resultReportHTML(result)); reportDocument.close();
+  const isReportOpen = () => {
+    try { return !popup.closed && popup.document === reportDocument; }
+    catch { return false; } // The owner may have navigated the report tab elsewhere.
+  };
+  let scheduled = false;
+  const print = () => {
+    if (scheduled || !isReportOpen()) return;
+    scheduled = true;
+    popup.focus();
+    // A completed document can still have pending font/layout work. Start print
+    // in a later task after that work, without relying on a fixed delay or RAF.
+    void reportDocument.fonts.ready.then(() => {
+      if (!isReportOpen()) return;
+      popup.setTimeout(() => { if (isReportOpen()) popup.print(); }, 0);
+    });
+  };
   popup.addEventListener('load', print, { once: true });
   // document.write may already have completed its load synchronously.
-  if (popup.document.readyState === 'complete') print();
+  if (reportDocument.readyState === 'complete') print();
 }
