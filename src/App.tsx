@@ -29,7 +29,9 @@ import { buildCouplingManifest } from './engine/provenance';
 import { ExperimentsPanel } from './lab/ExperimentsPanel';
 import { SavedScenarios } from './lab/SavedScenarios';
 import { RunInsights } from './lab/RunInsights';
-import { loadLastProject, saveProject } from './storage/projectStore';
+import { captureSaveContext, loadLastProject, rememberOpenedProject, saveProject } from './storage/projectStore';
+import { BoundedCache } from './storage/boundedCache';
+import { ProjectSaveQueue, type SaveInput } from './storage/projectSaveQueue';
 import { openProjectJSON, serializeProject } from './storage/projectFile';
 import { downloadText, readLocalText, safeFilename } from './storage/csv';
 
@@ -68,9 +70,9 @@ export default function App() {
   const [storageError, setStorageError] = useState<string | null>(null);
   const [retainedDrafts, setRetainedDrafts] = useState<RetainedDraft[]>([]);
   const retained = useRef<RetainedDraft[]>([]); const recoverySequence = useRef(0);
-  const acknowledgedContent = useRef(new Map<string, string>());
-  const saveQueue = useRef<Promise<void>>(Promise.resolve());
-  const pendingSaves = useRef(new Map<string, ReturnType<typeof saveProject>>());
+  const acknowledgedContent = useRef(new BoundedCache<string>(64, 20_000_000, (value, key) => 2 * (value.length + key.length)));
+  const saveQueue = useRef<ProjectSaveQueue<Awaited<ReturnType<typeof saveProject>>> | null>(null);
+  if (!saveQueue.current) saveQueue.current = new ProjectSaveQueue(writeProject);
   const storageGate = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
   if (!storageGate.current) {
     let resolve!: () => void;
@@ -160,13 +162,13 @@ export default function App() {
     if (initialized.current) return; initialized.current = true;
     let alive = true;
     const timer = setTimeout(() => {
-      void loadLastProject().then(saved => {
+      void loadLastProject({ observe: false }).then(saved => {
         if (!alive) return;
         // A slow IndexedDB load must never replace a newer user action.
         const untouched = live.current.project.id === project.id && live.current.project.revision === project.revision;
         const initial = untouched ? saved ?? project : live.current.project;
         if (saved) acknowledgedContent.current.set(saved.id, recoveryProjectKey(saved));
-        if (saved && untouched) { setProject(saved); live.current = { ...live.current, project: saved }; setLocalRevision(saved.revision); setSelected(serviceNodes(saved)[0]?.id ?? null); }
+        if (saved && untouched) { rememberOpenedProject(saved); setProject(saved); live.current = { ...live.current, project: saved }; setLocalRevision(saved.revision); setSelected(serviceNodes(saved)[0]?.id ?? null); }
         storageGate.current!.resolve(); setStorageReady(true);
         if (!validateProject(initial).some(issue => issue.severity === 'error')) void compute(initial, true);
       }).catch(error => {
@@ -180,8 +182,8 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (!storageReady || issues.some(i => i.severity === 'error')) return;
-    const snapshot = project;
-    const timer = setTimeout(() => { void persistProject(snapshot).catch(() => { /* Retained and surfaced by persistProject. */ }); }, 800);
+    const snapshot = project, context = captureSaveContext(project.id);
+    const timer = setTimeout(() => { void persistProject(snapshot, true, context).catch(() => { /* Retained and surfaced by persistProject. */ }); }, 800);
     return () => clearTimeout(timer);
   }, [project, storageReady]);
   useEffect(() => {
@@ -299,9 +301,9 @@ export default function App() {
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(null), 6000); return () => clearTimeout(id); }, [toast]);
 
   function updateRetained(next: RetainedDraft[]) { retained.current = next; setRetainedDrafts(next); }
-  function retainDraft(snapshot: Project, state: RetainedDraft['state'], message: string): RetainedDraft | null {
+  function retainDraft(snapshot: Project, state: RetainedDraft['state'], message: string, context: number): RetainedDraft | null {
     const key = recoveryProjectKey(snapshot);
-    const existing = retained.current.find(draft => draft.key === key);
+    const existing = retained.current.find(draft => draft.key === key && draft.context === context);
     if (existing) {
       const updated = { ...existing, state, message };
       updateRetained(retained.current.map(draft => draft.token === existing.token ? updated : draft)); return updated;
@@ -312,50 +314,58 @@ export default function App() {
     if (retained.current.length >= 12 || retained.current.reduce((total, draft) => total + draft.bytes, 0) + bytes > 20_000_000) {
       setStorageError(m.retainedDraftLimitReached); return null;
     }
-    const draft: RetainedDraft = { token: `draft-${++recoverySequence.current}`, key, project: structuredClone(snapshot), bytes, state, message };
+    const draft: RetainedDraft = { token: `draft-${++recoverySequence.current}`, key, project: structuredClone(snapshot), bytes, state, message, context };
     updateRetained([...retained.current, draft]); return draft;
   }
-  /** All project writes, including the manual DataTools button, share a FIFO after startup restore. */
-  function persistProject(snapshot: Project): ReturnType<typeof saveProject> {
-    snapshot = structuredClone(snapshot);
-    const key = recoveryProjectKey(snapshot);
-    const pending = pendingSaves.current.get(key); if (pending) return pending;
-    try { serializeProject(snapshot); }
+  /** Explicit saves remain FIFO; only unstarted autosaves may yield to a newer
+   * autosave. Pending jobs retain bounded strings, not cloned Project trees. */
+  function persistProject(snapshot: Project): ReturnType<typeof saveProject>;
+  function persistProject(snapshot: Project, autosave: true, context?: number): Promise<Awaited<ReturnType<typeof saveProject>> | undefined>;
+  function persistProject(snapshot: Project, autosave: false, context: number): ReturnType<typeof saveProject>;
+  function persistProject(snapshot: Project, autosave = false, context = captureSaveContext(snapshot.id)): Promise<Awaited<ReturnType<typeof saveProject>> | undefined> {
+    let serialized: string;
+    try { serialized = serializeProject(snapshot); }
     catch (error) {
       const message = error instanceof Error ? error.message : m.repairThisDraftBeforeSaving;
-      retainDraft(snapshot, 'invalid', message); setStorageError(message); return Promise.reject(error);
+      retainDraft(snapshot, 'invalid', message, context); setStorageError(message); return Promise.reject(error);
     }
-    const task = saveQueue.current.then(async () => {
-      await storageGate.current!.promise;
-      updateRetained(retained.current.map(draft => draft.key === key ? { ...draft, state: 'saving', message: m.waitingForTheIndexedDBTransactionAcknowledgment } : draft));
-      try {
-        const ack = await saveProject(snapshot);
-        acknowledgedContent.current.set(snapshot.id, key);
-        // This is only an acknowledgment cache; dropping old cache entries only causes a safe repeat save.
-        if (acknowledgedContent.current.size > 64) acknowledgedContent.current.delete(acknowledgedContent.current.keys().next().value!);
-        updateRetained(retained.current.filter(draft => draft.key !== key));
-        if (live.current.project.id === ack.projectId && recoveryProjectKey(live.current.project) === key) { setLocalRevision(ack.revision); setStorageError(null); }
-        return ack;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : m.localSaveFailedKeepThisTabOpenAndVerify;
-        retainDraft(snapshot, 'failed', message);
-        if (live.current.project.id === snapshot.id && recoveryProjectKey(live.current.project) === key) setStorageError(message);
-        throw error;
-      }
-    });
-    pendingSaves.current.set(key, task);
-    saveQueue.current = task.then(() => undefined, () => undefined);
-    void task.finally(() => { if (pendingSaves.current.get(key) === task) pendingSaves.current.delete(key); }).catch(() => {});
-    return task;
+    try {
+      const input = { id: snapshot.id, revision: snapshot.revision, contentKey: recoveryProjectKey(snapshot), serialized, context };
+      return autosave ? saveQueue.current!.enqueue(input, 'auto') : saveQueue.current!.enqueue(input, 'explicit');
+    } catch (error) {
+      // Admission can fail without a write starting. A retained outgoing draft
+      // must become retryable rather than stay indefinitely marked "waiting".
+      const message = error instanceof Error ? error.message : m.localSaveFailedKeepThisTabOpenAndVerify;
+      retainDraft(snapshot, 'failed', message, context); setStorageError(message); return Promise.reject(error);
+    }
+  }
+  async function writeProject(input: SaveInput): ReturnType<typeof saveProject> {
+    await storageGate.current!.promise;
+    const snapshot = openProjectJSON(input.serialized), key = input.contentKey, context = input.context!;
+    updateRetained(retained.current.map(draft => draft.key === key && draft.context === context ? { ...draft, state: 'saving', message: m.waitingForTheIndexedDBTransactionAcknowledgment } : draft));
+    try {
+      const ack = await saveProject(snapshot, { context: input.context });
+      // Eviction affects only acknowledgment reuse; it never deletes local work.
+      acknowledgedContent.current.set(snapshot.id, key);
+      updateRetained(retained.current.filter(draft => draft.key !== key || draft.context !== context));
+      if (live.current.project.id === ack.projectId && recoveryProjectKey(live.current.project) === key) { setLocalRevision(ack.revision); setStorageError(null); }
+      return ack;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : m.localSaveFailedKeepThisTabOpenAndVerify;
+      retainDraft(snapshot, 'failed', message, context);
+      if (live.current.project.id === snapshot.id && recoveryProjectKey(live.current.project) === key) setStorageError(message);
+      throw error;
+    }
   }
   function preserveOutgoing(snapshot: Project): boolean {
     if (acknowledgedContent.current.get(snapshot.id) === recoveryProjectKey(snapshot)) return true;
     let invalid = false; let message: string = m.savingTheOutgoingProjectBeforeReplacement;
     try { serializeProject(snapshot); }
     catch (error) { invalid = true; message = error instanceof Error ? error.message : m.repairThisDraftBeforeSaving; }
-    const draft = retainDraft(snapshot, invalid ? 'invalid' : 'waiting', message);
+    const context = captureSaveContext(snapshot.id);
+    const draft = retainDraft(snapshot, invalid ? 'invalid' : 'waiting', message, context);
     if (!draft) { setPanel('data'); setToast(m.thisDraftIsStillOpenReviewRetainedCopiesOr); return false; }
-    if (!invalid) void persistProject(snapshot).catch(() => {});
+    if (!invalid) void persistProject(snapshot, false, context).catch(() => {});
     return true;
   }
   function edit(next: Project, label?: string) {
@@ -495,7 +505,7 @@ export default function App() {
       {panel === 'model' && <ModelEditor project={project} onChange={edit} selectedId={selected} selectedIds={selection.ids} onSelect={setSelected} onMove={moveSelected} />}
       {panel === 'insights' && <RunInsights result={result} draft={project.model} onReport={() => setPanel('data')} onExperiments={() => setPanel('experiments')} />}
       {panel === 'experiments' && <ExperimentsPanel project={project} baseline={baseline} onApplyCapacity={(poolId, capacity) => { edit(mutateProject(project, p => { const pool = p.model.resources.find(r => r.id === poolId); if (pool) pool.capacity = capacity; })); setPanel(null); setToast(m.appliedTheVerifiedPoolCapacityToYourDraftRun); }} />}
-      {panel === 'data' && <DataTools project={project} result={result} latestAttempt={latestAttempt} onImport={acceptProject} onSave={persistProject} retainedDrafts={retainedDrafts} onRestoreDraft={restoreDraft} onRetryDraft={token => { const draft = retained.current.find(item => item.token === token); if (draft) void persistProject(draft.project).catch(() => {}); }} onRemoveDraft={token => updateRetained(retained.current.filter(draft => draft.token !== token))} />}
+      {panel === 'data' && <DataTools project={project} result={result} latestAttempt={latestAttempt} onImport={acceptProject} onSave={persistProject} retainedDrafts={retainedDrafts} onRestoreDraft={restoreDraft} onRetryDraft={token => { const draft = retained.current.find(item => item.token === token); if (draft) void persistProject(draft.project, false, draft.context).catch(() => {}); }} onRemoveDraft={token => updateRetained(retained.current.filter(draft => draft.token !== token))} />}
       {panel === 'help' && <div className="help-content"><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><ol><li><b>{m.watchTheQueue}</b>{m.selectAStationToInspectItsCapacityAndProcessing}</li><li><b>{m.tryAnotherPlan}</b>{m.makeAChangeThenRunTheModelTheOriginal}</li><li><b>{m.compareTheTradeOff}</b>{m.checkCompletedWorkWaitingAndResourceCostTogether}</li><li><b>{m.keepYourWorld}</b>{m.downloadTheProjectFileAndReopenItLater}</li></ol><p className="quiet-copy">{m.withTheWorldFocusedSpaceToPlayOrPause}</p><p className="quiet-copy">{m.theEngineUsesAReproducibleSeedTheVisualLayout}</p><button className="secondary-button" onClick={() => setQuality(quality === 'high' ? 'low' : 'high')}>{m.qualitySetting(quality === 'high' ? m.detailed : m.lowPower)}</button><button className="secondary-button" onClick={() => setReducedMotion(!reducedMotion)}>{reducedMotion ? <Check size={15} /> : <Pause size={15} />}{m.motionSetting(reducedMotion)}</button></div>}
     </section></div>}
   </div>;
