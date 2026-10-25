@@ -1,5 +1,8 @@
 /** English product messages for App. Keep model data and canonical identifiers at the call site. */
 export const appMessages = {
+  calculationStatus: "Calculation status",
+  calculationStarted: (name: string) => `Calculating a recorded snapshot of “${name}”.`,
+  calculationCompleted: (name: string, completed: number, unfinished: number, earlier: boolean) => `Calculation completed for the recorded snapshot of “${name}”: ${completed.toLocaleString('en')} completed, ${unfinished.toLocaleString('en')} unfinished. ${earlier ? 'Your draft has changed; these results belong to the earlier snapshot.' : 'Results are available in Run insights.'}`,
   minutes: (minutes: string) => `${minutes} min`,
   seconds: (seconds: number) => `${seconds} sec`,
   currentDraft: "Current draft",

@@ -10,6 +10,7 @@ import type { ExperimentRequest, ExperimentValue } from '../worker/protocol';
 import { CouplingDetails } from '../features/CouplingDetails';
 import { RunProvenanceDetails } from '../features/RunProvenanceDetails';
 import { CalculationBudget } from '../features/CalculationBudget';
+import { CalculationStatus, useCalculationAnnouncement } from '../ui/CalculationAnnouncement';
 import { prepareExperiment } from './experimentPlan';
 import './lab.css';
 
@@ -37,6 +38,9 @@ export function ExperimentsPanel({ project, baseline, onApplyCapacity }: Props) 
   const [resultPoolId, setResultPoolId] = useState('');
   const [resultCurrency, setResultCurrency] = useState(project.model.currency); const [resultHash, setResultHash] = useState('');
   const [running, setRunning] = useState(false); const [progress, setProgress] = useState(0); const [error, setError] = useState('');
+  const calculationStatus = useCalculationAnnouncement();
+  const liveIdentity = useRef({ projectId: project.id, hash: '', valid: false });
+  const currentHash = useMemo(() => modelHash(project.model), [project.model]);
   const pending = useRef<string | null>(null);
   const client = useRef<WorkerClient<ExperimentRequest, ExperimentValue> | null>(null);
   if (!client.current) client.current = new WorkerClient(
@@ -49,8 +53,14 @@ export function ExperimentsPanel({ project, baseline, onApplyCapacity }: Props) 
     try { return { value: prepareExperiment({ kind: tab, model: project.model, baseline, count, firstSeed, poolId, capacities, target, maxWait }), error: '' }; }
     catch (error) { return { value: null, error: error instanceof Error ? error.message : m.checkExperimentSettings }; }
   }, [tab, project.model, baseline, count, firstSeed, poolId, capacities, target, maxWait]);
+  liveIdentity.current = { projectId: project.id, hash: currentHash, valid: !invalid };
   useEffect(() => () => { pending.current = null; client.current?.dispose(); }, []);
-  function cancel() { pending.current = null; client.current!.cancel(); }
+  function cancel() {
+    const id = pending.current; pending.current = null;
+    if (id) calculationStatus.controller.finish(id, '');
+    // WorkerClient already supplies the cancellation alert; do not speak it twice.
+    client.current!.cancel();
+  }
   function submit() {
     setError('');
     try {
@@ -59,6 +69,8 @@ export function ExperimentsPanel({ project, baseline, onApplyCapacity }: Props) 
       const request: ExperimentRequest = structuredClone({ ...preparation.value.request, id });
       pending.current = id;
       const hash = modelHash(project.model); const currency = project.model.currency; const searchedPool = poolId;
+      const sourceProjectId = project.id; const snapshotName = project.model.name;
+      calculationStatus.controller.begin(id, m.experimentStarted(snapshotName));
       const started = performance.now();
       void client.current!.run(request).then(value => {
         if (pending.current !== id) return;
@@ -66,11 +78,19 @@ export function ExperimentsPanel({ project, baseline, onApplyCapacity }: Props) 
         const runs = value.kind === 'replications' ? value.value.runs : value.kind === 'paired' ? [...value.value.baseline.runs, ...value.value.candidate.runs] : [...value.value.candidates.flatMap(candidate => candidate.experiment.runs), ...(value.value.verification?.runs ?? [])];
         setResult({ ...value, receipt: { id, elapsedMs: performance.now() - started, runs: runs.length, workUnits: runs.reduce((sum, run) => sum + run.processedEvents, 0) } });
         setResultHash(hash); setResultCurrency(currency); setResultPoolId(searchedPool);
-      }).catch(() => { if (pending.current === id) pending.current = null; });
+        const outcome = value.kind === 'replications' ? m.replicationFinished : value.kind === 'paired'
+          ? value.value.paired ? m.pairedFinished : m.unpairedFinished
+          : value.value.selectedCapacity === null ? m.searchNoCandidate : value.value.verified ? m.searchVerified : m.searchNotVerified;
+        const incompleteRuns = runs.reduce((count, run) => count + Number(run.status !== 'completed'), 0);
+        const message = liveIdentity.current.projectId === sourceProjectId
+          ? m.experimentFinished(snapshotName, runs.length, incompleteRuns, !liveIdentity.current.valid || liveIdentity.current.hash !== hash, outcome) : '';
+        calculationStatus.controller.finish(id, message);
+      }).catch(() => { if (pending.current === id) { pending.current = null; calculationStatus.controller.finish(id, ''); } });
     } catch (e) { setError(e instanceof Error ? e.message : m.checkExperimentSettings); }
   }
-  const stale = Boolean(result && resultHash !== modelHash(project.model));
+  const stale = Boolean(result && resultHash !== currentHash);
   return <div className="lab-panel">
+    <CalculationStatus announcement={calculationStatus.announcement} label={m.experimentStatus} />
     <p className="lab-intro">{m.aSingleRunTellsOneStoryRepeatItWith}</p>
     <div className="lab-tabs" role="tablist" aria-label={m.experimentType}>{(['replications', 'paired', 'search'] as const).map(kind => <button key={kind} role="tab" aria-selected={tab === kind} disabled={running} onClick={() => setTab(kind)}>{kind === 'replications' ? m.independentRuns : kind === 'paired' ? m.pairedComparison : m.capacitySearch}</button>)}</div>
     <div className="lab-settings"><label>{m.independentRuns}<input type="number" min="1" max="100" value={count} disabled={running} onChange={e => setCount(Number(e.target.value))} /></label><label>{m.firstSeed}<input type="number" step="1" value={firstSeed} disabled={running} onChange={e => setFirstSeed(Number(e.target.value))} /></label><div className="lab-seed-note">{m.seedRange(firstSeed, firstSeed + count - 1)}<br />{preparation.value ? m.totalModelRuns(preparation.value.budget.minimumRuns === preparation.value.budget.maximumRuns ? preparation.value.budget.maximumRuns : `${preparation.value.budget.minimumRuns}–${preparation.value.budget.maximumRuns}`) : m.checkSettings}</div></div>

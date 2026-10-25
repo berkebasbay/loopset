@@ -23,6 +23,7 @@ import { connectNext } from './features/modelEdits';
 import { DataTools, recoveryProjectKey, serializeDraftRecovery, type RetainedDraft } from './features/DataTools';
 import { CouplingDetails } from './features/CouplingDetails';
 import { CalculationBudget } from './features/CalculationBudget';
+import { CalculationStatus, completedSimulationNotice, sameNumericalSnapshot, useCalculationAnnouncement } from './ui/CalculationAnnouncement';
 import { replayTimeFromRange } from './features/replayRange';
 import { calculationBudget } from './model/workBudget';
 import { buildCouplingManifest } from './engine/provenance';
@@ -81,6 +82,7 @@ export default function App() {
   }
 
   const sim = useSimulation(); const initialized = useRef(false); const requestGeneration = useRef(0); const manualClock = useRef(false);
+  const calculationStatus = useCalculationAnnouncement();
   const fileInput = useRef<HTMLInputElement>(null); const live = useRef({ project, result, latestAttempt, time, playing, speed, selected, selectedIds: selection.ids, running: sim.running, canReplay: false, replayUntil: 0 });
 
   const issues = useMemo(() => validateProject(project), [project]);
@@ -146,17 +148,29 @@ export default function App() {
 
   async function compute(p: Project, establishBaseline = false) {
     const generation = ++requestGeneration.current; setPlaying(false); setLatestAttempt(null);
+    const announcementId = String(generation);
+    calculationStatus.controller.begin(announcementId, m.calculationStarted(p.model.name), panelGeneration.current);
     if (!establishBaseline) setToast(null);
     try {
       const r = await sim.run(p.model);
       if (generation !== requestGeneration.current) return;
-      if (r.status !== 'completed') { setLatestAttempt(r); setToast(r.reason ?? m.incompleteRunNotice(r.status)); return; }
+      if (r.status !== 'completed') { calculationStatus.controller.finish(announcementId, '', panelGeneration.current); setLatestAttempt(r); setToast(r.reason ?? m.incompleteRunNotice(r.status)); return; }
       setLatestAttempt(null);
       setResult(r); if (establishBaseline || !baseline) setBaseline(r);
       const coverage = replayManifest(r).coverage;
       setTime(establishBaseline ? Math.min(p.model.horizon * .38, coverage.at(-1)?.end ?? 0) : 0);
       setPlaying(establishBaseline && coverage.length > 0); manualClock.current = false;
-    } catch (e) { if (generation === requestGeneration.current) setToast(e instanceof Error ? e.message : m.theRunCouldNotFinish); }
+      const current = live.current.project;
+      const earlier = !sameNumericalSnapshot(
+        { projectId: p.id, modelHash: r.modelHash, seed: r.seed, valid: true },
+        { projectId: current.id, modelHash: modelHash(current.model), seed: current.model.seed, valid: !validateProject(current).some(issue => issue.severity === 'error') },
+      );
+      calculationStatus.controller.finish(announcementId, completedSimulationNotice({ status: r.status, name: r.model.name, completed: r.summary.completed, unfinished: r.summary.inSystem, earlier }, m.calculationCompleted), panelGeneration.current);
+    } catch (e) { if (generation === requestGeneration.current) { calculationStatus.controller.finish(announcementId, '', panelGeneration.current); setToast(e instanceof Error ? e.message : m.theRunCouldNotFinish); } }
+  }
+  function cancelCalculation() {
+    calculationStatus.controller.stopping(String(requestGeneration.current), m.stoppingCalculation, panelGeneration.current);
+    sim.cancel();
   }
   useEffect(() => {
     if (initialized.current) return; initialized.current = true;
@@ -407,9 +421,9 @@ export default function App() {
   function acceptProject(next: Project, label: string = m.openProjectFile): Project | null {
     const previous = live.current.project;
     setLinkFrom(null);
-    if (next.id === previous.id) { ++requestGeneration.current; sim.cancel(); setLatestAttempt(null); edit(next, label); return live.current.project; }
+    if (next.id === previous.id) { ++requestGeneration.current; calculationStatus.controller.invalidate(panelGeneration.current); sim.cancel(); setLatestAttempt(null); edit(next, label); return live.current.project; }
     if (!preserveOutgoing(previous)) return null;
-    ++requestGeneration.current; sim.cancel(); setLatestAttempt(null);
+    ++requestGeneration.current; calculationStatus.controller.invalidate(panelGeneration.current); sim.cancel(); setLatestAttempt(null);
     setProject(next); live.current = { ...live.current, project: next }; const cleared = emptyHistory(); historyRef.current = cleared; setHistory(cleared); updateSelection(emptySelection()); setResult(null); setBaseline(null); setSelected(serviceNodes(next)[0]?.id ?? null); setBackupRequestedRevision(null); setLocalRevision(null); setStorageError(null);
     if (!validateProject(next).some(issue => issue.severity === 'error')) void compute(next, true);
     return next;
@@ -469,6 +483,7 @@ export default function App() {
       <div className="sidebar-bottom"><div className="local-note"><span className="status-dot" />{m.yourWorldStaysOnYourDevice}<ShieldCheck size={15} /></div><button className="nav-item" data-panel-opener="help" onClick={event => setPanel('help', event.currentTarget)}><CircleHelp size={18} />{m.aLittleGuidance}<ArrowUpRight size={15} /></button><div className="sidebar-foot">{m.freeOpenSource}<span>{m.earlyBuild}</span></div></div>
     </aside>
     <main className="main-shell" inert={Boolean(panel)}>
+      <CalculationStatus announcement={calculationStatus.announcement} active={!panel && calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />
       <header className="topbar"><div className="breadcrumb">{m.playground}<ChevronRight size={14} /><span>{project.name}</span><span className="synthetic-label">{m.syntheticExample}</span></div><div className="top-actions"><button className="icon-button" title={m.openProject} aria-label={m.openProject} onClick={() => fileInput.current?.click()}><FileUp size={17} /></button><button className="text-button save-button" onClick={downloadProject}><ArrowDownToLine size={16} />{m.saveProject}</button><span className="version-tag">{m.buildBadge}</span></div></header>
       <div className="workspace-heading"><div><div className="eyebrow"><span />{m.aPlaygroundForBetterDecisions}</div><h1>{project.name}<span className="title-period">.</span></h1><p>{m.worldQuestion(worldInfo.subtitle)}</p><button className="budget-opener" onClick={event => setPanel("budget", event.currentTarget)}>{m.calculationWorkLimits}<ChevronRight size={12} /></button></div><div className="heading-actions"><button className="secondary-button" onClick={event => setPanel('compare', event.currentTarget)}><GitCompareArrows size={16} />{m.comparePlans}</button><button className="primary-button" disabled={sim.running || issues.some(i => i.severity === 'error')} onClick={() => void compute(project)}>{sim.running ? <LoaderCircle size={17} className="spin" /> : <Play size={16} fill="currentColor" />}{sim.running ? m.calculationProgress(Math.round(sim.progress * 100)) : m.runSimulation}</button></div></div>
       <div className="workspace-body">
@@ -496,12 +511,13 @@ export default function App() {
     <input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={e => { void importProject(e.target.files?.[0]); e.target.value = ''; }} />
     {storageError && <button className="storage-warning" onClick={event => { setToast(storageError); setPanel('data', event.currentTarget); }}>{m.localSaveNeedsAttentionDownloadABackup}</button>}
     {(toast || sim.error) && <div role="status" className="toast"><span>{toast ?? sim.error}</span><button aria-label={m.dismissNotification} onClick={() => { setToast(null); sim.clearError(); }}><X size={15} /></button></div>}
-    {sim.running && <button className="cancel-run" disabled={sim.cancelling} onClick={sim.cancel}>{sim.cancelling ? m.stoppingCalculation : m.cancelCalculation}<X size={14} /></button>}
+    {sim.running && <button className="cancel-run" disabled={sim.cancelling} onClick={cancelCalculation}>{sim.cancelling ? m.stoppingCalculation : m.cancelCalculation}<X size={14} /></button>}
     {panel && <div className="modal-backdrop" onClick={() => setPanel(null)}><section className={`modal ${panel === 'model' || panel === 'data' || panel === 'experiments' || panel === 'insights' ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">{m.modalEyebrow(m.modalSection(panel))}</span><h2 id="modal-title">{panel === 'worlds' ? m.chooseYourLittleWorld : panel === 'compare' ? m.aBetterPlanStartsHere : panel === 'model' ? m.insideYourModel : panel === 'data' ? m.keepYourWorkShareYourFindings : panel === 'experiments' ? m.runExperiments : panel === 'insights' ? m.yourRunInDetail : panel === 'budget' ? m.beforeYouCalculate : panel === 'history' ? m.yourRecentActions : m.helpHeading}</h2></div><button className="icon-button" aria-label={m.closeDialog} onClick={() => setPanel(null)}><X size={20} /></button></div>
+      <CalculationStatus announcement={calculationStatus.announcement} active={calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />
       {panel === 'history' && <ActionHistory history={history} revision={project.revision} onUndo={undo} onRedo={redo} />}
       {panel === 'budget' && (normalBudget ? <CalculationBudget budget={normalBudget} /> : <p className="modal-intro">{m.repairYourModelToSeeTheWorkloadEstimateThe}</p>)}
       {panel === 'worlds' && <div className="world-gallery">{(['factory', 'festival', 'service'] as const).map(w => <button key={w} onClick={() => chooseWorld(w)}><span className={`world-mini ${w}`}><img src={`/previews/${w}.jpg`} alt="" loading="lazy" width="640" height="360" /></span><h3>{WORLD_INFO[w].name}<ArrowUpRight size={18} /></h3><p>{WORLD_INFO[w].subtitle}</p><span className="gallery-foot">{m.syntheticModelOpenEdit}</span></button>)}</div>}
-      {panel === 'compare' && <><p className="modal-intro">{m.keepYourOriginalPlanChangeAStationRunIt}</p><div className="comparison-table"><div className="comparison-row table-header"><span>{m.fullRunHeading}</span><span>{m.baseline}</span><span>{m.currentPlan}</span></div>{[[m.completed, baseline?.summary.completed, shownResult?.summary.completed, ''], [m.averageWait, baseline?.summary.waitSampleSize ? baseline.summary.meanWait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.meanWait : null, 'wait'], [m.label95thPercentileWait, baseline?.summary.waitSampleSize ? baseline.summary.p95Wait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.p95Wait : null, 'wait'], [m.resourceCost, baseline?.summary.cost, shownResult?.summary.cost, 'cost']].map(([label, a, b, kind]) => <div className="comparison-row" key={String(label)}><span>{label}</span><strong>{typeof a === 'number' ? kind === 'wait' ? wait(a) : kind === 'cost' ? money(a, baseline?.model.currency ?? project.model.currency) : number(a) : '—'}</strong><strong>{typeof b === 'number' ? kind === 'wait' ? wait(b) : kind === 'cost' ? money(b, shownResult?.model.currency ?? project.model.currency) : number(b) : shownResult ? '—' : m.runYourPlan}</strong></div>)}</div><div className="comparison-note"><ShieldCheck size={16} />{singlePaired ? m.sameExternalDemandSeed(shownResult?.seed) : !shownResult ? m.runTheCurrentDraftToCompareItWithThe : !singleCoupling ? m.matchingScopeWasNotRecordedInThisOlderRun : m.demandSeedOrMeasurementPoliciesDifferTheseAreSeparate}{m.samplingUncertaintyNote}</div>{baseline && shownResult && singleCoupling && <CouplingDetails manifest={singleCoupling} baseline={baseline} candidate={shownResult} />}<button className="secondary-button" disabled={!shownResult} onClick={() => { if (shownResult) { setBaseline(shownResult); setToast(m.currentRunIsNowYourBaseline); } }}><Copy size={16} />{m.useCurrentRunAsBaseline}</button><SavedScenarios project={project} baseline={baseline} busy={sim.running} onChange={edit} onBaseline={async snapshot => { const generation = ++requestGeneration.current; setLatestAttempt(null); const computed = await sim.run(snapshot.model); if (generation !== requestGeneration.current) throw new Error(m.supersededByANewerRun); if (computed.status !== 'completed') { setLatestAttempt(computed); throw new Error(computed.reason ?? m.baselineRunDidNotComplete); } setLatestAttempt(null); setBaseline(computed); }} /></>}
+      {panel === 'compare' && <><p className="modal-intro">{m.keepYourOriginalPlanChangeAStationRunIt}</p><div className="comparison-table"><div className="comparison-row table-header"><span>{m.fullRunHeading}</span><span>{m.baseline}</span><span>{m.currentPlan}</span></div>{[[m.completed, baseline?.summary.completed, shownResult?.summary.completed, ''], [m.averageWait, baseline?.summary.waitSampleSize ? baseline.summary.meanWait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.meanWait : null, 'wait'], [m.label95thPercentileWait, baseline?.summary.waitSampleSize ? baseline.summary.p95Wait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.p95Wait : null, 'wait'], [m.resourceCost, baseline?.summary.cost, shownResult?.summary.cost, 'cost']].map(([label, a, b, kind]) => <div className="comparison-row" key={String(label)}><span>{label}</span><strong>{typeof a === 'number' ? kind === 'wait' ? wait(a) : kind === 'cost' ? money(a, baseline?.model.currency ?? project.model.currency) : number(a) : '—'}</strong><strong>{typeof b === 'number' ? kind === 'wait' ? wait(b) : kind === 'cost' ? money(b, shownResult?.model.currency ?? project.model.currency) : number(b) : shownResult ? '—' : m.runYourPlan}</strong></div>)}</div><div className="comparison-note"><ShieldCheck size={16} />{singlePaired ? m.sameExternalDemandSeed(shownResult?.seed) : !shownResult ? m.runTheCurrentDraftToCompareItWithThe : !singleCoupling ? m.matchingScopeWasNotRecordedInThisOlderRun : m.demandSeedOrMeasurementPoliciesDifferTheseAreSeparate}{m.samplingUncertaintyNote}</div>{baseline && shownResult && singleCoupling && <CouplingDetails manifest={singleCoupling} baseline={baseline} candidate={shownResult} />}<button className="secondary-button" disabled={!shownResult} onClick={() => { if (shownResult) { setBaseline(shownResult); setToast(m.currentRunIsNowYourBaseline); } }}><Copy size={16} />{m.useCurrentRunAsBaseline}</button><SavedScenarios project={project} baseline={baseline} busy={sim.running} onChange={edit} onBaseline={async snapshot => { const generation = ++requestGeneration.current; calculationStatus.controller.invalidate(panelGeneration.current); setLatestAttempt(null); const computed = await sim.run(snapshot.model); if (generation !== requestGeneration.current) throw new Error(m.supersededByANewerRun); if (computed.status !== 'completed') { setLatestAttempt(computed); throw new Error(computed.reason ?? m.baselineRunDidNotComplete); } setLatestAttempt(null); setBaseline(computed); }} /></>}
       {panel === 'model' && <ModelEditor project={project} onChange={edit} selectedId={selected} selectedIds={selection.ids} onSelect={setSelected} onMove={moveSelected} />}
       {panel === 'insights' && <RunInsights result={result} draft={project.model} onReport={() => setPanel('data')} onExperiments={() => setPanel('experiments')} />}
       {panel === 'experiments' && <ExperimentsPanel project={project} baseline={baseline} onApplyCapacity={(poolId, capacity) => { edit(mutateProject(project, p => { const pool = p.model.resources.find(r => r.id === poolId); if (pool) pool.capacity = capacity; })); setPanel(null); setToast(m.appliedTheVerifiedPoolCapacityToYourDraftRun); }} />}

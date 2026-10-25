@@ -1,5 +1,14 @@
 /** English product messages for ExperimentsPanel. Keep model data and canonical identifiers at the call site. */
 export const experimentsPanelMessages = {
+  experimentStatus: "Experiment calculation status",
+  experimentStarted: (name: string) => `Calculating an experiment for the recorded snapshot of “${name}”.`,
+  experimentFinished: (name: string, runs: number, incomplete: number, earlier: boolean, outcome: string) => `Experiment finished for the recorded snapshot of “${name}”: ${runs.toLocaleString('en')} model runs recorded.${incomplete ? ` ${incomplete.toLocaleString('en')} model runs are incomplete.` : ''} ${outcome}${earlier ? ' Your draft has changed; these results belong to the earlier snapshot.' : ''}`,
+  replicationFinished: "Independent-run results are available.",
+  pairedFinished: "Paired comparison results are available.",
+  unpairedFinished: "The recorded plans are not paired; inspect their matching scope.",
+  searchNoCandidate: "No feasible training candidate was found.",
+  searchVerified: "The selected candidate passed held-out verification.",
+  searchNotVerified: "The selected candidate is not verified.",
   noObservations: "No observations",
   requiresAtLeast2Runs: "Requires at least 2 runs",
   interval: (fromLabel: string, toLabel: string) => `${fromLabel} to ${toLabel}`,
