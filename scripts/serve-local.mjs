@@ -16,7 +16,7 @@ createServer(async (request, response) => {
     const file = await realpath(resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname)));
     if (!file.startsWith(root + sep) || !(await stat(file)).isFile()) { response.writeHead(404); response.end(); return; }
     const extension = extname(file), headers = { 'Content-Type': types[extension] ?? 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' };
-    const mayCompress = ['.html', '.js', '.css', '.json', '.ttf', '.svg'].includes(extension);
+    const mayCompress = ['.html', '.js', '.css', '.json', '.ttf', '.svg', '.glb'].includes(extension);
     if (mayCompress) headers.Vary = 'Accept-Encoding';
     let bytes;
     if (mayCompress && /(?:^|,)\s*gzip\s*(?:,|$)/i.test(request.headers['accept-encoding'] ?? '')) {
