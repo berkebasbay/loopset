@@ -7,7 +7,8 @@ import type { Point, Project, RunResult } from '../model/types';
 import type { WorldFrame } from '../playback';
 import type { SelectionIntent } from '../features/editorSelection';
 import { beginMoveGesture, type MoveGesture, type LayoutTranslation } from '../features/layoutCommands';
-import { sceneExtent, sceneLayout } from './graph';
+import { sceneLayout } from './graph';
+import { capacityCell, capacityLayout, stationCopies, MAX_3D_CELLS } from './capacityFootprint';
 import { connectionFraming, connectionShapes, flowTopology, sharedPositionLinks, type FlowWalk } from './flowPresentation';
 import { CATALOG_ASSETS, nodeCatalogAssets, type CatalogAsset, type AssetPlacement } from './catalogAssets';
 import { initialBrowserAssetURL, isDetailInspection } from './browserAssets';
@@ -34,8 +35,24 @@ interface Props {
 }
 type Disposable = { dispose(): void };
 type Lifetime = { renderer: THREE.WebGLRenderer; store: CatalogStore; dispose(): void };
-type VisualNode = { group: THREE.Group; art: THREE.Group; copies: THREE.Group[]; label: HTMLButtonElement; name: HTMLSpanElement; badge: HTMLSpanElement; connector: SVGLineElement; pin: SVGCircleElement; ring: THREE.Mesh; loaded: boolean; count: number };
+type CapacityImpostor = { mesh: THREE.InstancedMesh; target: THREE.WebGLRenderTarget; direction: THREE.Vector3; center: THREE.Vector3; width: number; height: number; dirty: boolean; environment: THREE.Texture | null };
+type VisualNode = { group: THREE.Group; art: THREE.Group; copies: THREE.Group[]; label: HTMLButtonElement; name: HTMLSpanElement; badge: HTMLSpanElement; connector: SVGLineElement; pin: SVGCircleElement; ring: THREE.Mesh; loaded: boolean; count: number; triangles: number; impostor?: CapacityImpostor; footprint?: THREE.LineSegments };
 type SavedView = { projectId: string; position: THREE.Vector3; target: THREE.Vector3; zoom: number; left: number; right: number; top: number; bottom: number };
+
+/** Only return a screen point which the real input hit test accepts. */
+export function visiblePickPoint(bounds: THREE.Box3, camera: THREE.Camera, viewport: { width: number; height: number }, accepts: (x: number, y: number) => boolean): { x: number; y: number } | null {
+  const points: THREE.Vector3[] = [];
+  for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) points.push(new THREE.Vector3(x, y, z).project(camera));
+  if (points.every(p => p.z < -1 || p.z > 1)) return null;
+  const minX = Math.max(1, Math.min(...points.map(p => (p.x * .5 + .5) * viewport.width))), maxX = Math.min(viewport.width - 1, Math.max(...points.map(p => (p.x * .5 + .5) * viewport.width)));
+  const minY = Math.max(1, Math.min(...points.map(p => (-p.y * .5 + .5) * viewport.height))), maxY = Math.min(viewport.height - 1, Math.max(...points.map(p => (-p.y * .5 + .5) * viewport.height)));
+  if (minX > maxX || minY > maxY) return null;
+  for (const fy of [.5, .02, .98, .25, .75, .1, .9]) for (const fx of [.5, .25, .75, .02, .98, .1, .9]) {
+    const x = minX + (maxX - minX) * fx, y = minY + (maxY - minY) * fy;
+    if (accepts(x, y)) return { x, y };
+  }
+  return null;
+}
 
 /** Only sourced models are physical objects. Lines, rings and move guides are editor annotations. */
 export function WorldScene(props: Props) {
@@ -114,7 +131,9 @@ export function WorldScene(props: Props) {
     const foreground = new Map<string, PlacedAsset[]>();
     const visuals = new Map<string, VisualNode>(), pickables: THREE.Mesh[] = [], pickCenters = new Map<string, THREE.Mesh>();
     const preview = new Map<string, Point>(), pickedSources = new Set<string>();
-    let layout = sceneLayout(props.project), extent = sceneExtent(layout), topologyKey = '', currentConnection: number | null = null;
+    let presentation = capacityLayout(props.project.model.nodes, sceneLayout(props.project));
+    let layout = presentation.positions, extent = presentation.extent, topologyKey = '', currentConnection: number | null = null;
+    let capacityKey = JSON.stringify(props.project.model.nodes.map(node => [node.id, stationCopies(node)]));
     let viewedIds = new Set<string>(), viewingFrom: string | null = null;
     let manualContext: { selected: string | null; topology: string; cursor: number | undefined } | null = null;
     let edgeGroup = new THREE.Group(), edgeOwned: Disposable[] = [];
@@ -131,7 +150,7 @@ export function WorldScene(props: Props) {
       if (alive && !scheduled && !document.hidden) { host.dataset.renderPending = 'true'; scheduled = requestAnimationFrame(draw); }
     }
     invalidate.current = requestRender;
-    const pointFor = (id: string) => preview.get(id) ?? layout[id];
+    const pointFor = (id: string) => { const point = preview.get(id); return point ? presentation.toVisual(point) : layout[id]; };
     function status() {
       const errors = loadErrors + detailFailures.size;
       host.dataset.pendingAssets = String(pending); host.dataset.assetErrors = String(errors);
@@ -205,6 +224,7 @@ export function WorldScene(props: Props) {
         proxy.removeFromParent(); pickables.splice(i, 1);
         const owned = [proxy.geometry, ...(Array.isArray(proxy.material) ? proxy.material : [proxy.material])];
         for (const resource of owned) if (resources.delete(resource)) resource.dispose();
+        if ((proxy as THREE.InstancedMesh).isInstancedMesh && resources.delete(proxy as THREE.InstancedMesh)) (proxy as THREE.InstancedMesh).dispose();
       }
       pickCenters.delete(id);
     }
@@ -212,10 +232,70 @@ export function WorldScene(props: Props) {
       removeProxies(id);
       for (const copy of visual.copies.slice(1)) copy.removeFromParent();
       visual.copies = [visual.art];
-      const service = latest.current.project.model.nodes.find(node => node.id === id)?.kind === 'service';
-      for (let i = 1; i < (service ? 3 : 1); i++) { const copy = visual.art.clone(true); visual.group.add(copy); visual.copies.push(copy); }
-      for (const copy of visual.copies) addProxy(copy, id);
+      visual.triangles = 0;
+      visual.art.traverse(object => { const mesh = object as THREE.Mesh; if (mesh.isMesh) visual.triangles += (mesh.geometry.index?.count ?? mesh.geometry.attributes.position.count) / 3; });
+      if (visual.impostor) visual.impostor.dirty = true;
       visual.loaded = true; visual.count = -1; renderer.shadowMap.needsUpdate = true;
+    }
+    function drawImpostor(visual: VisualNode) {
+      let value = visual.impostor;
+      if (!value) {
+        const target = own(new THREE.WebGLRenderTarget(256, 256)); target.texture.colorSpace = THREE.LinearSRGBColorSpace;
+        const geometry = own(new THREE.PlaneGeometry(1, 1)), material = own(new THREE.MeshBasicMaterial({ map: target.texture, alphaTest: .03, side: THREE.DoubleSide }));
+        const mesh = own(new THREE.InstancedMesh(geometry, material, 1000)); mesh.frustumCulled = false; mesh.count = 0; visual.group.add(mesh);
+        value = visual.impostor = { mesh, target, direction: new THREE.Vector3(), center: new THREE.Vector3(), width: 1, height: 1, dirty: true, environment: null };
+      }
+      const direction = camera.position.clone().sub(controls.target).normalize();
+      if (!value.dirty && value.direction.angleTo(direction) < .015 && value.environment === scene.environment) return value;
+      const source = visual.art.clone(true); source.position.set(0, 0, 0);
+      const capture = new THREE.Scene(); capture.add(source); capture.environment = scene.environment; capture.environmentIntensity = scene.environmentIntensity;
+      capture.add(hemi.clone(), fill.clone()); const light = sunlight.clone(); light.castShadow = false; capture.add(light);
+      const bounds = new THREE.Box3().setFromObject(source); bounds.getCenter(value.center);
+      const captureCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, .01, 200);
+      captureCamera.position.copy(value.center).addScaledVector(direction, 30); captureCamera.lookAt(value.center); captureCamera.updateMatrixWorld(true);
+      const projected: THREE.Vector3[] = [];
+      for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) projected.push(new THREE.Vector3(x, y, z).applyMatrix4(captureCamera.matrixWorldInverse));
+      value.width = Math.max(.1, Math.max(...projected.map(p => p.x)) - Math.min(...projected.map(p => p.x))) * 1.02;
+      value.height = Math.max(.1, Math.max(...projected.map(p => p.y)) - Math.min(...projected.map(p => p.y))) * 1.02;
+      captureCamera.left = -value.width / 2; captureCamera.right = value.width / 2; captureCamera.top = value.height / 2; captureCamera.bottom = -value.height / 2; captureCamera.updateProjectionMatrix();
+      const oldTarget = renderer.getRenderTarget(), oldColor = renderer.getClearColor(new THREE.Color()), oldAlpha = renderer.getClearAlpha(), oldShadows = renderer.shadowMap.enabled;
+      try { renderer.setRenderTarget(value.target); renderer.setClearColor(0, 0); renderer.shadowMap.enabled = false; renderer.render(capture, captureCamera); }
+      finally { renderer.setRenderTarget(oldTarget); renderer.setClearColor(oldColor, oldAlpha); renderer.shadowMap.enabled = oldShadows; }
+      value.direction.copy(direction); value.environment = scene.environment; value.dirty = false;
+      return value;
+    }
+    function syncCapacity(id: string, visual: VisualNode, count: number, realCount: number) {
+      if (!visual.loaded) return;
+      if (visual.count !== count || visual.copies.length !== realCount) {
+        removeProxies(id);
+        for (const copy of visual.copies.slice(1)) copy.removeFromParent();
+        visual.copies = [visual.art];
+        for (let i = 1; i < realCount; i++) { const copy = visual.art.clone(true); visual.group.add(copy); visual.copies.push(copy); }
+        visual.copies.forEach((copy, i) => { const p = capacityCell(i); copy.position.set(p.x, 0, p.z); });
+        const bounds = new THREE.Box3().setFromObject(visual.art).applyMatrix4(visual.art.matrixWorld.clone().invert());
+        if (bounds.isEmpty()) bounds.set(new THREE.Vector3(-1.3, 0, -1), new THREE.Vector3(1.3, 2, 1));
+        const size = bounds.getSize(new THREE.Vector3()), center = bounds.getCenter(new THREE.Vector3());
+        const proxy = new THREE.InstancedMesh(own(new THREE.BoxGeometry(Math.max(.15, size.x), Math.max(.15, size.y), Math.max(.15, size.z))), own(new THREE.MeshBasicMaterial({ visible: false })), count);
+        own(proxy); const matrix = new THREE.Matrix4();
+        for (let i = 0; i < count; i++) { const p = capacityCell(i); matrix.makeTranslation(p.x + center.x, center.y, p.z + center.z); proxy.setMatrixAt(i, matrix); }
+        proxy.instanceMatrix.needsUpdate = true; proxy.userData.nodeId = id; visual.group.add(proxy); pickables.push(proxy); pickCenters.set(id, proxy);
+        if (visual.footprint) { visual.footprint.removeFromParent(); resources.delete(visual.footprint.geometry); visual.footprint.geometry.dispose(); }
+        const points: THREE.Vector3[] = [];
+        if (count > 1) for (let i = 0; i < count; i++) {
+          const p = capacityCell(i), corners = [[-1.6, -1.8], [1.6, -1.8], [1.6, 1.8], [-1.6, 1.8]];
+          for (let j = 0; j < 4; j++) { const a = corners[j], b = corners[(j + 1) % 4]; points.push(new THREE.Vector3(p.x + a[0], .015, p.z + a[1]), new THREE.Vector3(p.x + b[0], .015, p.z + b[1])); }
+        }
+        const geometry = own(new THREE.BufferGeometry().setFromPoints(points));
+        const material = visual.footprint?.material ?? own(new THREE.LineBasicMaterial({ color: '#879990', transparent: true, opacity: .55 }));
+        visual.footprint = new THREE.LineSegments(geometry, material); visual.group.add(visual.footprint);
+        visual.count = count; renderer.shadowMap.needsUpdate = true;
+      }
+      const extra = count - realCount;
+      if (extra > 0 && visual.triangles > 0) {
+        const impostor = drawImpostor(visual), matrix = new THREE.Matrix4(), scale = new THREE.Vector3(impostor.width, impostor.height, 1);
+        for (let i = realCount; i < count; i++) { const p = capacityCell(i); matrix.compose(new THREE.Vector3(p.x + impostor.center.x, impostor.center.y, p.z + impostor.center.z), camera.quaternion, scale); impostor.mesh.setMatrixAt(i - realCount, matrix); }
+        impostor.mesh.count = extra; impostor.mesh.instanceMatrix.needsUpdate = true;
+      } else if (visual.impostor) visual.impostor.mesh.count = 0;
     }
     function syncForeground(id: string, visual: VisualNode, inspect: boolean) {
       let changed = false;
@@ -244,7 +324,7 @@ export function WorldScene(props: Props) {
       const connector = document.createElementNS(svgNS, 'line'), pin = document.createElementNS(svgNS, 'circle'); pin.setAttribute('r', '2.5'); connectorLayer.append(connector, pin);
       label.addEventListener('click', event => latest.current.onSelect(node.id, event.shiftKey || event.ctrlKey || event.metaKey ? 'toggle' : latest.current.selectedIds?.includes(node.id) ? 'inspect' : 'single'));
       labelLayer.appendChild(label);
-      const visual: VisualNode = { group, art, copies: [art], label, name, badge, connector, pin, ring, loaded: false, count: -1 }; visuals.set(node.id, visual);
+      const visual: VisualNode = { group, art, copies: [art], label, name, badge, connector, pin, ring, loaded: false, count: -1, triangles: 0 }; visuals.set(node.id, visual);
       const placements = nodeCatalogAssets(world, node, services.findIndex(service => service.id === node.id));
       const parts: PlacedAsset[] = placements.map(placement => ({ definition: CATALOG_ASSETS[placement.asset], placement, detail: false }));
       foreground.set(node.id, parts);
@@ -293,19 +373,22 @@ export function WorldScene(props: Props) {
       load('/assets/characters/casual-character.glb', template => { people.addVariant(0, template, 2.4); loadedVariants.add(0); });
       load('/assets/characters/visitor-female.glb', template => { people.addVariant(1, template, 2.4); loadedVariants.add(1); });
     }
-    function fit() {
-      layout = sceneLayout(latest.current.project); extent = sceneExtent(layout);
+    function frameExtent(preserveDirection: boolean) {
+      presentation = capacityLayout(latest.current.project.model.nodes, sceneLayout(latest.current.project)); layout = presentation.positions; extent = presentation.extent;
       const width = host.clientWidth, height = host.clientHeight; if (!width || !height) return;
-      const target = new THREE.Vector3(extent.x, .5, extent.z); controls.target.copy(target);
-      camera.position.copy(target).addScaledVector(direction, 80); camera.lookAt(target); camera.updateMatrixWorld(true);
+      const framed = surroundings.viewExtent(), target = new THREE.Vector3(framed.x, .5, framed.z);
+      const viewDirection = preserveDirection ? camera.position.clone().sub(controls.target).normalize() : direction;
+      const distance = Math.max(160, Math.hypot(framed.width, framed.depth) * 1.5);
+      controls.target.copy(target); camera.position.copy(target).addScaledVector(viewDirection, distance); camera.far = Math.max(3000, distance * 3); camera.lookAt(target); camera.updateMatrixWorld(true);
       const corners: THREE.Vector3[] = [];
-      for (const x of [extent.minX - 1.5, extent.maxX + 1.5]) for (const y of [-.2, 4.8]) for (const z of [extent.minZ - 1.5, extent.maxZ]) corners.push(new THREE.Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse));
+      for (const x of [framed.minX - 1.5, framed.maxX + 1.5]) for (const y of [-.2, 4.8]) for (const z of [framed.minZ - 1.5, framed.maxZ]) corners.push(new THREE.Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse));
       const viewWidth = Math.max(...corners.map(p => p.x)) - Math.min(...corners.map(p => p.x));
       const viewHeight = Math.max(...corners.map(p => p.y)) - Math.min(...corners.map(p => p.y));
       const aspect = width / height, vertical = Math.max(viewHeight / .88, viewWidth / (aspect * .92));
       camera.left = -vertical * aspect / 2; camera.right = vertical * aspect / 2; camera.top = vertical / 2; camera.bottom = -vertical / 2;
       camera.zoom = 1; camera.updateProjectionMatrix(); controls.update(); requestRender();
     }
+    function fit() { frameExtent(false); }
     const resize = new ResizeObserver(() => {
       if (!alive || !host.clientWidth || !host.clientHeight) return;
       const width = host.clientWidth, height = host.clientHeight, previous = renderer.getSize(new THREE.Vector2());
@@ -318,9 +401,9 @@ export function WorldScene(props: Props) {
       camera.updateProjectionMatrix(); requestRender();
     }); resize.observe(host);
     const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    let down: { x: number; y: number; id: number; node: string | null; origin: THREE.Vector3; toggle: boolean; person: boolean; gesture: MoveGesture | null; ids: string[]; dragging: boolean } | null = null;
-    function hit(event: PointerEvent) {
-      const rect = canvas.getBoundingClientRect(); pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1); raycaster.setFromCamera(pointer, camera);
+    let down: { x: number; y: number; id: number; node: string | null; origin: THREE.Vector3; anchor: Point; presentation: ReturnType<typeof capacityLayout>; toggle: boolean; person: boolean; gesture: MoveGesture | null; ids: string[]; dragging: boolean } | null = null;
+    function pickAt(x: number, y: number) {
+      pointer.set(x, y); raycaster.setFromCamera(pointer, camera);
       const objectHit = raycaster.intersectObjects(pickables, false).find(result => {
         for (let object: THREE.Object3D | null = result.object; object; object = object.parent) if (!object.visible) return false;
         return true;
@@ -328,6 +411,10 @@ export function WorldScene(props: Props) {
       const person = people.pick(raycaster);
       if (person && (!objectHit || person.distance < objectHit.distance)) return { id: person.person.nodeId, person: true };
       return objectHit ? { id: objectHit.object.userData.nodeId as string, person: false } : null;
+    }
+    function hit(event: PointerEvent) {
+      const rect = canvas.getBoundingClientRect();
+      return pickAt((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
     }
     function cancel() {
       if (down && canvas.hasPointerCapture(down.id)) canvas.releasePointerCapture(down.id);
@@ -340,7 +427,8 @@ export function WorldScene(props: Props) {
       const picked = hit(event), node = picked?.id ?? null, origin = new THREE.Vector3();
       if (!raycaster.ray.intersectPlane(ground, origin)) return;
       const selected = latest.current.selectedIds ?? (latest.current.selected ? [latest.current.selected] : []);
-      down = { x: event.clientX, y: event.clientY, id: event.pointerId, node, origin, person: Boolean(picked?.person), toggle: event.shiftKey || event.ctrlKey || event.metaKey, gesture: null, ids: node ? selected.includes(node) ? [...selected] : [node] : [], dragging: false };
+      const anchor = node ? sceneLayout(latest.current.project)[node] : { x: 0, z: 0 };
+      down = { x: event.clientX, y: event.clientY, id: event.pointerId, node, origin, anchor, presentation, person: Boolean(picked?.person), toggle: event.shiftKey || event.ctrlKey || event.metaKey, gesture: null, ids: node ? selected.includes(node) ? [...selected] : [node] : [], dragging: false };
       if (node && !picked?.person && latest.current.moving && latest.current.editable !== false) { controls.enabled = false; canvas.setPointerCapture(event.pointerId); }
     }
     function pointerMove(event: PointerEvent) {
@@ -349,7 +437,9 @@ export function WorldScene(props: Props) {
       if (!down.dragging && Math.hypot(event.clientX - down.x, event.clientY - down.y) < 5) return;
       const point = new THREE.Vector3(); if (!raycaster.ray.intersectPlane(ground, point)) return;
       if (!down.gesture) { latest.current.onMoveStart?.(); down.dragging = true; down.gesture = beginMoveGesture(latest.current.project, down.ids, down.node); latest.current.onSelect(down.node, 'inspect'); }
-      const next: LayoutTranslation | null = down.gesture.preview({ x: point.x - down.origin.x, z: point.z - down.origin.z });
+      const anchor = down.presentation.toVisual(down.anchor);
+      const translated = down.presentation.toModel({ x: anchor.x + point.x - down.origin.x, z: anchor.z + point.z - down.origin.z });
+      const next: LayoutTranslation | null = down.gesture.preview({ x: translated.x - down.anchor.x, z: translated.z - down.anchor.z });
       if (!next) return;
       preview.clear();
       if (!next.error) for (const id of next.ids) preview.set(id, next.points[id]);
@@ -441,7 +531,10 @@ export function WorldScene(props: Props) {
     }
     function draw() {
       scheduled = 0; if (!alive) return;
-      const started = performance.now(), current = latest.current; layout = sceneLayout(current.project); extent = sceneExtent(layout);
+      const started = performance.now(), current = latest.current;
+      presentation = capacityLayout(current.project.model.nodes, sceneLayout(current.project)); layout = presentation.positions; extent = presentation.extent;
+      const nextCapacityKey = JSON.stringify(current.project.model.nodes.map(node => [node.id, stationCopies(node)]));
+      if (nextCapacityKey !== capacityKey) { capacityKey = nextCapacityKey; surroundings.update(extent, camera); frameExtent(true); }
       canvas.setAttribute('aria-label', m.interactiveWorldLabel(current.project.name));
       const byId = new Map(current.project.model.nodes.map(node => [node.id, node])), selected = new Set(current.selectedIds ?? (current.selected ? [current.selected] : []));
       camera.updateMatrixWorld(true);
@@ -452,16 +545,18 @@ export function WorldScene(props: Props) {
       scene.environment = environmentTarget?.texture ?? null;
       scene.environmentIntensity = .5;
       host.dataset.environment = scene.environment ? 'Poly Haven Studio Small 09 / CC0' : 'analytic-lighting';
+      let triangleBudget = 6_000_000;
+      const capacityDrawn: { id: string; count: number; full3D: number; sourceImpostors: number; laneMarkers: number }[] = [];
       for (const [id, visual] of visuals) {
         const node = byId.get(id), p = pointFor(id); if (!node || !p) continue;
         syncForeground(id, visual, detail && id === current.selected);
         visual.group.position.set(p.x, 0, p.z); visual.ring.visible = selected.has(id);
-        const count = node.kind === 'service' ? Math.max(1, Math.min(3, Math.floor(node.servers))) : 1;
-        if (visual.count !== count) {
-          visual.count = count;
-          visual.copies.forEach((copy, i) => { copy.visible = i < count; copy.scale.setScalar(1); copy.position.set(count === 1 ? 0 : i === 0 ? -1.65 : i === 1 ? 1.65 : 0, 0, count > 2 && i === 2 ? -3.2 : 0); });
-          renderer.shadowMap.needsUpdate = true;
-        }
+        const count = stationCopies(node), projectedPixels = 3 / Math.max(.01, camera.top - camera.bottom) * camera.zoom * host.clientHeight;
+        const nearLimit = projectedPixels >= 18 ? MAX_3D_CELLS : 1;
+        const realCount = Math.max(1, Math.min(count, nearLimit, Math.floor(triangleBudget / Math.max(1, visual.triangles))));
+        triangleBudget -= realCount * visual.triangles;
+        syncCapacity(id, visual, count, realCount);
+        if (visual.loaded) capacityDrawn.push({ id, count: visual.count, full3D: visual.triangles ? visual.copies.length : 0, sourceImpostors: visual.impostor?.mesh.count ?? 0, laneMarkers: visual.triangles ? 0 : (visual.footprint?.geometry.attributes.position.count ?? 0) / 8 });
         visual.label.setAttribute('aria-label', m.select(node.label, stepKindLabels[node.kind])); visual.label.setAttribute('aria-pressed', String(selected.has(id)));
         visual.label.classList.toggle('is-selected', selected.has(id));
         const queue = current.frame.queues[id] ?? 0;
@@ -471,6 +566,7 @@ export function WorldScene(props: Props) {
         visual.badge.hidden = !countLabel;
         visual.label.hidden = false;
       }
+      host.dataset.capacityCopies = JSON.stringify(capacityDrawn); host.dataset.sceneExtent = JSON.stringify(extent);
       host.dataset.detailAssets = JSON.stringify([...foreground.values()].flatMap(parts => parts.filter(part => part.detail && part.model).map(part => part.definition.file)));
       if (floor) { floor.scale.set(extent.width / floorDimensions.x, 1, extent.depth / floorDimensions.z); floor.position.set(extent.x, -floorDimensions.y, extent.z); }
       if (surroundings.update(extent, camera)) renderer.shadowMap.needsUpdate = true;
@@ -488,7 +584,9 @@ export function WorldScene(props: Props) {
       else if (current.playing && !current.reducedMotion && activityTick !== null) activitySeconds += Math.min(.05, Math.max(0, (now - activityTick) / 1000));
       activityTick = now;
       const personTargets: PersonTarget[] = [];
-      const actorLimit = Math.min(500, current.frame.actors.length), rank: Record<string, number> = Object.create(null);
+      const effectiveLayout = Object.fromEntries(Object.entries(layout).map(([id, p]) => [id, pointFor(id) ?? p]));
+      const staffTargets = operatorTargets(current.project, current.frame, effectiveLayout, operatorAssignments, { seconds: activitySeconds, active: !current.reducedMotion && current.frame.time < (current.replayUntil ?? current.project.model.horizon) });
+      const actorLimit = Math.min(500, world === 'factory' ? 500 : (world === 'festival' ? 528 : 560) - staffTargets.length, current.frame.actors.length), rank: Record<string, number> = Object.create(null);
       const variantFor = (id: string) => { let hash = 0; for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0; return hash & 1; };
       const matrices: THREE.Matrix4[][] = Array.from({ length: 6 }, () => []);
       for (let i = 0; i < actorLimit; i++) {
@@ -496,9 +594,7 @@ export function WorldScene(props: Props) {
         const key = `${actor.nodeId}:${actor.state}`, position = rank[key] ?? 0; rank[key] = position + 1;
         const modeledNode = byId.get(actor.nodeId);
         if (world === 'factory' && actor.state === 'working' && modeledNode?.kind === 'service') {
-          const slots = Math.min(3, Math.max(1, modeledNode.servers)), slot = position % slots;
-          const x = p.x + (slots === 1 ? 0 : slot === 0 ? -1.65 : slot === 1 ? 1.65 : 0);
-          const z = p.z + (slots > 2 && slot === 2 ? -3.2 : 0);
+          const cell = capacityCell(position % stationCopies(modeledNode)), x = p.x + cell.x, z = p.z + cell.z;
           if (modeledNode.samplingId === 'factory-station-c') dummy.position.set(x, 1.12, z + .4);
           else if (modeledNode.samplingId === 'factory-station-b') dummy.position.set(x - .6, 1.18, z + .05);
           else dummy.position.set(x + 1.4, .04, z + .4);
@@ -510,8 +606,13 @@ export function WorldScene(props: Props) {
           personTargets.push({ id: actor.id, variant: variantFor(actor.id), nodeId: actor.nodeId, role: 'visitor', position: { x: dummy.position.x, y: 0, z: dummy.position.z }, heading: dummy.rotation.y, spawn: entry ? { x: entry.x, y: 0, z: entry.z } : undefined });
         }
       }
-      const effectiveLayout = { ...layout, ...Object.fromEntries(preview) };
-      personTargets.push(...operatorTargets(current.project, current.frame, effectiveLayout, operatorAssignments, { seconds: activitySeconds, active: !current.reducedMotion && current.frame.time < (current.replayUntil ?? current.project.model.horizon) }));
+      if (world === 'festival') {
+        const completedLimit = Math.min(80, Math.max(0, 560 - staffTargets.length - personTargets.length));
+        const completed = completedLimit ? [...entities.values()].filter(record => record.status === 'completed' && record.endedAt !== undefined && record.endedAt <= current.frame.time).slice(-completedLimit) : [];
+        const exit = current.project.model.nodes.find(node => node.kind === 'sink'), entry = exit ? pointFor(exit.id) : null;
+        for (const record of completed) personTargets.push({ id: record.id, variant: variantFor(record.id), nodeId: exit?.id ?? '', role: 'visitor', position: surroundings.festivalDestination(record.id), heading: surroundings.festivalHeading(record.id), spawn: entry ? { x: entry.x, y: 0, z: entry.z } : undefined });
+      }
+      personTargets.push(...staffTargets);
       if (resetLocation || current.playing) settleUntil = 0;
       const endedNaturally = lastPlaying && !current.playing && !resetLocation && current.frame.time >= (current.replayUntil ?? current.project.model.horizon);
       if (endedNaturally) settleUntil = now + 10_000;
@@ -529,6 +630,7 @@ export function WorldScene(props: Props) {
         const record = entities.get(person.id);
         if (!record || record.endedAt === undefined || record.endedAt > current.frame.time) return null;
         const destination = record.status === 'completed' ? completeLocations.get(person.id) : record.status === 'reneged' || record.status === 'balked' ? record.sourceId : null;
+        if (world === 'festival' && record.status === 'completed') return { ...person, nodeId: destination ?? person.nodeId, position: surroundings.festivalDestination(person.id) };
         const point = destination ? pointFor(destination) : null;
         return point && destination ? { ...person, nodeId: destination, position: { x: point.x, y: 0, z: point.z + 1 } } : null;
       } });
@@ -569,13 +671,23 @@ export function WorldScene(props: Props) {
           visual.pin.setAttribute('cx', String(x)); visual.pin.setAttribute('cy', String(y)); visual.connector.classList.toggle('is-selected', selected.has(id)); visual.pin.classList.toggle('is-selected', selected.has(id));
         }
       }
-      // These are projections of the current real pick proxy centers. They are
-      // observations of geometry, not fabricated input or a visibility promise.
+      // Sample the real semantic hit test, including people and DOM overlays.
+      // An occluded proxy center is not a usable pointer-drag starting point.
       host.dataset.pickPoints = JSON.stringify(current.project.model.nodes.map(node => {
-        const visual = visuals.get(node.id), proxy = pickCenters.get(node.id);
-        const point = proxy ? proxy.getWorldPosition(new THREE.Vector3()) : visual?.group.getWorldPosition(new THREE.Vector3());
-        const projected = point?.project(camera);
-        return projected ? { id: node.id, x: (projected.x * .5 + .5) * host.clientWidth, y: (-projected.y * .5 + .5) * host.clientHeight } : null;
+        const proxy = pickCenters.get(node.id); if (!proxy) return null;
+        proxy.geometry.computeBoundingBox();
+        const instanced = proxy as THREE.InstancedMesh, samples = instanced.isInstancedMesh ? Math.min(instanced.count, 24) : 1;
+        for (let i = 0; i < samples; i++) {
+          const matrix = new THREE.Matrix4(); if (instanced.isInstancedMesh) instanced.getMatrixAt(i, matrix);
+          const bounds = proxy.geometry.boundingBox!.clone().applyMatrix4(matrix).applyMatrix4(proxy.matrixWorld);
+          const point = visiblePickPoint(bounds, camera, { width: host.clientWidth, height: host.clientHeight }, (x, y) => {
+            if (document.elementFromPoint(hostRect.left + x, hostRect.top + y) !== canvas) return false;
+            const hit = pickAt(x / host.clientWidth * 2 - 1, -y / host.clientHeight * 2 + 1);
+            return hit?.id === node.id && !hit.person;
+          });
+          if (point) return { id: node.id, ...point };
+        }
+        return null;
       }).filter(point => point !== null));
       renderer.render(scene, camera); host.dataset.renderCount = String(++renderCount);
       host.dataset.renderMs = String(performance.now() - started); host.dataset.drawCalls = String(renderer.info.render.calls); host.dataset.renderPending = 'false';
@@ -583,6 +695,7 @@ export function WorldScene(props: Props) {
       const represented = [...new Set(actorBatches.map(batch => batch.variant))].filter(variant => variant < (world === 'factory' ? 1 : 2)).reduce((count, variant) => count + matrices[variant].length, 0);
       host.dataset.operatorRepresentations = String(motion.people.filter(person => person.role === 'operator' && loadedVariants.has(person.variant)).length); host.dataset.walkingPeople = String(motion.people.filter(person => person.moving && loadedVariants.has(person.variant)).length); host.dataset.completedRepresentations = String(completedMarkers);
       host.dataset.workingPeople = String(motion.people.filter(person => person.activity === 'work' && !person.moving && loadedVariants.has(person.variant)).length);
+      host.dataset.festivalAttendees = String(world === 'festival' ? motion.people.filter(person => person.role === 'visitor' && entities.get(person.id)?.status === 'completed' && loadedVariants.has(person.variant)).length : 0);
       host.dataset.actorCount = String(world === 'factory' ? represented : motion.people.filter(person => person.role === 'visitor' && current.frame.actors.some(actor => actor.id === person.id) && loadedVariants.has(person.variant)).length); host.dataset.retainedActorCount = String(current.frame.actors.length); host.dataset.nodeCount = String(visuals.size); host.dataset.camera = JSON.stringify({ position: camera.position.toArray(), target: controls.target.toArray(), zoom: camera.zoom, left: camera.left, right: camera.right, top: camera.top, bottom: camera.bottom });
     }
     const previousView = savedView.current;

@@ -1,6 +1,7 @@
 import type { Project } from '../model/types';
 import type { WorldFrame } from '../playback';
 import type { PersonTarget } from './peopleMotion';
+import { capacityCell, stationCopies } from './capacityFootprint';
 
 /** A visual clock, independent of modeled time. Keep seconds fixed on pause. */
 type OperatorActivity = { seconds: number; active?: boolean };
@@ -35,8 +36,8 @@ export function operatorTargets(project: Project, frame: WorldFrame, layout: Rec
     const requests = new Map(uses.map(node => [node.id, (frame.busy[node.id] ?? 0) * (node.resources.find(req => req.poolId === pool.id)?.units ?? 1)]));
     const busy = [...requests.values()].reduce((a, b) => a + b, 0);
     const capacity = pool.calendar.find(period => frame.time >= period.start && frame.time < period.end)?.capacity ?? pool.capacity;
-    const count = Math.min(6, Math.max(capacity, busy));
-    for (let i = 0; i < count && targets.length < 32; i++) {
+    const count = Math.min(32, Math.max(capacity, busy));
+    for (let i = 0; i < count && targets.length < 128; i++) {
       const id = `operator:${pool.id}:${i}`, last = previous.get(id);
       const node = last && (requests.get(last) ?? 0) > 0 ? uses.find(node => node.id === last)! : uses.find(node => (requests.get(node.id) ?? 0) > 0) ?? uses.find(node => node.id === last) ?? uses[0];
       const busy = (requests.get(node.id) ?? 0) > 0;
@@ -44,9 +45,9 @@ export function operatorTargets(project: Project, frame: WorldFrame, layout: Rec
       previous.set(id, node.id);
       const p = layout[node.id]; if (!p) continue;
       const local = targets.filter(target => target.nodeId === node.id).length;
-      const slots = Math.min(3, Math.max(1, node.servers)), slot = local % slots;
-      const x = p.x + (slots === 1 ? 0 : slot === 0 ? -1.65 : slot === 1 ? 1.65 : 0) + .9 + Math.floor(local / slots) * .6;
-      const z = p.z + (slots > 2 && slot === 2 ? -3.2 : 0) + (project.world === 'factory' ? 1.5 : -1.2);
+      const slots = stationCopies(node), cell = capacityCell(local % slots);
+      const x = p.x + cell.x + .9 + Math.floor(local / slots) * .6;
+      const z = p.z + cell.z + (project.world === 'factory' ? 1.5 : -1.2);
       const arrival = project.model.nodes.find(item => item.kind === 'source'), entry = arrival ? layout[arrival.id] : null;
       const target: PersonTarget = { spawn: entry ? { x: entry.x, y: 0, z: entry.z } : undefined, id, role: 'operator', nodeId: node.id, variant: i % 2, position: { x, y: 0, z }, heading: project.world === 'factory' ? Math.PI : 0 };
       if (project.world === 'factory' && busy && activity && activity.active !== false) Object.assign(target, factoryActivity(id, target.position, activity.seconds));
