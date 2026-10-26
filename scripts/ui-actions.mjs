@@ -50,6 +50,18 @@ export function headerProjectInput(page) {
   return page.getByLabel('Open project file', { exact: true });
 }
 
+/** Pan the real canvas; object-caption buttons have their own selection behavior. */
+export async function uncoveredCanvasPoint(page) {
+  return page.locator('.world-scene').evaluate(host => {
+    const canvas = host.querySelector('canvas'), bounds = canvas.getBoundingClientRect();
+    for (const y of [.04, .12, .6, .85]) for (const x of [.45, .2, .7, .85]) {
+      const point = { x: bounds.x + bounds.width * x, y: bounds.y + bounds.height * y };
+      if (document.elementFromPoint(point.x, point.y) === canvas) return point;
+    }
+    throw new Error('No uncovered canvas point is available for a real pan.');
+  });
+}
+
 export async function openReviewedProject(page, file) {
   await openPanel(page, 'data');
   const draft = () => page.evaluate(() => {
