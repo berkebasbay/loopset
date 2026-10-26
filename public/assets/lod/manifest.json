@@ -68,7 +68,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/box_corrugated_brown_b08.glb.gz",
+      "gzipBytes": 27450,
+      "gzipSHA256": "875d839db701d28c7fb5d1b89d0ea0b259998b479a75e6ed5f1366f98c843a13"
     },
     {
       "file": "simready/chair_office_amf_black_a01.glb",
@@ -126,7 +129,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/chair_office_amf_black_a01.glb.gz",
+      "gzipBytes": 39832,
+      "gzipSHA256": "9b26988e4b31aeecaa7830b54f6dbb83305946ed8b41316fa516269320c4836f"
     },
     {
       "file": "simready/computer_monitor_office_a01.glb",
@@ -187,7 +193,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/computer_monitor_office_a01.glb.gz",
+      "gzipBytes": 19280,
+      "gzipSHA256": "b3e1036fd0e2ffd1c4b0c7bfc9f90a9f0296b58214cec565d6dd03cfcb45ba81"
     },
     {
       "file": "simready/computer_scanner_barcode_a01.glb",
@@ -246,7 +255,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/computer_scanner_barcode_a01.glb.gz",
+      "gzipBytes": 136417,
+      "gzipSHA256": "9e2004050d06058d83c774c47cb530555971222a5ba325cc6fd8e803346893e0"
     },
     {
       "file": "simready/conveyor_belt_a05.glb",
@@ -306,7 +318,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/conveyor_belt_a05.glb.gz",
+      "gzipBytes": 173934,
+      "gzipSHA256": "fdfb64c48807d7fb39a52f5ad82d5809e2ea1dc0cbd62f729b0776f35890fadc"
     },
     {
       "file": "simready/desk_a01.glb",
@@ -366,7 +381,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/desk_a01.glb.gz",
+      "gzipBytes": 63274,
+      "gzipSHA256": "554e686b2876d3f0c5201c6c2a6aed4bb970077b7905c1862af1eb2b90f6b2da"
     },
     {
       "file": "simready/furniture_workbench_standard_e01.glb",
@@ -427,7 +445,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/furniture_workbench_standard_e01.glb.gz",
+      "gzipBytes": 267919,
+      "gzipSHA256": "29e9fdde15ac57def9aa462bfadb50b671bc5e5d91b6833bf1c29047d33b3e8e"
     },
     {
       "file": "simready/instrument_caliper_a01.glb",
@@ -486,7 +507,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/instrument_caliper_a01.glb.gz",
+      "gzipBytes": 19036,
+      "gzipSHA256": "f538b439333f9f8ef76cbcc7056ebc4b6d8cae7a6765c68c9ff112e2b73223a2"
     },
     {
       "file": "simready/lamp_ceiling_1m_rectangle_a01.glb",
@@ -545,7 +569,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/lamp_ceiling_1m_rectangle_a01.glb.gz",
+      "gzipBytes": 19810,
+      "gzipSHA256": "f9ca4862f899acd757bcc80144d0dfb00cc5608f22b4fece0c4afef7edc93f38"
     },
     {
       "file": "simready/serviceTool_brake_lathe_a01.glb",
@@ -630,7 +657,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/serviceTool_brake_lathe_a01.glb.gz",
+      "gzipBytes": 1328158,
+      "gzipSHA256": "2324606c21c79f81db6e57a0f363d32a3ffc62aade472bff1d95b1e2815597e8"
     },
     {
       "file": "simready/storage_shelf_basic_a01.glb",
@@ -688,7 +718,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/storage_shelf_basic_a01.glb.gz",
+      "gzipBytes": 154782,
+      "gzipSHA256": "0096686eec72933e8255099617e25ce142eb71ef6b5e380a2700543baea9ba28"
     },
     {
       "file": "simready/structure_wall_straight_a01.glb",
@@ -747,7 +780,10 @@
         "-se",
         "0.001",
         "-sp"
-      ]
+      ],
+      "gzipFile": "simready/structure_wall_straight_a01.glb.gz",
+      "gzipBytes": 60683,
+      "gzipSHA256": "2c2f7e32dbf37a9efbba010617d246f350f2c79c3093cd9d1e240e881e85828a"
     },
     {
       "file": "characters/worker.glb",
@@ -842,7 +878,10 @@
         "16",
         "-as",
         "24"
-      ]
+      ],
+      "gzipFile": "characters/worker.glb.gz",
+      "gzipBytes": 114704,
+      "gzipSHA256": "5675cc44cb3818040996542873eda957302bf394aed279bf41dcd1171fcde7ac"
     },
     {
       "file": "characters/worker-female.glb",
@@ -935,7 +974,10 @@
         "16",
         "-as",
         "24"
-      ]
+      ],
+      "gzipFile": "characters/worker-female.glb.gz",
+      "gzipBytes": 122663,
+      "gzipSHA256": "6e8c51c3d86ebb387c1cc71e86fd5196560ab4333d6ac60dc87736526b8e33fb"
     },
     {
       "file": "characters/casual-character.glb",
@@ -1028,7 +1070,10 @@
         "16",
         "-as",
         "24"
-      ]
+      ],
+      "gzipFile": "characters/casual-character.glb.gz",
+      "gzipBytes": 120194,
+      "gzipSHA256": "5b7c71292c19ff939c7f8b9caecc760fc502c2aa5b5e6e3a9d3c91eac7f1ba8a"
     },
     {
       "file": "characters/visitor-female.glb",
@@ -1119,7 +1164,70 @@
         "16",
         "-as",
         "24"
-      ]
+      ],
+      "gzipFile": "characters/visitor-female.glb.gz",
+      "gzipBytes": 124953,
+      "gzipSHA256": "7dd940f7149daa67d83f249cbe63825bcf3ad7f76ee0174a30ede4a18bfb7615"
     }
-  ]
+  ],
+  "gzipTransport": {
+    "format": "gzip",
+    "tool": "node:zlib gzipSync",
+    "level": 9,
+    "deterministic": true,
+    "decodedBytesIdentical": true,
+    "sourceBytes": 3822028,
+    "gzipBytes": 2862473,
+    "additionalAssets": [
+      {
+        "file": "/assets/simready/environment_floor_a01.glb",
+        "bytes": 44684,
+        "sha256": "9cd4ca4cdc339dee984c99bb8c41737bee2b521a6eecbf8f44a120d1319e43e7",
+        "gzipFile": "/assets/simready/environment_floor_a01.glb.gz",
+        "gzipBytes": 31687,
+        "gzipSHA256": "e63d5280b54271c1a047d051d5f695eef5909b9db1679ce631d5b26e0daddce1"
+      },
+      {
+        "file": "/assets/simready/pallet_a01.glb",
+        "bytes": 12224,
+        "sha256": "457f491d146734b0817afc9209ce81643158f14754ef6c0fb3ea61b981e3f0af",
+        "gzipFile": "/assets/simready/pallet_a01.glb.gz",
+        "gzipBytes": 4062,
+        "gzipSHA256": "23e0a2c080e7d98ac3803e392beac079047848d4b2563747ab40c81de978e98a"
+      },
+      {
+        "file": "/assets/simready/box_corrugated_brown_b08-actor.glb",
+        "bytes": 61064,
+        "sha256": "833d5e764e18c9dc2bb6d119e7f7a8fca1811e045ebbd8ab20aa3ea2f6b537a1",
+        "gzipFile": "/assets/simready/box_corrugated_brown_b08-actor.glb.gz",
+        "gzipBytes": 14552,
+        "gzipSHA256": "9eef395b9ae2a41afd8eb607c4553552742ae690950540f10187767ec7699709"
+      },
+      {
+        "file": "/assets/kenney/nature-kit/tree_oak.glb",
+        "bytes": 14644,
+        "sha256": "d7fd8773674928c50c11b66d12c636d49bdcc15a8b1c7fbb98e6f63a3439a3f3",
+        "gzipFile": "/assets/kenney/nature-kit/tree_oak.glb.gz",
+        "gzipBytes": 5133,
+        "gzipSHA256": "811b8fcd3ff1fdeb4b6ec0e3d280837a4573dd83595b7584b09fe6f5367b28eb"
+      },
+      {
+        "file": "/assets/kenney/nature-kit/tree_detailed.glb",
+        "bytes": 31412,
+        "sha256": "c041daf2f0fb1d49e4325227cbcd58667adbe51e9b55e8c1f0a94b74cc521b3b",
+        "gzipFile": "/assets/kenney/nature-kit/tree_detailed.glb.gz",
+        "gzipBytes": 11629,
+        "gzipSHA256": "03367842493ac1742bd63fadffa4a211abf811d22c1ee9fb5ede56828a07db7e"
+      },
+      {
+        "file": "/assets/kenney/potted-plant.glb",
+        "bytes": 7576,
+        "sha256": "5b760eda2766f75fda36b2c5df652a1662f82981ef64cd8fa7fe7bcd386b3a15",
+        "gzipFile": "/assets/kenney/potted-plant.glb.gz",
+        "gzipBytes": 2321,
+        "gzipSHA256": "3806a918abcae468be1b21b3b75ac93fe67ac9afca241b7b75fdc8dacc7b9ff7"
+      }
+    ],
+    "reproduction": "node scripts/prepare-browser-lods.mjs --gzip-public"
+  }
 }

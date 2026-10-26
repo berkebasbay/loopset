@@ -9,6 +9,15 @@ export const BROWSER_LOD_FILES = [
   'characters/worker.glb', 'characters/worker-female.glb',
   'characters/casual-character.glb', 'characters/visitor-female.glb',
 ] as const;
+export const BROWSER_GZIP_URLS = [
+  ...BROWSER_LOD_FILES.map(file => `/assets/lod/${file}`),
+  '/assets/simready/environment_floor_a01.glb',
+  '/assets/simready/pallet_a01.glb',
+  '/assets/simready/box_corrugated_brown_b08-actor.glb',
+  '/assets/kenney/nature-kit/tree_oak.glb',
+  '/assets/kenney/nature-kit/tree_detailed.glb',
+  '/assets/kenney/potted-plant.glb',
+] as const;
 const initialAssets = new Set<string>(BROWSER_LOD_FILES);
 
 export function initialBrowserAssetURL(url: string): string {

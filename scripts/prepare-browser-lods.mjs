@@ -1,15 +1,17 @@
 import { readFile, writeFile, mkdir, realpath } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { gzipSync, gunzipSync } from 'node:zlib';
 import { dirname, resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Matrix4, Vector3, Quaternion, Box3 } from 'three';
 
-// Offline, source-derived candidates only. This never replaces public assets or manifests.
+// Default mode creates private candidates. --gzip-public only adds lossless transport siblings.
 const root = fileURLToPath(new URL('../', import.meta.url));
 const candidateRoot = resolve(root, '.private/audits/browser-lod-candidates');
 const args = process.argv.slice(2);
-if (args.length && (args.length !== 2 || args[0] !== '--output-dir')) throw new Error('Usage: node scripts/prepare-browser-lods.mjs [--output-dir private-candidate-directory]');
+const gzipPublic = args.length === 1 && args[0] === '--gzip-public';
+if (!gzipPublic && args.length && (args.length !== 2 || args[0] !== '--output-dir')) throw new Error('Usage: node scripts/prepare-browser-lods.mjs [--output-dir private-candidate-directory | --gzip-public]');
 const outputRoot = resolve(root, args[1] ?? candidateRoot);
 if (outputRoot !== candidateRoot && !outputRoot.startsWith(candidateRoot + sep)) throw new Error('Output must remain inside .private/audits/browser-lod-candidates');
 if (root.startsWith('<workspace-volume>/')) {
@@ -30,6 +32,40 @@ const staticFiles = [
   'storage_shelf_basic_a01', 'structure_wall_straight_a01',
 ].map(name => `simready/${name}.glb`);
 const characterFiles = ['worker', 'worker-female', 'casual-character', 'visitor-female'].map(name => `characters/${name}.glb`);
+const additionalGzipFiles = [
+  'simready/environment_floor_a01.glb', 'simready/pallet_a01.glb', 'simready/box_corrugated_brown_b08-actor.glb',
+  'kenney/nature-kit/tree_oak.glb', 'kenney/nature-kit/tree_detailed.glb', 'kenney/potted-plant.glb',
+];
+
+if (gzipPublic) {
+  const directory = resolve(root, 'public/assets/lod'), manifestPath = resolve(directory, 'manifest.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const allowlist = new Set([...staticFiles, ...characterFiles]);
+  if (manifest.assets.length !== allowlist.size || new Set(manifest.assets.map(asset => asset.file)).size !== allowlist.size) throw new Error('Unexpected public LOD manifest');
+  let sourceBytes = 0, gzipBytes = 0;
+  for (const asset of manifest.assets) {
+    if (!allowlist.has(asset.file)) throw new Error(`Unexpected public LOD file ${asset.file}`);
+    const original = await readFile(resolve(directory, asset.file));
+    if (hash(original) !== asset.sha256 || original.length !== asset.bytes) throw new Error(`Public LOD hash changed: ${asset.file}`);
+    const compressed = gzipSync(original, { level: 9 });
+    if (!gunzipSync(compressed).equals(original) || !gzipSync(original, { level: 9 }).equals(compressed)) throw new Error('Non-reproducible gzip output');
+    asset.gzipFile = `${asset.file}.gz`; asset.gzipBytes = compressed.length; asset.gzipSHA256 = hash(compressed);
+    await writeFile(resolve(directory, asset.gzipFile), compressed);
+    sourceBytes += original.length; gzipBytes += compressed.length;
+  }
+  const additionalAssets = [];
+  for (const file of additionalGzipFiles) {
+    const original = await readFile(resolve(root, 'public/assets', file)), compressed = gzipSync(original, { level: 9 });
+    if (!gunzipSync(compressed).equals(original) || !gzipSync(original, { level: 9 }).equals(compressed)) throw new Error('Non-reproducible gzip output');
+    await writeFile(resolve(root, 'public/assets', `${file}.gz`), compressed);
+    additionalAssets.push({ file: `/assets/${file}`, bytes: original.length, sha256: hash(original), gzipFile: `/assets/${file}.gz`, gzipBytes: compressed.length, gzipSHA256: hash(compressed) });
+    sourceBytes += original.length; gzipBytes += compressed.length;
+  }
+  manifest.gzipTransport = { format: 'gzip', tool: 'node:zlib gzipSync', level: 9, deterministic: true, decodedBytesIdentical: true, sourceBytes, gzipBytes, additionalAssets, reproduction: 'node scripts/prepare-browser-lods.mjs --gzip-public' };
+  await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+  console.log(JSON.stringify({ files: allowlist.size + additionalAssets.length, sourceBytes, gzipBytes }));
+  process.exit(0);
+}
 
 function parseGLB(bytes) {
   if (bytes.readUInt32LE(0) !== 0x46546c67 || bytes.readUInt32LE(4) !== 2 || bytes.readUInt32LE(8) !== bytes.length) throw new Error('Invalid GLB header');
