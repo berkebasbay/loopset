@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { Focus, Minus, Plus, Settings2, Move } from 'lucide-react';
+import './workspaceScene.css';
 import type { Project, ModelNode, Point } from '../model/types';
 import type { WorldFrame } from '../playback';
 import { modelLinks, sceneExtent, sceneLayout } from './graph';
@@ -15,6 +18,9 @@ import { batchStaticMeshes } from './batchStaticMeshes';
 interface Props {
   project: Project; frame: WorldFrame; selected: string | null; selectedIds?: string[]; reducedMotion: boolean;
   onSelect: (id: string | null, intent?: SelectionIntent) => void; onMove?: (ids: string[], delta: Point) => void;
+  onCapacityChange?: (id: string, delta: number) => void;
+  onEditNode?: (id: string) => void;
+  editable?: boolean;
   moving?: boolean; quality?: 'high' | 'low'; resetKey?: number;
   flow?: { walk: FlowWalk; cursor: number } | null;
 }
@@ -53,6 +59,7 @@ const palette = { cream: '#f4eee0', dark: '#294a40', metal: '#577166', box: '#be
 
 export function WorldScene(props: Props) {
   const mount = useRef<HTMLDivElement>(null); const latest = useRef(props); latest.current = props;
+  const selectedNode = props.project.model.nodes.find(node => node.id === props.selected);
   const invalidate = useRef<() => void>(() => {});
   const cancelPreview = useRef<() => void>(() => {});
   const rendererLifetime = useRef<RendererLifetime | null>(null);
@@ -145,7 +152,7 @@ export function WorldScene(props: Props) {
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.13;
     renderer.setClearColor('#f2f0e7', 0);
     renderer.domElement.setAttribute('aria-label', m.interactiveWorldLabel(project.name));
-    host.dataset.world = world; host.dataset.nodeCount = String(nodes.length);
+    host.dataset.world = world; host.dataset.nodeCount = String(nodes.length); host.dataset.simreadyAssets = '0'; delete host.dataset.assetFallback;
     const scene = new THREE.Scene();
     cleanups.push(() => scene.clear());
     const camera = new THREE.OrthographicCamera(-16, 16, 12, -12, .1, 2000);
@@ -170,6 +177,8 @@ export function WorldScene(props: Props) {
     const geometries = new Map<string, THREE.BufferGeometry>();
     const sceneAssets: GeometryAssets = { geometries, resources };
     const capacityPlates: { id: string; index: number; content: string; update: (content: string) => void }[] = [];
+    const capacityArtwork: { id: string; body: THREE.Group; copies: THREE.Object3D[]; count: number }[] = [];
+    const assetUpgrades: { id: string; body: THREE.Group; parent: THREE.Group; asset: string }[] = [];
     function mat(color: string) {
       if (!materials.has(color)) materials.set(color, own(new THREE.MeshStandardMaterial({ color, roughness: .78 })));
       return materials.get(color)!;
@@ -297,13 +306,24 @@ export function WorldScene(props: Props) {
       const radius = node.kind === 'service' ? 1.5 : node.kind === 'queue' ? .85 : 1.05;
       const ringGeo = own(new THREE.RingGeometry(radius, radius + .065, 40)); geometries.set(`ring-${node.id}`, ringGeo);
       const ring = new THREE.Mesh(ringGeo, own(new THREE.MeshBasicMaterial({ color: theme.accent, side: THREE.DoubleSide, depthWrite: false })));
-      ring.rotation.x = -Math.PI / 2; ring.position.y = .015; g.add(ring); rings.set(node.id, ring); return g;
+      ring.rotation.x = -Math.PI / 2; ring.position.y = .11; g.add(ring); rings.set(node.id, ring); return g;
     }
     function register(g: THREE.Group, id: string) {
       // Dense artwork has many small opaque pieces. Keep batches inside their
       // node so ordinary picking, live drag transforms and history still apply.
       if (dense) batchStaticMeshes(g, new Set(parts.map(part => part.mesh)), own);
       g.traverse(obj => { if ((obj as THREE.Mesh).isMesh) { obj.userData.nodeId = id; pickables.push(obj); } });
+    }
+    function registerAsset(group: THREE.Group, id: string) {
+      // Whole-object actions need a simple selection volume, not hundreds of
+      // thousands of triangle tests on every pointer move. This is visual picking,
+      // never physical collision geometry or an input to the simulation.
+      group.updateWorldMatrix(true, true);
+      const bounds = new THREE.Box3().setFromObject(group).applyMatrix4(group.matrixWorld.clone().invert());
+      const size = bounds.getSize(new THREE.Vector3());
+      const proxy = new THREE.Mesh(own(new THREE.BoxGeometry(Math.max(size.x, .1), Math.max(size.y, .1), Math.max(size.z, .1))), own(new THREE.MeshBasicMaterial({ visible: false })));
+      proxy.position.copy(bounds.getCenter(new THREE.Vector3()));
+      proxy.userData.nodeId = id; group.add(proxy); pickables.push(proxy);
     }
     const fadedMaterials = new Map<THREE.Material, THREE.Material>();
     const focusLinkMaterial = own(new THREE.MeshBasicMaterial({ color: theme.accent, transparent: true, depthTest: false, depthWrite: false }));
@@ -407,82 +427,128 @@ export function WorldScene(props: Props) {
       const g = nodeGroup(node); g.scale.setScalar(1.12);
       box(g, 0, .025, 0, 2.85, .07, 2.7, world === 'factory' ? '#c3c8ae' : '#c4c9b5', .1);
       for (const x of [-1.35, 1.35]) box(g, x, .07, 0, .035, .015, 2.45, theme.secondary, .005);
+      const body = new THREE.Group(); g.add(body);
       if (world === 'factory') {
         if (index % 3 === 0) {
-          box(g, 0, .7, 0, 1.85, 1.25, 1.5, palette.cream, .1);
-          box(g, .94, .75, -.1, .15, 1.2, 1.3, theme.accent);
-          for (let i = 0; i < 5; i++) box(g, 1.023, .6 + i * .13, -.1, .02, .045, .7, '#914b30', .006);
-          box(g, -.1, 1.4, -.55, 1.7, 1.4, .28, theme.secondary);
-          box(g, -.57, 1.56, -.14, .64, .52, .6, '#81a08b');
-          box(g, -.43, .75, .79, .8, .77, .09, palette.dark);
-          box(g, -.43, .73, .85, .6, .5, .03, '#172f2a');
-          cylinder(g, -.43, .75, .91, .18, .09, '#81917c', Math.PI / 2);
-          box(g, .5, .86, .82, .43, .64, .13, palette.dark);
-          box(g, .5, 1.01, .9, .3, .17, .025, '#9bc9a0');
-          for (let i = 0; i < 3; i++) cylinder(g, .4 + i * .12, .78, .92, .027, .03, i === 0 ? theme.accent : '#ddbd74', Math.PI / 2);
-          cylinder(g, .7, 1.97, -.52, .065, .38, theme.accent);
-          const press = box(g, -.44, 1.24, .08, .17, .42, .17, theme.accent); parts.push({ nodeId: node.id, mesh: press, kind: 'press', rest: press.position.y });
-          for (let i = 0; i < 7; i++) { const stripe = box(g, -.88 + i * .28, .1, 1.1, .15, .025, .22, i % 2 ? '#394e3c' : '#d8b15f', .006); stripe.rotation.y = -.35; }
+          box(body, 0, .7, 0, 1.85, 1.25, 1.5, palette.cream, .1);
+          box(body, .94, .75, -.1, .15, 1.2, 1.3, theme.accent);
+          for (let i = 0; i < 5; i++) box(body, 1.023, .6 + i * .13, -.1, .02, .045, .7, '#914b30', .006);
+          box(body, -.1, 1.4, -.55, 1.7, 1.4, .28, theme.secondary);
+          box(body, -.57, 1.56, -.14, .64, .52, .6, '#81a08b');
+          box(body, -.43, .75, .79, .8, .77, .09, palette.dark);
+          box(body, -.43, .73, .85, .6, .5, .03, '#172f2a');
+          cylinder(body, -.43, .75, .91, .18, .09, '#81917c', Math.PI / 2);
+          box(body, .5, .86, .82, .43, .64, .13, palette.dark);
+          box(body, .5, 1.01, .9, .3, .17, .025, '#9bc9a0');
+          for (let i = 0; i < 3; i++) cylinder(body, .4 + i * .12, .78, .92, .027, .03, i === 0 ? theme.accent : '#ddbd74', Math.PI / 2);
+          cylinder(body, .7, 1.97, -.52, .065, .38, theme.accent);
+          const press = box(body, -.44, 1.24, .08, .17, .42, .17, theme.accent); parts.push({ nodeId: node.id, mesh: press, kind: 'press', rest: press.position.y });
+          for (let i = 0; i < 7; i++) { const stripe = box(body, -.88 + i * .28, .1, 1.1, .15, .025, .22, i % 2 ? '#394e3c' : '#d8b15f', .006); stripe.rotation.y = -.35; }
         } else if (index % 3 === 1) {
-          box(g, 0, .7, 0, 1.95, .2, 1.55, palette.cream);
-          for (const x of [-.78, .78]) for (const z of [-.6, .6]) box(g, x, .35, z, .12, .7, .12, palette.metal);
-          for (const x of [-.88, .88]) box(g, x, 1.27, -.08, .16, 1.15, 1, theme.secondary);
-          box(g, 0, 1.85, -.08, 1.95, .23, 1.05, theme.secondary);
-          box(g, 0, 1.72, .47, 1.6, .06, .04, '#d5b95d');
-          box(g, -.37, 1.25, -.5, .65, .5, .13, palette.dark);
-          box(g, -.37, 1.26, -.42, .49, .3, .025, '#9bc9a0');
-          const scan = box(g, .3, 1.36, .1, .06, .55, .04, '#e8c36f'); parts.push({ nodeId: node.id, mesh: scan, kind: 'scanner', rest: scan.position.x });
-          person(g, 1.1, .5);
+          box(body, 0, .7, 0, 1.95, .2, 1.55, palette.cream);
+          for (const x of [-.78, .78]) for (const z of [-.6, .6]) box(body, x, .35, z, .12, .7, .12, palette.metal);
+          for (const x of [-.88, .88]) box(body, x, 1.27, -.08, .16, 1.15, 1, theme.secondary);
+          box(body, 0, 1.85, -.08, 1.95, .23, 1.05, theme.secondary);
+          box(body, 0, 1.72, .47, 1.6, .06, .04, '#d5b95d');
+          box(body, -.37, 1.25, -.5, .65, .5, .13, palette.dark);
+          box(body, -.37, 1.26, -.42, .49, .3, .025, '#9bc9a0');
+          const scan = box(body, .3, 1.36, .1, .06, .55, .04, '#e8c36f'); parts.push({ nodeId: node.id, mesh: scan, kind: 'scanner', rest: scan.position.x });
+          person(body, 1.1, .5);
         } else {
-          box(g, 0, .68, 0, 2.05, .24, 1.65, palette.cream);
-          for (const x of [-.85, .85]) for (const z of [-.65, .65]) box(g, x, .35, z, .13, .7, .13, palette.metal);
-          for (const x of [-.88, .88]) box(g, x, 1.29, -.22, .2, 1.35, 1.07, theme.accent);
-          box(g, 0, 2.02, -.22, 2.1, .27, 1.12, theme.accent, .07);
-          box(g, 0, 2.04, .36, .8, .13, .035, '#f2ce9f');
-          const press = box(g, 0, 1.68, -.22, .25, .42, .2, '#8e7254'); parts.push({ nodeId: node.id, mesh: press, kind: 'press', rest: press.position.y });
-          box(g, .72, 1.1, -.25, .26, .5, .5, palette.dark); box(g, .74, 1.23, .02, .19, .15, .025, '#aac6a1');
-          for (const x of [-.74, -.37, 0, .37, .74]) cylinder(g, x, .86, .44, .055, .8, '#6c8272', Math.PI / 2);
-          person(g, .42, 1.09);
+          box(body, 0, .68, 0, 2.05, .24, 1.65, palette.cream);
+          for (const x of [-.85, .85]) for (const z of [-.65, .65]) box(body, x, .35, z, .13, .7, .13, palette.metal);
+          for (const x of [-.88, .88]) box(body, x, 1.29, -.22, .2, 1.35, 1.07, theme.accent);
+          box(body, 0, 2.02, -.22, 2.1, .27, 1.12, theme.accent, .07);
+          box(body, 0, 2.04, .36, .8, .13, .035, '#f2ce9f');
+          const press = box(body, 0, 1.68, -.22, .25, .42, .2, '#8e7254'); parts.push({ nodeId: node.id, mesh: press, kind: 'press', rest: press.position.y });
+          box(body, .72, 1.1, -.25, .26, .5, .5, palette.dark); box(body, .74, 1.23, .02, .19, .15, .025, '#aac6a1');
+          for (const x of [-.74, -.37, 0, .37, .74]) cylinder(body, x, .86, .44, .055, .8, '#6c8272', Math.PI / 2);
+          person(body, .42, 1.09);
         }
       } else if (world === 'festival') {
         if (index % 3 < 2) {
-          for (const x of [-1, 1]) cylinder(g, x, 1.13, -.45, .055, 2.15, palette.cream);
-          box(g, 0, 2.2, -.45, 2.55, .2, 1.85, index % 3 ? theme.accent : theme.secondary, .08);
-          for (let i = 0; i < 7; i++) box(g, -.99 + i * .33, 2.07, .46, .17, .2, .05, palette.cream);
-          box(g, 0, .82, 0, 2.03, .2, .92, palette.cream);
-          for (const x of [-.82, .82]) box(g, x, .41, 0, .12, .82, .66, theme.secondary);
-          box(g, .45, 1.12, 0, .32, .38, .25, palette.dark); box(g, .45, 1.15, .14, .22, .16, .03, '#aed6af');
-          person(g, 0, -.7);
-          text(g, index % 3 ? m.tickets : m.wristbands, 0, 2.25, .51, .18, palette.cream);
+          for (const x of [-1, 1]) cylinder(body, x, 1.13, -.45, .055, 2.15, palette.cream);
+          box(body, 0, 2.2, -.45, 2.55, .2, 1.85, index % 3 ? theme.accent : theme.secondary, .08);
+          for (let i = 0; i < 7; i++) box(body, -.99 + i * .33, 2.07, .46, .17, .2, .05, palette.cream);
+          box(body, 0, .82, 0, 2.03, .2, .92, palette.cream);
+          for (const x of [-.82, .82]) box(body, x, .41, 0, .12, .82, .66, theme.secondary);
+          box(body, .45, 1.12, 0, .32, .38, .25, palette.dark); box(body, .45, 1.15, .14, .22, .16, .03, '#aed6af');
+          person(body, 0, -.7);
+          text(body, index % 3 ? m.tickets : m.wristbands, 0, 2.25, .51, .18, palette.cream);
         } else {
-          for (const x of [-.85, .85]) box(g, x, 1.15, -.15, .24, 2.25, .65, theme.secondary);
-          box(g, 0, 2.24, -.15, 1.95, .28, .65, theme.secondary);
-          text(g, m.security, 0, 2.25, .19, .17, palette.cream);
-          box(g, 1.15, .9, .7, .3, .65, .38, palette.dark); person(g, 1.2, -.7);
-          box(g, 0, .08, 0, 1.5, .06, 1.8, '#a5b89a');
+          for (const x of [-.85, .85]) box(body, x, 1.15, -.15, .24, 2.25, .65, theme.secondary);
+          box(body, 0, 2.24, -.15, 1.95, .28, .65, theme.secondary);
+          text(body, m.security, 0, 2.25, .19, .17, palette.cream);
+          box(body, 1.15, .9, .7, .3, .65, .38, palette.dark); person(body, 1.2, -.7);
+          box(body, 0, .08, 0, 1.5, .06, 1.8, '#a5b89a');
         }
-        for (const x of [-1.12, 1.12]) { cylinder(g, x, .43, 1.1, .055, .85, palette.dark); cylinder(g, x, .055, 1.1, .19, .08, palette.dark); }
+        for (const x of [-1.12, 1.12]) { cylinder(body, x, .43, 1.1, .055, .85, palette.dark); cylinder(body, x, .055, 1.1, .19, .08, palette.dark); }
       } else {
-        box(g, 0, .76, 0, 2.2, .2, 1.1, '#cfb68f');
-        for (const x of [-.92, .92]) box(g, x, .38, 0, .14, .76, .9, palette.cream);
-        box(g, 0, 1.17, -.2, .7, .46, .1, palette.dark); box(g, 0, 1.17, -.14, .57, .34, .02, '#aabebc');
-        cylinder(g, 0, .98, -.2, .035, .3, palette.dark);
-        box(g, .6, .89, .15, .3, .035, .38, palette.cream);
-        box(g, -.65, .88, .22, .3, .05, .21, theme.secondary);
-        person(g, .45, -.8, theme.secondary);
-        box(g, 0, 1.1, -.95, 2.6, 1.6, .13, index % 3 ? '#b4bda9' : '#cbbda6');
-        box(g, 0, 1.92, -.95, 2.65, .08, .18, theme.edge);
-        text(g, [m.welcome, m.specialists, m.resolution][index % 3], 0, 1.59, -.87, .15, theme.edge);
-        for (const x of [-.6, .6]) { box(g, x, .43, .95, .55, .16, .55, theme.secondary); box(g, x, .7, 1.18, .55, .47, .12, theme.secondary); }
+        box(body, 0, .76, 0, 2.2, .2, 1.1, '#cfb68f');
+        for (const x of [-.92, .92]) box(body, x, .38, 0, .14, .76, .9, palette.cream);
+        box(body, 0, 1.17, -.2, .7, .46, .1, palette.dark); box(body, 0, 1.17, -.14, .57, .34, .02, '#aabebc');
+        cylinder(body, 0, .98, -.2, .035, .3, palette.dark);
+        box(body, .6, .89, .15, .3, .035, .38, palette.cream);
+        box(body, -.65, .88, .22, .3, .05, .21, theme.secondary);
+        person(body, .45, -.8, theme.secondary);
+        box(body, 0, 1.1, -.95, 2.6, 1.6, .13, index % 3 ? '#b4bda9' : '#cbbda6');
+        box(body, 0, 1.92, -.95, 2.65, .08, .18, theme.edge);
+        text(body, [m.welcome, m.specialists, m.resolution][index % 3], 0, 1.59, -.87, .15, theme.edge);
+        for (const x of [-.6, .6]) { box(body, x, .43, .95, .55, .16, .55, theme.secondary); box(body, x, .7, 1.18, .55, .47, .12, theme.secondary); }
       }
-      // Server count is represented by a numbered capacity plate, never fake busy workers.
+      // Three representative work cells make capacity changes visible; the label
+      // retains the exact modeled count. Artwork never fabricates busy actors.
+      const copies = [body];
+      if (!dense) for (let n = 1; n < 3; n++) { const copy = body.clone(true); copy.visible = false; g.add(copy); copies.push(copy); }
+      capacityArtwork.push({ id: node.id, body, copies, count: -1 });
+      if (world === 'factory' && !dense && services.length <= 12 && props.quality !== 'low' && index % 3 !== 0) {
+        assetUpgrades.push({ id: node.id, body, parent: g, asset: index % 3 === 1 ? 'furniture_workbench_standard_e01' : 'conveyor_belt_a05' });
+      }
+      // The capacity plate always shows the actual model count.
       const content = `${String(index + 1).padStart(2, '0')} / ${Number.isFinite(node.servers) ? node.servers : '—'}×`;
       const plate = text(g, content, .05, .09, 1.17, .25, theme.edge, -Math.PI / 2);
       capacityPlates.push({ id: node.id, index, content, update: plate.update });
       register(g, node.id);
     }
+    const assetLoader = new GLTFLoader();
+    for (const upgrade of assetUpgrades) assetLoader.load(`/assets/simready/${upgrade.asset}.glb`, gltf => {
+      const model = gltf.scene;
+      const loadedResources = new Set<Disposable>();
+      model.traverse(object => { if ((object as THREE.Mesh).isMesh) {
+        const mesh = object as THREE.Mesh;
+        loadedResources.add(mesh.geometry);
+        for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) loadedResources.add(material);
+        mesh.castShadow = true; mesh.receiveShadow = true;
+      } });
+      if (!alive) { loadedResources.forEach(resource => resource.dispose()); return; }
+      loadedResources.forEach(resource => own(resource));
+      const dimensions = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+      model.scale.setScalar(2.45 / Math.max(dimensions.x, dimensions.y, dimensions.z, .01));
+      if (upgrade.asset.startsWith('furniture_workbench')) model.rotation.y = -Math.PI / 2;
+      const art = capacityArtwork.find(item => item.id === upgrade.id)!;
+      for (const old of art.copies) old.visible = false;
+      const copies: THREE.Object3D[] = [];
+      for (let n = 0; n < 3; n++) { const copy = model.clone(true); upgrade.parent.add(copy); registerAsset(copy, upgrade.id); copies.push(copy); }
+      art.copies = copies; art.count = -1;
+      host.dataset.simreadyAssets = String(Number(host.dataset.simreadyAssets ?? 0) + 1);
+      renderer.shadowMap.needsUpdate = true; requestRender();
+    }, undefined, () => { if (alive) host.dataset.assetFallback = 'procedural'; });
     for (const node of nodes.filter(node => node.kind !== 'service')) {
       const g = nodeGroup(node);
+      if (world === 'factory' && !dense && (node.kind === 'source' || node.kind === 'sink') && props.quality !== 'low') {
+        assetLoader.load('/assets/simready/pallet_a01.glb', gltf => {
+          const model = gltf.scene, loadedResources = new Set<Disposable>();
+          model.traverse(object => { if ((object as THREE.Mesh).isMesh) {
+            const mesh = object as THREE.Mesh; loadedResources.add(mesh.geometry);
+            for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) loadedResources.add(material);
+            mesh.castShadow = true; mesh.receiveShadow = true;
+          } });
+          if (!alive) { loadedResources.forEach(resource => resource.dispose()); return; }
+          loadedResources.forEach(resource => own(resource));
+          model.scale.setScalar(.9); model.position.set(.6, .13, .65); g.add(model); registerAsset(model, node.id);
+          renderer.shadowMap.needsUpdate = true; requestRender();
+        }, undefined, () => { /* Existing procedural source/sink remains usable. */ });
+      }
       if (node.kind === 'queue') {
         box(g, 0, .04, .75, 1.25, .08, 2.6, world === 'factory' ? '#b4bd9e' : '#c2c9ad');
         for (const x of [-.65, .65]) box(g, x, .1, .75, .035, .035, 2.7, '#8e9e7c', .005);
@@ -595,7 +661,10 @@ export function WorldScene(props: Props) {
     let down: { x: number; y: number; hit: string | null; pointerId: number; toggle: boolean; origin: Point | null; ids: string[]; preview: LayoutTranslation | null; gesture: MoveGesture | null; dragging: boolean } | null = null;
     function hit(e: PointerEvent) {
       const rect = renderer.domElement.getBoundingClientRect(); pointer.set((e.clientX - rect.left) / rect.width * 2 - 1, -(e.clientY - rect.top) / rect.height * 2 + 1);
-      raycaster.setFromCamera(pointer, camera); return raycaster.intersectObjects(pickables, false)[0]?.object.userData.nodeId as string | undefined;
+      raycaster.setFromCamera(pointer, camera); return raycaster.intersectObjects(pickables, false).find(intersection => {
+        for (let object: THREE.Object3D | null = intersection.object; object; object = object.parent) if (!object.visible) return false;
+        return true;
+      })?.object.userData.nodeId as string | undefined;
     }
     function pointerDown(e: PointerEvent) {
       if (e.button !== 0 || down) return;
@@ -652,6 +721,12 @@ export function WorldScene(props: Props) {
       const next = new THREE.Vector3(Math.max(extent.minX, Math.min(extent.maxX, target.x)), Math.max(-2, Math.min(4, target.y)), Math.max(extent.minZ, Math.min(extent.maxZ, target.z)));
       const delta = next.sub(target); controls.target.add(delta); camera.position.add(delta); requestRender();
     };
+    const zoomWorld = (event: Event) => {
+      const factor = (event as CustomEvent).detail;
+      if (factor !== 1.25 && factor !== .8) return;
+      camera.zoom = Math.max(controls.minZoom, Math.min(controls.maxZoom, camera.zoom * factor));
+      camera.updateProjectionMatrix(); controls.update(); requestRender();
+    };
     const focusSelected = () => {
       const point = layout[latest.current.selected ?? '']; if (!point) return;
       // Ordinary focus still centers the inspected step after connection framing.
@@ -685,11 +760,11 @@ export function WorldScene(props: Props) {
     cleanups.push(() => {
       renderer.domElement.removeEventListener('pointercancel', pointerCancel); renderer.domElement.removeEventListener('lostpointercapture', lostCapture); renderer.domElement.removeEventListener('pointerleave', pointerLeave);
       renderer.domElement.removeEventListener('pointerdown', pointerDown); renderer.domElement.removeEventListener('pointerup', pointerUp); renderer.domElement.removeEventListener('pointermove', pointerMove);
-      host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focusSelected); host.removeEventListener('queuelab:show-connection', showConnection); host.removeEventListener('queuelab:cancel-move', cancelEvent); host.removeEventListener('keydown', moveKey); controls.removeEventListener('change', cameraChanged); document.removeEventListener('visibilitychange', visible);
+      host.removeEventListener('queuelab:zoom', zoomWorld); host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focusSelected); host.removeEventListener('queuelab:show-connection', showConnection); host.removeEventListener('queuelab:cancel-move', cancelEvent); host.removeEventListener('keydown', moveKey); controls.removeEventListener('change', cameraChanged); document.removeEventListener('visibilitychange', visible);
     });
     renderer.domElement.addEventListener('pointercancel', pointerCancel); renderer.domElement.addEventListener('lostpointercapture', lostCapture); renderer.domElement.addEventListener('pointerleave', pointerLeave);
     renderer.domElement.addEventListener('pointerdown', pointerDown); renderer.domElement.addEventListener('pointerup', pointerUp); renderer.domElement.addEventListener('pointermove', pointerMove);
-    host.addEventListener('queuelab:fit', fit); host.addEventListener('queuelab:focus', focusSelected); host.addEventListener('queuelab:show-connection', showConnection); host.addEventListener('queuelab:cancel-move', cancelEvent); host.addEventListener('keydown', moveKey); controls.addEventListener('change', cameraChanged); document.addEventListener('visibilitychange', visible);
+    host.addEventListener('queuelab:zoom', zoomWorld); host.addEventListener('queuelab:fit', fit); host.addEventListener('queuelab:focus', focusSelected); host.addEventListener('queuelab:show-connection', showConnection); host.addEventListener('queuelab:cancel-move', cancelEvent); host.addEventListener('keydown', moveKey); controls.addEventListener('change', cameraChanged); document.addEventListener('visibilitychange', visible);
     function draw() {
       handle = 0; if (!alive || document.hidden) return;
       try {
@@ -780,6 +855,21 @@ export function WorldScene(props: Props) {
         }
         host.dataset.highlightedEdges = JSON.stringify((guided ? topology.links.filter(link => flowEdges.has(link.index) || currentConnection === link.index) : edgeVisuals.filter(edge => edge.highlight.visible)).map(({ from, to }) => ({ from, to })));
         host.dataset.dimmedEdgeCount = String(guided ? edgeVisuals.filter(edge => !flowEdges.has(edge.index) && currentConnection !== edge.index).length : edgeFocus !== null ? edgeVisuals.filter(edge => !edge.highlight.visible).length : 0);
+      }
+      for (const art of capacityArtwork) {
+        const node = currentNodes.get(art.id);
+        const count = node?.kind === 'service' ? Math.max(1, Math.min(3, Math.floor(node.servers))) : 1;
+        if (art.count === count) continue;
+        art.count = count;
+        art.copies.forEach((copy, index) => {
+          copy.visible = index < count;
+          // Retain imported metric normalization while arranging representative cells.
+          const originalScale = copy.userData.cellScale ?? copy.scale.x;
+          copy.userData.cellScale = originalScale;
+          copy.scale.setScalar(originalScale * (count > 1 ? .6 : 1));
+          copy.position.set(count === 1 ? 0 : index === 0 ? -.72 : .72, 0, count > 2 && index === 2 ? .85 : 0);
+        });
+        renderer.shadowMap.needsUpdate = true;
       }
       const grouped: Record<string, number> = {}, count = Math.min(current.frame.actors.length, 500); actors.count = count; if (actorTops) actorTops.count = count;
       current.frame.actors.slice(0, count).forEach((actor, index) => {
@@ -896,6 +986,14 @@ export function WorldScene(props: Props) {
   useEffect(() => { invalidate.current(); }, [props.frame, props.selected, props.selectedIds, props.reducedMotion, props.moving, props.flow]);
   useEffect(() => { cancelPreview.current(); }, [props.project.id, props.project.revision, props.moving]);
   return <div ref={mount} className={`world-scene ${props.moving ? 'is-moving' : ''}`} data-testid="world-scene">
+    {!error && selectedNode && <div className="scene-object-actions" role="group" aria-label={m.actionsFor(selectedNode.label)}>
+      <div className="scene-action-heading"><span>{selectedNode.label}</span><small><Move size={11} />{props.moving ? m.dragToMove : m.clickToInspect}</small></div>
+      <div className="scene-action-buttons">
+        {selectedNode.kind === 'service' && props.onCapacityChange && <><button type="button" disabled={props.editable === false || selectedNode.servers <= 1} aria-label={m.removeUnit(selectedNode.label)} onClick={() => props.onCapacityChange?.(selectedNode.id, -1)}><Minus size={15} /></button><span className="scene-capacity-count">{selectedNode.servers}<small>{selectedNode.servers === 1 ? m.unit : m.units}</small></span><button type="button" disabled={props.editable === false || selectedNode.servers >= 12} aria-label={m.addUnit(selectedNode.label)} onClick={() => props.onCapacityChange?.(selectedNode.id, 1)}><Plus size={15} /></button></>}
+        {props.onEditNode && <button type="button" className="scene-properties" onClick={() => props.onEditNode?.(selectedNode.id)}><Settings2 size={14} />{m.editObject}</button>}
+      </div>
+    </div>}
+    {!error && <div className="scene-camera-tools" role="group" aria-label={m.worldCamera}><button type="button" aria-label={m.zoomIn} onClick={() => mount.current?.dispatchEvent(new CustomEvent('queuelab:zoom', { detail: 1.25 }))}><Plus size={17} /></button><button type="button" aria-label={m.zoomOut} onClick={() => mount.current?.dispatchEvent(new CustomEvent('queuelab:zoom', { detail: .8 }))}><Minus size={17} /></button><button type="button" aria-label={m.showWholeWorld} onClick={() => mount.current?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={17} /></button></div>}
     {error && <div className="scene-fallback"><h3>{m.yourBrowserCouldNotOpenThe3dView}</h3><p>{m.useTheModelEditorToViewAndEditEvery}</p></div>}
   </div>;
 }

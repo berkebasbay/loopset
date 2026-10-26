@@ -1,5 +1,18 @@
 /** English product messages for WorldScene. Keep model data and canonical identifiers at the call site. */
 export const worldSceneMessages = {
+  actionsFor: (label: string) => `Actions for ${label}`,
+  dragToMove: 'Drag to move',
+  clickToInspect: 'Click to inspect',
+  removeUnit: (label: string) => `Remove one unit at ${label}`,
+  addUnit: (label: string) => `Add one unit at ${label}`,
+  unit: 'unit',
+  units: 'units',
+  editObject: 'Edit',
+  worldCamera: 'World camera',
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  showWholeWorld: 'Show the whole world',
+  advancedCapacityHint: 'Use advanced settings for more than 12 units.',
   interactiveWorldLabel: (name: string) => `${name} interactive world. Choose a labeled node, or use the model editor for keyboard editing.`,
   qLittleFactory: "Q / LITTLE FACTORY",
   qServiceStudio: "Q / SERVICE STUDIO",

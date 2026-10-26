@@ -1,0 +1,148 @@
+{
+  "dataset": "nvidia/simready-assets",
+  "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+  "sourceBudgetBytes": 31457280,
+  "selectedSourceBytes": 29883619,
+  "fullDatasetDownloaded": false,
+  "runtimeRemoteRequests": false,
+  "assets": [
+    {
+      "name": "furniture_workbench_standard_e01",
+      "file": "furniture_workbench_standard_e01.glb",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/furniture_workbench_standard_e01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 12095112,
+      "sha256": "c17a861a77b58de54c846484528043d51d90223186d32542d61627e70cc61298",
+      "meshes": 6,
+      "triangles": 505434,
+      "materialBatches": 4,
+      "originalDimensions": [
+        0.5330910086631775,
+        1.3841009140014648,
+        1.5313602685928345
+      ],
+      "inputs": [
+        {
+          "path": "furniture_workbench_standard_e01/simready_usd/sm_furniture_workbench_standard_e01_01.usd",
+          "bytes": 21497,
+          "sha256": "7956014afcc1746716a19a233fc14ba3af04fd71b1785da899b85bf55d045347"
+        },
+        {
+          "path": "furniture_workbench_standard_e01/simready_usd/payloads/base.usda",
+          "bytes": 22448,
+          "sha256": "f005f29fbca641dfb4dfeedfd07d05278a92c401578fb2cf6c037140ddb99c9e"
+        },
+        {
+          "path": "furniture_workbench_standard_e01/simready_usd/payloads/geometries.usd",
+          "bytes": 18241010,
+          "sha256": "5c34bab60cbad2159bb8686393f58a5c6a0f6cf52f0a873e4ddd573e0bce55c7"
+        },
+        {
+          "path": "furniture_workbench_standard_e01/simready_usd/payloads/instances.usda",
+          "bytes": 20015,
+          "sha256": "13207d685de7116d07019d84a1fef6c228ba360de506cf0e0338bc5faff5fd8e"
+        },
+        {
+          "path": "furniture_workbench_standard_e01/simready_usd/payloads/materials.usda",
+          "bytes": 42695,
+          "sha256": "ade6bc9aec849e1d1d092db30b6c43a1924b2c76ee67397749a4f5840da2751b"
+        }
+      ]
+    },
+    {
+      "name": "conveyor_belt_a05",
+      "file": "conveyor_belt_a05.glb",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/conveyor_belt_a05",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 5659616,
+      "sha256": "6a178a5622fdb769a0e30ed40893922305795c3d9842d86b4930dcca4d49a7b1",
+      "meshes": 30,
+      "triangles": 228964,
+      "materialBatches": 2,
+      "originalDimensions": [
+        1.1509521007537842,
+        1.1663306951522827,
+        2.0000837221741676
+      ],
+      "inputs": [
+        {
+          "path": "conveyor_belt_a05/simready_usd/sm_conveyor_belt_a05_01.usd",
+          "bytes": 21325,
+          "sha256": "5bf1027cc0b5d79726466d77e80ff67db5a410256cecc18dafceeaef5a8881e4"
+        },
+        {
+          "path": "conveyor_belt_a05/simready_usd/payloads/base.usda",
+          "bytes": 76789,
+          "sha256": "ecadf328f57e67d807d2fca37dd2f00b446d2dd1735349ae3e40c7da8bfe6f18"
+        },
+        {
+          "path": "conveyor_belt_a05/simready_usd/payloads/geometries.usd",
+          "bytes": 11120175,
+          "sha256": "a09484e0654404528d621083ee9ded038e94a3265af6894efd17d9c2bacf9662"
+        },
+        {
+          "path": "conveyor_belt_a05/simready_usd/payloads/instances.usda",
+          "bytes": 39772,
+          "sha256": "b0498199cffa4778ac82895b48d2c95e6bc03c43158e7f177917c7799daec094"
+        },
+        {
+          "path": "conveyor_belt_a05/simready_usd/payloads/materials.usda",
+          "bytes": 52751,
+          "sha256": "e3451c7f9d7094be941a7fdc51dd8bccc7e13151a58514958d212ac4f6fa4b2a"
+        }
+      ]
+    },
+    {
+      "name": "pallet_a01",
+      "file": "pallet_a01.glb",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/pallet_a01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 51256,
+      "sha256": "99cb9756ef8e5705bbe7380d95dbdfef9fb27d27ef4e8d3e0c3b96e5f92fcd97",
+      "meshes": 1,
+      "triangles": 2052,
+      "materialBatches": 1,
+      "originalDimensions": [
+        1.2042018175125122,
+        0.20864565670490265,
+        0.8003857731819153
+      ],
+      "inputs": [
+        {
+          "path": "pallet_a01/simready_usd/sm_pallet_a01_01.usd",
+          "bytes": 24871,
+          "sha256": "203a752fe858e92ec4dc23f9e1a5c443d89aeb5a9374982d6de59c6258bba271"
+        },
+        {
+          "path": "pallet_a01/simready_usd/payloads/base.usda",
+          "bytes": 8654,
+          "sha256": "4790cc8c476e38e3dc40b1324a9c660925aadaf18d644e437882ffc31d9c5216"
+        },
+        {
+          "path": "pallet_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 115539,
+          "sha256": "f313dbaa0758ea8ca061c883a8b2c7a29de7f6d24f482383ce1ac44ec40936ef"
+        },
+        {
+          "path": "pallet_a01/simready_usd/payloads/instances.usda",
+          "bytes": 6989,
+          "sha256": "aba11c0cf41659ae77902e2e185caa0c723dd70d761ebe97b7babd69ddf385dc"
+        },
+        {
+          "path": "pallet_a01/simready_usd/payloads/materials.usda",
+          "bytes": 11424,
+          "sha256": "6ca9c82133994ee805bad4588e77544f809810274878eeb32709b17089b5c5a8"
+        }
+      ]
+    }
+  ]
+}

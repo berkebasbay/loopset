@@ -276,3 +276,19 @@ DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
+# NVIDIA SimReady asset adaptations
+
+The files in `public/assets/simready/*.glb` are adaptations of NVIDIA's
+`furniture_workbench_standard_e01`, `conveyor_belt_a05`, and `pallet_a01`
+from [nvidia/simready-assets](https://huggingface.co/datasets/nvidia/simready-assets).
+These assets are licensed under **Creative Commons Attribution 4.0 International**,
+separately from QueueLab's MIT source license. The complete asset license is
+included at `public/assets/simready/LICENSE-CC-BY-4.0.txt` (runtime:
+`assets/simready/LICENSE-CC-BY-4.0.txt`).
+
+Modifications: OpenUSD composition, metric coordinate normalization, static
+GLB conversion, shared material batches and a local PBR palette. Original
+physics, MDL and high-resolution texture payloads are not included in the app.
+The pinned dataset revision, source paths, source/output hashes and individual
+asset license declarations are recorded in `public/assets/simready/manifest.json`.
+See [asset preparation](docs/NVIDIA_ASSETS.md) for the bounded download workflow.
