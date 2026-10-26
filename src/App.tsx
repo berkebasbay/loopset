@@ -451,6 +451,21 @@ export default function App() {
     if (!Number.isInteger(next) || next < 1 || (delta > 0 && next > MAX_PARALLEL_STATIONS)) return;
     if (next !== node.servers) edit(setCapacity(current, id, next));
   }
+  function applyCapacityInput(id: string, input: HTMLInputElement, keepFocus = false) {
+    const context = live.current.project.id;
+    const station = live.current.project.model.nodes.find((node): node is ServiceNode => node.kind === 'service' && node.id === id);
+    if (!station) return;
+    const value = Number(input.value);
+    if (!Number.isInteger(value) || value < 1 || value > MAX_PARALLEL_STATIONS) {
+      input.value = String(station.servers); setToast(m.stationCountRange);
+    } else if (value !== station.servers) changeCapacity(id, value - station.servers);
+    if (keepFocus) requestAnimationFrame(() => {
+      if (live.current.project.id !== context || selectionRef.current.primary !== id) return;
+      const active = document.activeElement;
+      if (active !== input && active !== document.body && active !== document.documentElement) return;
+      document.querySelector<HTMLInputElement>('#capacity')?.focus({ preventScroll: true });
+    });
+  }
   function showBuildTray(origin: HTMLElement) {
     buildTrayOrigin.current = origin;
     setBuildTrayOpen(true); setLinkFrom(null);
@@ -659,7 +674,7 @@ export default function App() {
           <div className="studio-object-heading"><span>{stepKindLabels[selectedStep.kind]}</span><h2>{selectedStep.label}</h2></div>
           <label className="studio-field"><span>{m.objectName}</span><input value={selectedStep.label} maxLength={160} onChange={event => editNode(selectedStep.id, node => { node.label = event.currentTarget.value; }, m.renameObject(selectedStep.label))} /></label>
           {station && <>
-            <div className="studio-property-section"><h3>{m.parallelStations}</h3><div className="stepper"><button aria-label={m.removeOneStation} disabled={hasErrors || station.servers <= 1} onClick={() => changeCapacity(station.id, -1)}><Minus size={15} /></button><input key={`${station.id}:${station.servers}`} id="capacity" aria-label={m.parallelStations} aria-describedby="station-count-help" disabled={hasErrors} type="number" min="1" max={MAX_PARALLEL_STATIONS} step="1" defaultValue={Number.isFinite(station.servers) ? station.servers : ''} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} onBlur={event => { const value = Number(event.currentTarget.value); if (!Number.isInteger(value) || value < 1 || value > MAX_PARALLEL_STATIONS) { event.currentTarget.value = String(station.servers); setToast(m.stationCountRange); return; } changeCapacity(station.id, value - station.servers); }} /><button aria-label={m.addOneStation} disabled={hasErrors || station.servers >= MAX_PARALLEL_STATIONS} onClick={() => changeCapacity(station.id, 1)}><Plus size={15} /></button></div><p id="station-count-help" className="studio-field-hint">{m.capacityEntryHint}</p><p>{station.resources.some(req => project.model.nodes.filter(node => node.kind === 'service' && node.resources.some(resource => resource.poolId === req.poolId)).length > 1) ? m.thisStationSharesAResourcePoolAdjustTheShared : m.moreCapacityHereMayMoveTheBottleneckElsewhere}</p></div>
+            <div className="studio-property-section"><h3>{m.parallelStations}</h3><div className="stepper"><button aria-label={m.removeOneStation} disabled={hasErrors || station.servers <= 1} onClick={() => changeCapacity(station.id, -1)}><Minus size={15} /></button><input key={`${station.id}:${station.servers}`} id="capacity" aria-label={m.parallelStations} aria-describedby="station-count-help" disabled={hasErrors} type="number" min="1" max={MAX_PARALLEL_STATIONS} step="1" defaultValue={Number.isFinite(station.servers) ? station.servers : ''} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); applyCapacityInput(station.id, event.currentTarget, true); } }} onBlur={event => applyCapacityInput(station.id, event.currentTarget)} /><button aria-label={m.addOneStation} disabled={hasErrors || station.servers >= MAX_PARALLEL_STATIONS} onClick={() => changeCapacity(station.id, 1)}><Plus size={15} /></button></div><p id="station-count-help" className="studio-field-hint">{m.capacityEntryHint}</p><p>{station.resources.some(req => project.model.nodes.filter(node => node.kind === 'service' && node.resources.some(resource => resource.poolId === req.poolId)).length > 1) ? m.thisStationSharesAResourcePoolAdjustTheShared : m.moreCapacityHereMayMoveTheBottleneckElsewhere}</p></div>
             <label className="studio-field"><span>{station.duration.kind === 'constant' ? m.fixedTime : m.meanProcessingTime}<small>{m.secondsLabel}</small></span><input type="number" min="0" max="604800" step="any" value={Number.isFinite(meanDuration(station.duration)) ? station.duration.kind === 'constant' ? station.duration.value : Number(meanDuration(station.duration).toPrecision(5)) : ''} onChange={event => updateDuration(event.currentTarget.value === '' ? NaN : Number(event.currentTarget.value))} /></label>
             <p className="studio-field-hint">{station.duration.kind === 'constant' ? m.fixedProcessingTime : m.fixedTimeEditingHint}</p>
           </>}
