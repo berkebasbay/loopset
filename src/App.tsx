@@ -1,6 +1,6 @@
 import { stepKindLabels } from './ui/messages/labels';
 import { appMessages as m } from './ui/messages/App';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Activity, ArrowDownToLine, ArrowRight, ArrowUpRight, Box, Check, ChevronRight, CircleHelp, Copy, FileUp, FlaskConical, Focus, GitCompareArrows, Globe2, History, Layers3, Link2, List, LoaderCircle, Minus, MousePointer2, Move, Pause, Play, Plus, Redo2, ShieldCheck, SkipBack, Undo2, X } from 'lucide-react';
 import { WORLD_INFO } from './examples';
 import { createStudioExample as createExample } from './examples/studio';
@@ -341,7 +341,9 @@ export default function App() {
     return () => { document.removeEventListener('keydown', keyboard); };
   }, [panel, linkFrom, moving, objectDetailsOpen, buildTrayOpen]);
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(null), 6000); return () => clearTimeout(id); }, [toast]);
-  useEffect(() => { setObjectDetailsOpen(!matchMedia('(max-width:740px)').matches); setInspectorTab('object'); }, [project.id]);
+  // Adopt a document's inspector before it can receive input. A deferred reset
+  // can otherwise overwrite a Tools choice made just after the new world appears.
+  useLayoutEffect(() => { setObjectDetailsOpen(!matchMedia('(max-width:740px)').matches); setInspectorTab('object'); }, [project.id]);
 
 
   function updateRetained(next: RetainedDraft[]) { retained.current = next; setRetainedDrafts(next); }
