@@ -1,6 +1,6 @@
 /** Model contract v1. Presentation coordinates are deliberately outside the engine model. */
 export const SCHEMA_VERSION = 1 as const;
-export const ENGINE_VERSION = '0.1.0';
+export const ENGINE_VERSION = '0.1.1';
 
 export type World = 'factory' | 'festival' | 'service';
 export type Distribution =

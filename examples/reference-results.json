@@ -1,5 +1,5 @@
 {
-  "engineVersion": "0.1.0",
+  "engineVersion": "0.1.1",
   "rngVersion": "keyed-murmur32-v1",
   "examples": {
     "factory": {
