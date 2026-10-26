@@ -1,6 +1,6 @@
 import {build,loadConfigFromFile} from 'vite';
 import fs from 'node:fs/promises';import path from 'node:path';import assert from 'node:assert/strict';
-const out=path.resolve('.private/evidence/social-metadata');await fs.mkdir(out,{recursive:true});
+const out=path.resolve(process.env.QUEUELAB_EVIDENCE_DIR||'.private/evidence/social-metadata');await fs.mkdir(out,{recursive:true});
 await fs.mkdir(path.resolve('.cache/tmp'),{recursive:true});process.env.TMPDIR=path.resolve('.cache/tmp');
 const previous=process.env.QUEUELAB_PUBLIC_URL;
 const report={scope:'Local build markup/format validation; no public host or platform crawler was contacted.',rejected:[]};
