@@ -323,3 +323,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+Application screenshots and world-preview images show the model adaptations credited above. Those underlying assets retain their recorded licences and attributions.

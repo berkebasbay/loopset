@@ -12,6 +12,9 @@ export function placeLabel(anchor: LabelRect, viewport: { width: number; height:
       for (const col of [0, -1, 1, -2, 2, -3, 3]) candidates.push({ x: Math.max(minX, Math.min(maxX, x + col * (width * .72 + 8))), y: cy, width, height });
     }
   }
+  // Stay close to the actual object: a short vertical shift is clearer than
+  // placing its caption several columns away on an otherwise free row.
+  candidates.sort((a, b) => (a.x - x) ** 2 + (a.y - y) ** 2 - (b.x - x) ** 2 - (b.y - y) ** 2);
   return candidates.find(candidate => !overlaps(candidate, occupied) && !overlaps(candidate, bodies))
     ?? candidates.find(candidate => !overlaps(candidate, occupied)) ?? null;
 }

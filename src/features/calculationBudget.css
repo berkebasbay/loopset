@@ -1,3 +1,35 @@
-.calculation-budget{font-size:13px;color:#425c36;line-height:1.6;overflow-wrap:anywhere}.calculation-budget p{margin:12px 0}.budget-plan{display:flex;flex-direction:column;gap:4px}.budget-plan strong{font-size:24px;letter-spacing:-.5px;color:#293e32}.budget-plan span{font-size:12px}.calculation-budget table{width:100%;table-layout:fixed;border-collapse:collapse;text-align:left}.calculation-budget caption{text-align:left;font-weight:600;margin:12px 0 8px}.calculation-budget th,.calculation-budget td{padding:9px 6px;border-bottom:1px solid #d4ddcc;vertical-align:top}.calculation-budget thead th{font-size:11px}.calculation-budget th:first-child{width:40%}.calculation-budget details{margin-top:20px;border-top:1px solid #d4ddcc;padding-top:12px}.calculation-budget summary{cursor:pointer;font-weight:600;min-height:32px}.calculation-budget dl{margin:4px 0}.calculation-budget dl>div{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid #e0e5d9}.calculation-budget dt{flex:1}.calculation-budget dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}.calculation-budget .budget-recovery{border-top:1px solid #d4ddcc;padding-top:12px;font-size:12px}.budget-opener{display:inline-flex;gap:4px;align-items:center;min-height:30px;margin-top:4px;padding:2px 0;font-size:11px;color:#496b39;text-decoration:underline;text-underline-offset:3px}.budget-opener:hover{color:#293e32}
-@media(max-width:600px){.calculation-budget{font-size:12px}.calculation-budget th,.calculation-budget td{padding:8px 3px}.calculation-budget th:first-child{width:34%}.budget-plan strong{font-size:21px}}
-.lab-preflight{margin:18px 0;border-top:1px solid #d4ddcc;border-bottom:1px solid #d4ddcc;padding:10px 0}.lab-preflight>summary{font-size:12px;color:#425c36;font-weight:600;cursor:pointer;min-height:30px;padding:4px 0}.lab-receipt{display:flex;gap:24px;flex-wrap:wrap;margin:0 0 8px;padding:14px 0;border-bottom:1px solid #d4ddcc}.lab-receipt>div{min-width:110px}.lab-receipt dt{font-size:11px;color:#496339}.lab-receipt dd{font-size:17px;font-weight:600;margin:4px 0 0;color:#293e32;font-variant-numeric:tabular-nums}.lab-results>.lab-small{overflow-wrap:anywhere}
+.calculation-budget { font-size: 14px; color: #283b32; line-height: 1.6; min-width: 0; overflow-wrap: anywhere; }
+.calculation-budget p { margin: 14px 0; }
+.budget-plan { display: flex; flex-direction: column; gap: 6px; }
+.budget-plan strong { font-size: 26px; line-height: 1.3; font-weight: 600; letter-spacing: -.5px; color: #283b32; }
+.budget-plan span { font-size: 12px; color: #617069; }
+.calculation-budget table { width: 100%; table-layout: fixed; border-collapse: collapse; text-align: left; margin: 20px 0 14px; }
+.calculation-budget caption { text-align: left; font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+.calculation-budget th, .calculation-budget td { padding: 12px 10px; border-bottom: 1px solid #dce3dc; vertical-align: top; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.calculation-budget th:first-child, .calculation-budget td:first-child { padding-left: 0; }
+.calculation-budget th:last-child, .calculation-budget td:last-child { padding-right: 0; }
+.calculation-budget thead th { font-size: 12px; font-weight: 500; color: #617069; background: #f7f8f4; }
+.calculation-budget tbody th { font-weight: 500; }
+.calculation-budget th:first-child { width: 40%; }
+.calculation-budget details { margin-top: 22px; border-top: 1px solid #dce3dc; padding-top: 8px; }
+.calculation-budget summary { cursor: pointer; font-weight: 600; min-height: 40px; padding: 8px 0; color: #446d49; }
+.calculation-budget summary:focus-visible, .lab-preflight > summary:focus-visible { outline: 2px solid #446d49; outline-offset: 3px; }
+.calculation-budget dl { margin: 4px 0 12px; }
+.calculation-budget dl > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 20px; padding: 10px 0; border-bottom: 1px solid #dce3dc; }
+.calculation-budget dt { flex: 1 1 180px; color: #617069; }
+.calculation-budget dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.calculation-budget .budget-recovery { border-top: 1px solid #dce3dc; padding-top: 16px; font-size: 12px; color: #617069; }
+.budget-opener { display: inline-flex; gap: 5px; align-items: center; min-height: 38px; max-width: 100%; margin-top: 4px; padding: 6px 0; font-size: 12px; line-height: 1.5; color: #446d49; text-decoration: underline; text-underline-offset: 3px; text-align: left; }
+.budget-opener:hover { color: #283b32; }
+.lab-preflight { margin: 20px 0; border-top: 1px solid #dce3dc; border-bottom: 1px solid #dce3dc; padding: 8px 0; min-width: 0; }
+.lab-preflight > summary { font-size: 14px; line-height: 1.5; color: #446d49; font-weight: 600; cursor: pointer; min-height: 40px; padding: 8px 0; }
+.lab-receipt { display: flex; gap: 18px 28px; flex-wrap: wrap; margin: 0 0 12px; padding: 16px 0; border-bottom: 1px solid #dce3dc; }
+.lab-receipt > div { min-width: 110px; max-width: 100%; }
+.lab-receipt dt { font-size: 12px; color: #617069; }
+.lab-receipt dd { font-size: 18px; line-height: 1.4; font-weight: 600; margin: 5px 0 0; color: #283b32; font-variant-numeric: tabular-nums; }
+.lab-results > .lab-small { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .calculation-budget th, .calculation-budget td { padding: 10px 6px; }
+  .calculation-budget th:first-child { width: 35%; }
+  .budget-plan strong { font-size: 23px; }
+}

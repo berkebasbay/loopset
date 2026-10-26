@@ -69,9 +69,9 @@ export default function App() {
   const [quality, setQuality] = useState<'high' | 'low'>('high');
   const [moving, setMoving] = useState(true); const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [advanced, setAdvanced] = useState(false);
-  const [objectDetailsOpen, setObjectDetailsOpen] = useState(true);
+  const [objectDetailsOpen, setObjectDetailsOpen] = useState(() => !matchMedia('(max-width:740px)').matches);
   const [inspectorTab, setInspectorTab] = useState<'object' | 'tools'>('object');
-  const [buildTrayOpen, setBuildTrayOpen] = useState(true);
+  const [buildTrayOpen, setBuildTrayOpen] = useState(false);
   const objectDetailsOrigin = useRef<HTMLElement | null>(null);
   const [flowState, setFlowState] = useState({ key: '', open: false, cursor: 0 });
   const [toast, setToast] = useState<string | null>(null); const [backupRequestedRevision, setBackupRequestedRevision] = useState<number | null>(null);
@@ -339,7 +339,7 @@ export default function App() {
     return () => { document.removeEventListener('keydown', keyboard); };
   }, [panel, linkFrom, moving, objectDetailsOpen]);
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(null), 6000); return () => clearTimeout(id); }, [toast]);
-  useEffect(() => { setObjectDetailsOpen(true); setInspectorTab('object'); }, [project.id]);
+  useEffect(() => { setObjectDetailsOpen(!matchMedia('(max-width:740px)').matches); setInspectorTab('object'); }, [project.id]);
 
 
   function updateRetained(next: RetainedDraft[]) { retained.current = next; setRetainedDrafts(next); }
@@ -443,6 +443,16 @@ export default function App() {
     if (!Number.isInteger(next) || next < 1 || (delta > 0 && next > 12)) return;
     if (next !== node.servers) edit(setCapacity(current, id, next));
   }
+  function revealNarrowSection(selector: string, focusSelector: string) {
+    if (!matchMedia('(max-width:740px)').matches) return;
+    requestAnimationFrame(() => {
+      if (currentPanel.current) return;
+      const section = document.querySelector<HTMLElement>(selector);
+      if (!section) return;
+      section.scrollIntoView({ block: 'start' });
+      section.querySelector<HTMLElement>(focusSelector)?.focus({ preventScroll: true });
+    });
+  }
   function editSceneNode(id: string) {
     setSelected(id);
     if (advanced) { setPanel('model'); return; }
@@ -451,6 +461,7 @@ export default function App() {
     setInspectorTab('object');
     setObjectDetailsOpen(true);
     requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-object-details-close]')?.focus({ preventScroll: true }));
+    revealNarrowSection('#object-properties', '[data-object-details-close]');
   }
   function closeObjectDetails() {
     setObjectDetailsOpen(false);
@@ -464,6 +475,7 @@ export default function App() {
     const active = document.activeElement;
     objectDetailsOrigin.current = active instanceof HTMLElement ? active : null;
     setInspectorTab('tools'); setObjectDetailsOpen(true);
+    revealNarrowSection('#object-properties', '[data-object-details-close]');
   }
   function editNode(id: string, update: (node: ModelNode) => void, label: string) {
     const current = live.current.project;
@@ -494,6 +506,7 @@ export default function App() {
       if (problem) throw new Error(problem.message);
       edit(next, m.addProcessLabel(prefab.label)); setSelected(added.id);
       setInspectorTab('object'); setObjectDetailsOpen(true); setMoving(true); setLinkFrom(null);
+      revealNarrowSection('#object-properties', '[data-object-details-close]');
       setToast(m.addedAfter(prefab.label, anchor.label));
     } catch (error) { setToast(error instanceof Error ? error.message : m.couldNotAddProcess); }
   }
@@ -573,7 +586,7 @@ export default function App() {
     <div className="studio-body" inert={Boolean(panel)}>
       <aside className="studio-rail" aria-label={m.studioTools}>
         <div className="studio-rail-group">
-          <button className={buildTrayOpen ? 'is-active' : ''} aria-pressed={buildTrayOpen} onClick={() => setBuildTrayOpen(!buildTrayOpen)}><Plus size={20} /><span>{m.build}</span></button>
+          <button className={buildTrayOpen ? 'is-active' : ''} aria-pressed={buildTrayOpen} onClick={() => { setBuildTrayOpen(!buildTrayOpen); if (!buildTrayOpen) revealNarrowSection('.build-tray', '.build-prefab:not(:disabled),.tray-close'); }}><Plus size={20} /><span>{m.build}</span></button>
           <button className={!moving && !linkFrom ? 'is-active' : ''} aria-pressed={!moving && !linkFrom} onClick={() => { setMoving(false); setLinkFrom(null); }}><MousePointer2 size={19} /><span>{m.selectTool}</span></button>
           <button className={moving && !linkFrom ? 'is-active' : ''} aria-label={m.moveStations} aria-pressed={moving && !linkFrom} disabled={hasErrors} onClick={() => { setMoving(true); setLinkFrom(null); }}><Move size={19} /><span>{m.moveTool}</span></button>
           <button className={linkFrom ? 'is-active' : ''} aria-label={m.connectSelectedStep} aria-pressed={Boolean(linkFrom)} disabled={hasErrors || !selectedStep || !('next' in selectedStep)} onClick={() => { setMoving(false); setLinkFrom(linkFrom ? null : selected); }}><Link2 size={19} /><span>{m.connectTool}</span></button>
@@ -584,7 +597,7 @@ export default function App() {
           <button data-panel-opener="data" onClick={event => setPanel('data', event.currentTarget)}><ArrowDownToLine size={19} /><span>{m.filesTool}</span></button>
         </div>
         <div className="studio-rail-group studio-rail-bottom">
-          <button className={objectDetailsOpen && inspectorTab === 'object' ? 'is-active' : ''} aria-expanded={objectDetailsOpen && inspectorTab === 'object'} onClick={event => { objectDetailsOrigin.current = event.currentTarget; if (objectDetailsOpen && inspectorTab === 'object') closeObjectDetails(); else { setInspectorTab('object'); setObjectDetailsOpen(true); } }}><List size={19} /><span>{m.properties}</span></button>
+          <button className={objectDetailsOpen && inspectorTab === 'object' ? 'is-active' : ''} aria-expanded={objectDetailsOpen && inspectorTab === 'object'} onClick={event => { objectDetailsOrigin.current = event.currentTarget; if (objectDetailsOpen && inspectorTab === 'object' && !matchMedia('(max-width:740px)').matches) closeObjectDetails(); else { setInspectorTab('object'); setObjectDetailsOpen(true); revealNarrowSection('#object-properties', '[data-object-details-close]'); } }}><List size={19} /><span>{m.properties}</span></button>
           <button className={objectDetailsOpen && inspectorTab === 'tools' ? 'is-active' : ''} onClick={openTools}><Layers3 size={19} /><span>{m.toolsTool}</span></button>
           <button title={m.fitWorld} aria-label={m.fitWorld} onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={19} /><span>{m.fitWorld}</span></button>
         </div>
@@ -633,7 +646,7 @@ export default function App() {
           <button className="studio-text-link" onClick={event => setPanel('model', event.currentTarget)}>{m.advancedSettings}<ArrowUpRight size={14} /></button>
           {station && <div className="studio-property-section studio-object-results"><h3>{m.thisRun}<span>{stale ? m.outOfDate : m.fullRunHeading}</span></h3><dl><div><dt>{m.finishedHere}</dt><dd>{stationMetrics ? number(stationMetrics.finished) : '—'}</dd></div><div><dt>{m.avgWaitingTime}</dt><dd>{stationMetrics?.finished ? wait(stationMetrics.averageWait) : '—'}</dd></div><div><dt>{m.utilization}</dt><dd>{stationMetrics?.utilization != null ? `${Math.round(stationMetrics.utilization * 100)}%` : '—'}</dd></div></dl></div>}
           <div className="studio-property-footer"><span><ShieldCheck size={13} />{m.layoutIsIllustrativeTimingComesFromYourModel}</span><button className="studio-button studio-primary" disabled={hasErrors || sim.running} onClick={event => { if (stale) void runAndCompare(event.currentTarget); else setPanel('compare', event.currentTarget); }}><GitCompareArrows size={15} />{stale ? m.runAndCompare : m.compareWithBaseline}</button></div>
-        </div> : <div className="studio-empty-properties"><MousePointer2 size={26} /><h2>{m.properties}</h2><p>{m.selectionEmpty}</p><button className="studio-button" onClick={() => setBuildTrayOpen(true)}><Plus size={15} />{m.processBlocks}</button></div>}
+        </div> : <div className="studio-empty-properties"><MousePointer2 size={26} /><h2>{m.properties}</h2><p>{m.selectionEmpty}</p><button className="studio-button" onClick={() => { setBuildTrayOpen(true); revealNarrowSection('.build-tray', '.build-prefab:not(:disabled),.tray-close'); }}><Plus size={15} />{m.processBlocks}</button></div>}
       </aside>}
     </div>
     <input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={e => { void importProject(e.target.files?.[0]); e.target.value = ''; }} />
@@ -641,10 +654,11 @@ export default function App() {
     {(toast || sim.error) && <div role="status" className="toast"><span>{toast ?? sim.error}</span><button aria-label={m.dismissNotification} onClick={() => { setToast(null); sim.clearError(); }}><X size={15} /></button></div>}
     {sim.running && <button className="cancel-run" disabled={sim.cancelling} onClick={cancelCalculation}>{sim.cancelling ? m.stoppingCalculation : m.cancelCalculation}<X size={14} /></button>}
     {panel && <div className="modal-backdrop" onClick={() => setPanel(null)}><section className={`modal ${panel === 'model' || panel === 'data' || panel === 'experiments' || panel === 'insights' ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">{m.modalEyebrow(m.modalSection(panel))}</span><h2 id="modal-title">{panel === 'worlds' ? m.chooseYourLittleWorld : panel === 'compare' ? m.aBetterPlanStartsHere : panel === 'model' ? m.insideYourModel : panel === 'data' ? m.keepYourWorkShareYourFindings : panel === 'experiments' ? m.runExperiments : panel === 'insights' ? m.yourRunInDetail : panel === 'budget' ? m.beforeYouCalculate : panel === 'history' ? m.yourRecentActions : m.helpHeading}</h2></div><button className="icon-button" aria-label={m.closeDialog} onClick={() => setPanel(null)}><X size={20} /></button></div>
+      <div key={panel} className="modal-body">
       <CalculationStatus announcement={calculationStatus.announcement} active={calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />
       {panel === 'history' && <ActionHistory history={history} revision={project.revision} onUndo={undo} onRedo={redo} />}
       {panel === 'budget' && (normalBudget ? <CalculationBudget budget={normalBudget} /> : <p className="modal-intro">{m.repairYourModelToSeeTheWorkloadEstimateThe}</p>)}
-      {panel === 'worlds' && <div className="world-gallery">{(['factory', 'festival', 'service'] as const).map(w => <button key={w} onClick={() => chooseWorld(w)}><span className={`world-mini ${w}`}><img src={`/previews/${w}.jpg`} alt="" loading="lazy" width="640" height="360" /></span><h3>{WORLD_INFO[w].name}<ArrowUpRight size={18} /></h3><p>{WORLD_INFO[w].subtitle}</p><span className="gallery-foot">{m.syntheticModelOpenEdit}</span></button>)}</div>}
+      {panel === 'worlds' && <div className="world-gallery">{(['factory', 'festival', 'service'] as const).map(w => <button key={w} onClick={() => chooseWorld(w)}><span className={`world-mini ${w}`}><img src={`/previews/rc5-${w}.png`} alt="" loading="lazy" width="640" height="360" /></span><h3>{WORLD_INFO[w].name}<ArrowUpRight size={18} /></h3><p>{WORLD_INFO[w].subtitle}</p><span className="gallery-foot">{m.syntheticModelOpenEdit}</span></button>)}</div>}
       {panel === 'compare' && <><p className="modal-intro">{m.keepYourOriginalPlanChangeAStationRunIt}</p>
         {singlePaired && baseline && shownResult && <section className="comparison-summary" aria-label={m.whatChanged}>
           <span className="eyebrow">{m.whatChanged}</span>
@@ -658,6 +672,7 @@ export default function App() {
       {panel === 'experiments' && <ExperimentsPanel project={project} baseline={baseline} onApplyCapacity={(poolId, capacity) => { edit(mutateProject(project, p => { const pool = p.model.resources.find(r => r.id === poolId); if (pool) pool.capacity = capacity; })); setPanel(null); setToast(m.appliedTheVerifiedPoolCapacityToYourDraftRun); }} />}
       {panel === 'data' && <DataTools project={project} result={result} latestAttempt={latestAttempt} onImport={acceptProject} onSave={persistProject} retainedDrafts={retainedDrafts} onRestoreDraft={restoreDraft} onRetryDraft={token => { const draft = retained.current.find(item => item.token === token); if (draft) void persistProject(draft.project, false, draft.context).catch(() => {}); }} onRemoveDraft={token => updateRetained(retained.current.filter(draft => draft.token !== token))} />}
       {panel === 'help' && <div className="help-content"><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><ol><li><b>{m.watchTheQueue}</b>{m.selectAStationToInspectItsCapacityAndProcessing}</li><li><b>{m.tryAnotherPlan}</b>{m.makeAChangeThenRunTheModelTheOriginal}</li><li><b>{m.compareTheTradeOff}</b>{m.checkCompletedWorkWaitingAndResourceCostTogether}</li><li><b>{m.keepYourWorld}</b>{m.downloadTheProjectFileAndReopenItLater}</li></ol><p className="quiet-copy">{m.withTheWorldFocusedSpaceToPlayOrPause}</p><p className="quiet-copy">{m.theEngineUsesAReproducibleSeedTheVisualLayout}</p><button className="secondary-button" onClick={() => setQuality(quality === 'high' ? 'low' : 'high')}>{m.qualitySetting(quality === 'high' ? m.detailed : m.lowPower)}</button><button className="secondary-button" onClick={() => setReducedMotion(!reducedMotion)}>{reducedMotion ? <Check size={15} /> : <Pause size={15} />}{m.motionSetting(reducedMotion)}</button></div>}
+      </div>
     </section></div>}
   </div>;
 }

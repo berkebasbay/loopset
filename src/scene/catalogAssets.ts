@@ -20,9 +20,9 @@ export interface ProcessPrefab { id: string; label: string; kind: 'service' | 'q
 export function buildPrefabsFor(world: World, _serviceCount: number): readonly ProcessPrefab[] {
   const title = world === 'factory' ? 'Workstation' : world === 'festival' ? 'Check-in desk' : 'Service desk';
   return [
-    { id: 'workstation', label: title, kind: 'service', thumbnail: CATALOG_ASSETS[world === 'factory' ? 'workbench' : 'desk'].thumbnail, description: 'Add a processing step after the selected object.', source: 'NVIDIA SimReady' },
-    { id: 'waiting', label: 'Waiting area', kind: 'queue', thumbnail: world === 'factory' ? CATALOG_ASSETS.pallet.thumbnail : world === 'service' ? CATALOG_ASSETS.chair.thumbnail : '', description: 'Hold items or people before the next step.', source: world === 'festival' ? 'People queue · Quaternius' : 'NVIDIA SimReady' },
-    { id: 'delay', label: 'Delay', kind: 'delay', thumbnail: '', description: 'A logical travel or waiting period.', source: 'Model annotation' },
+    { id: 'workstation', label: title, kind: 'service', thumbnail: CATALOG_ASSETS[world === 'factory' ? 'workbench' : 'desk'].thumbnail, description: world === 'factory' ? 'Process work with equipment and operators.' : world === 'festival' ? 'Check visitors in before they continue.' : 'Help customers at a staffed desk.', source: 'NVIDIA SimReady' },
+    { id: 'waiting', label: 'Waiting area', kind: 'queue', thumbnail: world === 'factory' ? CATALOG_ASSETS.pallet.thumbnail : world === 'service' ? CATALOG_ASSETS.chair.thumbnail : '', description: world === 'factory' ? 'Hold work until a station is ready.' : 'Give visitors a place to wait.', source: world === 'festival' ? 'People queue · Quaternius' : 'NVIDIA SimReady' },
+    { id: 'delay', label: 'Delay', kind: 'delay', thumbnail: '', description: 'Add a modeled pause or travel time.', source: 'Model annotation' },
   ];
 }
 export interface AssetPlacement { asset: CatalogAssetId; x?: number; z?: number; y?: number; turn?: number; scale?: number }

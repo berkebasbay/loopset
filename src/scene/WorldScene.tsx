@@ -33,7 +33,7 @@ interface Props {
 }
 type Disposable = { dispose(): void };
 type Lifetime = { renderer: THREE.WebGLRenderer; store: CatalogStore; dispose(): void };
-type VisualNode = { group: THREE.Group; art: THREE.Group; copies: THREE.Group[]; label: HTMLButtonElement; ring: THREE.Mesh; loaded: boolean; count: number };
+type VisualNode = { group: THREE.Group; art: THREE.Group; copies: THREE.Group[]; label: HTMLButtonElement; name: HTMLSpanElement; badge: HTMLSpanElement; connector: SVGLineElement; pin: SVGCircleElement; ring: THREE.Mesh; loaded: boolean; count: number };
 
 /** Only sourced models are physical objects. Lines, rings and move guides are editor annotations. */
 export function WorldScene(props: Props) {
@@ -112,6 +112,8 @@ export function WorldScene(props: Props) {
     let edgeGroup = new THREE.Group(), edgeOwned: Disposable[] = [];
     scene.add(edgeGroup);
     let floor: THREE.Group | null = null, floorDimensions = new THREE.Vector3(1, 1, 1);
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const connectorLayer = document.createElementNS(svgNS, 'svg'); connectorLayer.classList.add('scene-label-connectors'); connectorLayer.setAttribute('aria-hidden', 'true'); host.appendChild(connectorLayer);
     const labelLayer = document.createElement('div'); labelLayer.className = 'scene-labels'; host.appendChild(labelLayer);
     const readout = document.createElement('div'); readout.className = 'scene-move-readout'; readout.hidden = true; host.appendChild(readout);
     const loading = document.createElement('div'); loading.className = 'scene-loading'; loading.setAttribute('role', 'status'); host.appendChild(loading);
@@ -158,10 +160,12 @@ export function WorldScene(props: Props) {
       const group = new THREE.Group(), art = new THREE.Group(); group.add(art); scene.add(group);
       const ring = new THREE.Mesh(own(new THREE.RingGeometry(node.kind === 'service' ? 1.7 : 1.1, node.kind === 'service' ? 1.76 : 1.16, 48)), own(new THREE.MeshBasicMaterial({ color: '#74a942', side: THREE.DoubleSide, depthWrite: false })));
       ring.rotation.x = -Math.PI / 2; ring.position.y = .14; group.add(ring);
-      const label = document.createElement('button'); label.type = 'button'; label.className = 'station-label'; label.dataset.stationId = node.id;
+      const label = document.createElement('button'); label.type = 'button'; label.className = `station-label scene-node-${node.kind}`; label.dataset.stationId = node.id;
+      const name = document.createElement('span'), badge = document.createElement('span'); name.className = 'station-name'; badge.className = 'station-count'; badge.hidden = true; label.append(name, badge);
+      const connector = document.createElementNS(svgNS, 'line'), pin = document.createElementNS(svgNS, 'circle'); pin.setAttribute('r', '2.5'); connectorLayer.append(connector, pin);
       label.addEventListener('click', event => latest.current.onSelect(node.id, event.shiftKey || event.ctrlKey || event.metaKey ? 'toggle' : latest.current.selectedIds?.includes(node.id) ? 'inspect' : 'single'));
       labelLayer.appendChild(label);
-      const visual: VisualNode = { group, art, copies: [art], label, ring, loaded: false, count: -1 }; visuals.set(node.id, visual);
+      const visual: VisualNode = { group, art, copies: [art], label, name, badge, connector, pin, ring, loaded: false, count: -1 }; visuals.set(node.id, visual);
       const placements = nodeCatalogAssets(world, node, services.findIndex(service => service.id === node.id));
       if (!placements.length) { addProxy(art, node.id); visual.loaded = true; }
       if (node.kind === 'queue' && placements.length) { const zone = new THREE.Group(); art.add(zone); addProxy(zone, node.id); }
@@ -332,7 +336,10 @@ export function WorldScene(props: Props) {
         visual.label.setAttribute('aria-label', m.select(node.label, stepKindLabels[node.kind])); visual.label.setAttribute('aria-pressed', String(selected.has(id)));
         visual.label.classList.toggle('is-selected', selected.has(id));
         const queue = current.frame.queues[id] ?? 0;
-        visual.label.textContent = `${node.label}${queue ? ` · ${m.waiting(queue)}` : node.kind === 'sink' && current.project.model.nodes.filter(item => item.kind === 'sink').length === 1 ? ` · ${current.frame.completed} completed` : ''}`;
+        if (visual.name.textContent !== node.label) { visual.name.textContent = node.label; visual.label.title = node.label; }
+        const countLabel = queue ? m.waiting(queue) : node.kind === 'sink' && current.project.model.nodes.filter(item => item.kind === 'sink').length === 1 ? `${current.frame.completed} completed` : '';
+        if (visual.badge.textContent !== countLabel) visual.badge.textContent = countLabel;
+        visual.badge.hidden = !countLabel;
       }
       if (floor) { floor.scale.set(extent.width / floorDimensions.x, 1, extent.depth / floorDimensions.z); floor.position.set(extent.x, -floorDimensions.y, extent.z); }
       if (surroundings.update(extent, camera)) renderer.shadowMap.needsUpdate = true;
@@ -414,7 +421,15 @@ export function WorldScene(props: Props) {
         const width = visual.label.offsetWidth || 130, height = visual.label.offsetHeight || 30;
         const placed = placeLabel({ x: (projected.x * .5 + .5) * host.clientWidth - width / 2, y: (-projected.y * .5 + .5) * host.clientHeight - height, width, height }, { width: host.clientWidth, height: host.clientHeight }, occupied, []);
         visual.label.hidden = !placed;
-        if (placed) { occupied.push(placed); visual.label.style.left = `${placed.x}px`; visual.label.style.top = `${placed.y}px`; }
+        visual.connector.style.display = placed ? '' : 'none'; visual.pin.style.display = placed ? '' : 'none';
+        if (placed) {
+          occupied.push(placed); visual.label.style.left = `${placed.x}px`; visual.label.style.top = `${placed.y}px`;
+          const pin = new THREE.Vector3(p.x, byId.get(id)?.kind === 'service' ? 1.5 : .12, p.z).project(camera);
+          const x = (pin.x * .5 + .5) * host.clientWidth, y = (-pin.y * .5 + .5) * host.clientHeight;
+          const endX = Math.max(placed.x + 6, Math.min(placed.x + width - 6, x)), endY = Math.max(placed.y, Math.min(placed.y + height, y));
+          visual.connector.setAttribute('x1', String(x)); visual.connector.setAttribute('y1', String(y)); visual.connector.setAttribute('x2', String(endX)); visual.connector.setAttribute('y2', String(endY));
+          visual.pin.setAttribute('cx', String(x)); visual.pin.setAttribute('cy', String(y)); visual.connector.classList.toggle('is-selected', selected.has(id)); visual.pin.classList.toggle('is-selected', selected.has(id));
+        }
       }
       renderer.render(scene, camera); host.dataset.renderCount = String(++renderCount); host.dataset.renderPending = 'false';
       const represented = [...new Set(actorBatches.map(batch => batch.variant))].filter(variant => variant < (world === 'factory' ? 1 : 2)).reduce((count, variant) => count + matrices[variant].length, 0);
@@ -429,7 +444,7 @@ export function WorldScene(props: Props) {
       canvas.removeEventListener('pointerdown', pointerDown); canvas.removeEventListener('pointermove', pointerMove); canvas.removeEventListener('pointerup', pointerUp); canvas.removeEventListener('pointercancel', cancel); canvas.removeEventListener('lostpointercapture', lostCapture);
       host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focus); host.removeEventListener('queuelab:zoom', zoom); host.removeEventListener('queuelab:cancel-move', cancel); host.removeEventListener('queuelab:show-connection', connection);
       cleanups.forEach(cleanup => cleanup()); edgeOwned.forEach(resource => resource.dispose()); resources.forEach(resource => resource.dispose());
-      people.dispose(); peopleMotion.clear(); scene.clear(); renderer.renderLists.dispose(); labelLayer.remove(); readout.remove(); loading.remove(); host.dataset.renderPending = 'false';
+      people.dispose(); peopleMotion.clear(); scene.clear(); renderer.renderLists.dispose(); connectorLayer.remove(); labelLayer.remove(); readout.remove(); loading.remove(); host.dataset.renderPending = 'false';
     };
   }, [geometryKey, props.quality, props.resetKey, attempt]);
   useEffect(() => { invalidate.current(); }, [props.project, props.frame, props.selected, props.selectedIds, props.moving, props.flow, props.reducedMotion, props.playing, props.seekEpoch, props.runKey]);
