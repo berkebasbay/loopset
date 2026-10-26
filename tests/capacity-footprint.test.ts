@@ -4,6 +4,9 @@ import { capacityCell, capacityLayout, stationCopies } from '../src/scene/capaci
 import * as THREE from 'three';
 import { visiblePickPoint } from '../src/scene/WorldScene';
 import { operatorTargets } from '../src/scene/operatorLayout';
+import { beginMoveGesture, translateSelection } from '../src/features/layoutCommands';
+import { commitEdit, emptyHistory, undoEdit } from '../src/features/editorHistory';
+import { sceneLayout } from '../src/scene/graph';
 
 describe('capacity presentation footprint', () => {
   it('adds all 1000 distinct stable cells instead of clamping the picture at three', () => {
@@ -45,6 +48,40 @@ describe('capacity presentation footprint', () => {
       });
       expect(JSON.stringify({ p, frame })).toBe(before);
     }
+  });
+
+  it('distinguishes translating a capacity knot from interpolating inside the old map', () => {
+    const nodes = createExample('factory').model.nodes.filter(n => n.id === 'station-a' || n.id === 'station-b');
+    const station = nodes.find(n => n.id === 'station-a')!; if (station.kind !== 'service') throw new Error(); station.servers = 2;
+    const layout = { 'station-a': { x: 0, z: 0 }, 'station-b': { x: 10, z: 0 } }, before = capacityLayout(nodes, layout);
+    const candidate = capacityLayout(nodes, { ...layout, 'station-a': { x: 1, z: 0 } });
+    expect(before.positions['station-a'].x).toBeCloseTo(-1.8);
+    expect(before.toVisual({ x: 1, z: 0 }).x).toBeCloseTo(-.44);
+    expect(candidate.positions['station-a'].x).toBeCloseTo(-.8);
+    expect(candidate.positions['station-a'].x - before.positions['station-a'].x).toBeCloseTo(1);
+  });
+
+  it.each([16, 1000])('keeps candidate preview and commit identical across two %i-cell group drags and Undo', count => {
+    let project = createExample('factory'); const station = project.model.nodes.find(n => n.id === 'station-a')!;
+    if (station.kind !== 'service') throw new Error(); station.servers = count;
+    project.layout['station-a'] = { x: 0, z: 0 }; project.layout['queue-a'] = { x: -2.25, z: 1.75 };
+    for (const [index, node] of project.model.nodes.filter(n => !['station-a', 'queue-a'].includes(n.id)).entries()) project.layout[node.id] = { x: 50 + index, z: 50 + index };
+    const initial = project, exact = JSON.stringify(project), model = project.model; let history = emptyHistory();
+    for (let drag = 0; drag < 2; drag++) {
+      const gesture = beginMoveGesture(project, ['station-a', 'queue-a'], 'station-a');
+      const preview = gesture.preview({ x: 1.36, z: .74 })!;
+      expect(preview.delta).toEqual({ x: 1.5, z: .5 });
+      const shown = capacityLayout(project.model.nodes, { ...sceneLayout(project), ...preview.points });
+      const command = gesture.finish()!, next = translateSelection(project, command.ids, command.delta);
+      const committed = capacityLayout(next.model.nodes, sceneLayout(next));
+      expect(committed.positions).toEqual(shown.positions); expect(committed.extent).toEqual(shown.extent);
+      expect(next.layout['queue-a'].x - next.layout['station-a'].x).toBe(-2.25);
+      expect(next.layout['queue-a'].z - next.layout['station-a'].z).toBe(1.75);
+      expect(next.model).toBe(model);
+      const state = commitEdit(history, project, next); project = state.project; history = state.history;
+    }
+    for (let i = 0; i < 2; i++) { const state = undoEdit(history, project); project = state.project; history = state.history; }
+    expect(project.layout).toEqual(initial.layout); expect(project.model).toBe(model); expect(JSON.stringify(initial)).toBe(exact);
   });
 
   it('finds the exposed equipment edge when another station occludes its proxy center', () => {

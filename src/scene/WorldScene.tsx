@@ -150,7 +150,8 @@ export function WorldScene(props: Props) {
       if (alive && !scheduled && !document.hidden) { host.dataset.renderPending = 'true'; scheduled = requestAnimationFrame(draw); }
     }
     invalidate.current = requestRender;
-    const pointFor = (id: string) => { const point = preview.get(id); return point ? presentation.toVisual(point) : layout[id]; };
+    const pointFor = (id: string) => layout[id];
+    const inspectionScale = () => Math.max(1, extent.width / 40, extent.depth / 28);
     function status() {
       const errors = loadErrors + detailFailures.size;
       host.dataset.pendingAssets = String(pending); host.dataset.assetErrors = String(errors);
@@ -401,7 +402,7 @@ export function WorldScene(props: Props) {
       camera.updateProjectionMatrix(); requestRender();
     }); resize.observe(host);
     const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    let down: { x: number; y: number; id: number; node: string | null; origin: THREE.Vector3; anchor: Point; presentation: ReturnType<typeof capacityLayout>; toggle: boolean; person: boolean; gesture: MoveGesture | null; ids: string[]; dragging: boolean } | null = null;
+    let down: { x: number; y: number; id: number; node: string | null; origin: THREE.Vector3; toggle: boolean; person: boolean; gesture: MoveGesture | null; ids: string[]; dragging: boolean } | null = null;
     function pickAt(x: number, y: number) {
       pointer.set(x, y); raycaster.setFromCamera(pointer, camera);
       const objectHit = raycaster.intersectObjects(pickables, false).find(result => {
@@ -427,8 +428,8 @@ export function WorldScene(props: Props) {
       const picked = hit(event), node = picked?.id ?? null, origin = new THREE.Vector3();
       if (!raycaster.ray.intersectPlane(ground, origin)) return;
       const selected = latest.current.selectedIds ?? (latest.current.selected ? [latest.current.selected] : []);
-      const anchor = node ? sceneLayout(latest.current.project)[node] : { x: 0, z: 0 };
-      down = { x: event.clientX, y: event.clientY, id: event.pointerId, node, origin, anchor, presentation, person: Boolean(picked?.person), toggle: event.shiftKey || event.ctrlKey || event.metaKey, gesture: null, ids: node ? selected.includes(node) ? [...selected] : [node] : [], dragging: false };
+      const ids = node ? selected.includes(node) ? [...selected] : [node] : [];
+      down = { x: event.clientX, y: event.clientY, id: event.pointerId, node, origin, person: Boolean(picked?.person), toggle: event.shiftKey || event.ctrlKey || event.metaKey, gesture: null, ids, dragging: false };
       if (node && !picked?.person && latest.current.moving && latest.current.editable !== false) { controls.enabled = false; canvas.setPointerCapture(event.pointerId); }
     }
     function pointerMove(event: PointerEvent) {
@@ -437,9 +438,10 @@ export function WorldScene(props: Props) {
       if (!down.dragging && Math.hypot(event.clientX - down.x, event.clientY - down.y) < 5) return;
       const point = new THREE.Vector3(); if (!raycaster.ray.intersectPlane(ground, point)) return;
       if (!down.gesture) { latest.current.onMoveStart?.(); down.dragging = true; down.gesture = beginMoveGesture(latest.current.project, down.ids, down.node); latest.current.onSelect(down.node, 'inspect'); }
-      const anchor = down.presentation.toVisual(down.anchor);
-      const translated = down.presentation.toModel({ x: anchor.x + point.x - down.origin.x, z: anchor.z + point.z - down.origin.z });
-      const next: LayoutTranslation | null = down.gesture.preview({ x: translated.x - down.anchor.x, z: translated.z - down.anchor.z });
+      // The moved knot has unit slope while ordering stays fixed. The old map's
+      // interpolation slope is for points between stationary knots, not a knot
+      // being translated. Snap/alignment still own the shared model delta.
+      const next: LayoutTranslation | null = down.gesture.preview({ x: point.x - down.origin.x, z: point.z - down.origin.z });
       if (!next) return;
       preview.clear();
       if (!next.error) for (const id of next.ids) preview.set(id, next.points[id]);
@@ -460,9 +462,9 @@ export function WorldScene(props: Props) {
       const horizontal = camera.right - camera.left, vertical = camera.top - camera.bottom;
       camera.left = -horizontal / 2; camera.right = horizontal / 2; camera.top = vertical / 2; camera.bottom = -vertical / 2;
       const target = new THREE.Vector3(p.x, .8, p.z), delta = target.clone().sub(controls.target);
-      controls.target.copy(target); camera.position.add(delta); camera.zoom = 2; camera.updateProjectionMatrix(); controls.update(); requestRender();
+      controls.target.copy(target); camera.position.add(delta); camera.zoom = 2 * inspectionScale(); camera.updateProjectionMatrix(); controls.update(); requestRender();
     };
-    const zoom = (event: Event) => { const factor = (event as CustomEvent).detail; if (factor !== 1.25 && factor !== .8) return; camera.zoom = Math.max(.65, Math.min(6, camera.zoom * factor)); camera.updateProjectionMatrix(); controls.update(); requestRender(); };
+    const zoom = (event: Event) => { const factor = (event as CustomEvent).detail; if (factor !== 1.25 && factor !== .8) return; camera.zoom = Math.max(.65, Math.min(controls.maxZoom, camera.zoom * factor)); camera.updateProjectionMatrix(); controls.update(); requestRender(); };
     const connection = (event: Event) => {
       const index: unknown = (event as CustomEvent).detail, current = latest.current;
       if (!Number.isInteger(index) || current.moving || current.editable === false) return;
@@ -532,7 +534,9 @@ export function WorldScene(props: Props) {
     function draw() {
       scheduled = 0; if (!alive) return;
       const started = performance.now(), current = latest.current;
-      presentation = capacityLayout(current.project.model.nodes, sceneLayout(current.project)); layout = presentation.positions; extent = presentation.extent;
+      const candidateLayout = { ...sceneLayout(current.project), ...Object.fromEntries(preview) };
+      presentation = capacityLayout(current.project.model.nodes, candidateLayout); layout = presentation.positions; extent = presentation.extent;
+      controls.maxZoom = 6 * inspectionScale();
       const nextCapacityKey = JSON.stringify(current.project.model.nodes.map(node => [node.id, stationCopies(node)]));
       if (nextCapacityKey !== capacityKey) { capacityKey = nextCapacityKey; surroundings.update(extent, camera); frameExtent(true); }
       canvas.setAttribute('aria-label', m.interactiveWorldLabel(current.project.name));
