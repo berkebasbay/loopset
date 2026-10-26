@@ -79,6 +79,7 @@
 .studio-shell .flow-guide-opener>svg {width:14px;height:14px;color:#bad49e}
 .studio-shell .flow-guide-panel {position:static;max-height:200px;margin:0;padding:16px 18px;border:0;border-top:1px solid #4c5b50;border-radius:0;box-shadow:none;background:#2b3934;color:#c8d8c8;font-size:13px}
 .studio-shell .flow-guide-heading {background:#2b3934}.studio-shell .flow-guide-heading strong,.studio-shell .flow-current-connection>strong{color:#e0edc8}
+.studio-shell .flow-ordered-steps li[aria-current]{color:#e0edc8}
 .studio-shell .flow-guide-panel details,.studio-shell .flow-guide-navigation {border-color:#53685a}.studio-shell .flow-guide-navigation button:hover:not(:disabled){background:#415544}
 .build-tray {display:flex;align-items:center;gap:16px;min-height:96px;padding:12px 14px 12px 18px;background:#293337;border-top:1px solid #46534c;flex-shrink:0;min-width:0;color:#e0e9df}
 .build-tray-heading {display:flex;flex-direction:column;gap:4px;flex:0 0 130px;min-width:0}
@@ -112,7 +113,7 @@
 .studio-shell .modal {color-scheme:light;display:flex;flex-direction:column;min-width:0;width:min(820px,calc(100vw - 48px));max-width:none;max-height:calc(100svh - 48px);padding:0;overflow:hidden;border:1px solid #cbd6c6;border-radius:16px;background:#f7f8f4;color:#283b32;box-shadow:0 24px 90px #09141070;--accent:#446d49;--accent-dark:#335638;--ink:#283b32;--paper:#f7f8f4;--line:#dce3dc}
 .studio-shell .modal.wide-modal {width:min(1120px,calc(100vw - 48px))}
 .studio-shell .modal-heading {display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-shrink:0;padding:24px 28px 21px;margin:0;border-bottom:1px solid #dce3dc;background:#fafbf7}
-.studio-shell .modal .eyebrow {font-size:10px;color:#647d5b;letter-spacing:.8px}.studio-shell .modal h2{font-size:27px;line-height:1.2;font-weight:550;letter-spacing:-.7px;margin:8px 0 0;color:#283b32}
+.studio-shell .modal .eyebrow {font-size:10px;color:#526a49;letter-spacing:.8px}.studio-shell .modal h2{font-size:27px;line-height:1.2;font-weight:550;letter-spacing:-.7px;margin:8px 0 0;color:#283b32}
 .studio-shell .modal-heading>.icon-button {display:grid;place-items:center;min-width:36px;min-height:36px;background:#eef2e7;border:1px solid #dce3d5;border-radius:8px;color:#526b4c}.studio-shell .modal-heading>.icon-button:hover{background:#e3ebd8;color:#29472c}
 .studio-shell .modal-body {padding:24px 28px 30px;overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#acbaa4 transparent}
 .studio-shell .modal-intro {font-size:14px;line-height:1.65;color:#617069;margin:0 0 24px}

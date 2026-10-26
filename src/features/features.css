@@ -26,6 +26,7 @@
 .ql-step-navigation li button { width: 100%; min-height: 48px; text-align: left; padding: 10px; display: flex; gap: 10px; align-items: baseline; border-radius: 6px; font: inherit; color: var(--ql-ink); transition: background .13s, color .13s; }
 .ql-step-navigation li button:hover { background: #edf2e9; }
 .ql-step-navigation .ql-current-step { background: #e8f0df; color: #365b3b; }
+.ql-step-navigation .ql-current-step > span, .ql-step-navigation .ql-current-step small { color: #526059; }
 .ql-step-navigation li button > span:first-child { font-size: 12px; color: var(--ql-muted); font-variant-numeric: tabular-nums; }
 .ql-step-navigation li button > span:last-child { min-width: 0; }
 .ql-step-navigation b { font-weight: 600; font-size: 12px; display: block; overflow-wrap: anywhere; }
