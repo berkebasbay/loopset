@@ -325,3 +325,7 @@ SOFTWARE.
 ```
 
 Application screenshots and world-preview images show the model adaptations credited above. Those underlying assets retain their recorded licences and attributions.
+
+## Initial browser derivatives
+
+`public/assets/lod` (runtime `assets/lod`) contains source-derived NVIDIA CC-BY-4.0 and Quaternius CC0 browser adaptations. Original licences and author attributions above remain applicable. `public/assets/lod/manifest.json` records source/output hashes, bounds, simplification and codec changes; selected static geometry is simplified with a0.1% error bound, and characters retain Idle/Walk/Interact clips without mesh simplification. The original detailed models remain included. Allowlisted `.glb.gz` siblings decode byte-identically to their GLB source; they are transport files under the same respective licences.
