@@ -112,7 +112,7 @@ function* execute(input: SimulationModel, options: RunOptions): Generator<void, 
     let next: number | undefined;
     if (source.arrival.kind === 'schedule') next = source.arrival.times[ordinal];
     else if (source.arrival.kind === 'fixed') {
-      if (source.arrival.perHour > 0) next = ordinal * (3600 / source.arrival.perHour);
+      if (source.arrival.perHour > 0) next = ordinal === 0 ? 0 : ordinal * (3600 / source.arrival.perHour);
     } else {
       let hazard = -Math.log1p(-uniform(seed, source.samplingId, ordinal, 'arrival'));
       let from = previous;

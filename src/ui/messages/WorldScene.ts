@@ -1,5 +1,8 @@
 /** English product messages for WorldScene. Keep model data and canonical identifiers at the call site. */
 export const worldSceneMessages = {
+  contextUnavailable: '3D graphics could not start. Retry the world, or use Tools to edit the model.',
+  assetsUnavailable: 'Some equipment could not load. Model editing remains available.',
+  retryWorld: 'Retry 3D world',
   actionsFor: (label: string) => `Actions for ${label}`,
   dragToMove: 'Drag to move',
   clickToInspect: 'Click to inspect',

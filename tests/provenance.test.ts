@@ -286,3 +286,20 @@ describe('run-bound export provenance', () => {
     expect(painted.join(' ')).not.toContain('later-mutation');
   });
 });
+
+describe('fingerprint locale independence', () => {
+  it('keeps mixed-case identifiers identical in real English and Turkish processes', async () => {
+    const { execFileSync } = await import('node:child_process');
+    const module = new URL('../src/model/identity.ts', import.meta.url).href;
+    const model = fixture();
+    (model.nodes[0] as SourceNode).classes = [
+      { id: 'I', label: 'Upper', priority: 0, probability: .5 },
+      { id: 'i', label: 'Lower', priority: 0, probability: .5 },
+    ];
+    const program = `import {modelHash,demandHash} from ${JSON.stringify(module)};const model=${JSON.stringify(model)};console.log(JSON.stringify([modelHash(model),demandHash(model,42)]));`;
+    const hashes = ['en_US.UTF-8', 'tr_TR.UTF-8'].map(locale => execFileSync(process.execPath, ['--input-type=module', '-e', program], {
+      encoding: 'utf8', env: { ...process.env, LANG: locale, LC_ALL: locale }, stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim());
+    expect(hashes[0]).toBe(hashes[1]);
+  });
+});

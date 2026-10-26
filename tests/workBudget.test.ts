@@ -23,6 +23,14 @@ describe('pre-run workload estimates', () => {
     model.nodes.find(node => node.kind === 'source')!.arrival = { kind: 'fixed', perHour: 36000 };
     expect(arrivalExpectation(model).count).toBe(simulate(model).diagnostics.totalArrivals);
   });
+  it.each([
+    [1, Number.MIN_VALUE], [1, 1e-307], [1, 1e-300], [Number.MIN_VALUE, 3600], [Number.MIN_VALUE, 1e-307],
+  ])('counts one first fixed arrival with horizon %s and rate %s despite overflow/underflow', (horizon, perHour) => {
+    const model = createExample('factory').model; model.horizon = horizon;
+    model.nodes.find(node => node.kind === 'source')!.arrival = { kind: 'fixed', perHour };
+    expect(arrivalExpectation(model)).toEqual({ count: 1, stochastic: false });
+    const run = simulate(model); expect(run.status).toBe('completed'); expect(run.diagnostics.totalArrivals).toBe(1);
+  });
   it('combines all external sources and allows a zero-demand source', () => {
     const model = createExample('factory').model;
     const source = model.nodes.find(node => node.kind === 'source')!; source.arrival = { kind: 'fixed', perHour: 2 };

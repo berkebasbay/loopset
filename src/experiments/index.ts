@@ -23,7 +23,7 @@ export function estimate(values: readonly number[]): MetricEstimate {
 }
 
 function validateSeeds(seeds: readonly number[]) {
-  if (!seeds.length || seeds.length > 100 || seeds.some(s => !Number.isSafeInteger(s)) || new Set(seeds).size !== seeds.length) throw new Error('Use 1–100 distinct safe-integer replication seeds.');
+  if (!seeds.length || seeds.length > 100 || Array.from(seeds).some(s => !Number.isSafeInteger(s)) || new Set(seeds).size !== seeds.length) throw new Error('Use 1–100 distinct safe-integer replication seeds.');
 }
 
 function completedRun(run: RunResult) {
@@ -66,9 +66,11 @@ class RetentionBudget {
 }
 
 function replications(model: SimulationModel, seeds: readonly number[], options: RunOptions, budget: RetentionBudget): ExperimentResult {
-  assertModel(model); validateSeeds(seeds); const snapshot = budget.snapshot(model); const runs: RunResult[] = [];
-  for (const seed of seeds) runs.push(budget.run(simulate(snapshot, experimentOptions(options, seed)), snapshot));
-  return summarize(snapshot, seeds, runs);
+  validateSeeds(seeds);
+  const replicationSeeds = [...seeds]; const runOptions = { ...options };
+  assertModel(model); const snapshot = budget.snapshot(model); const runs: RunResult[] = [];
+  for (const seed of replicationSeeds) runs.push(budget.run(simulate(snapshot, experimentOptions(runOptions, seed)), snapshot));
+  return summarize(snapshot, replicationSeeds, runs);
 }
 
 /** Independent replications, each with its own keyed seed; executed sequentially. */
@@ -77,22 +79,28 @@ export function runExperiment(model: SimulationModel, seeds: readonly number[], 
 }
 
 export async function runExperimentAsync(model: SimulationModel, seeds: readonly number[], options: RunOptions = {}): Promise<ExperimentResult> {
-  assertModel(model); validateSeeds(seeds); const runs: RunResult[] = []; const budget = new RetentionBudget(); const snapshot = budget.snapshot(model);
-  for (const seed of seeds) {
-    const run = await simulateAsync(snapshot, experimentOptions(options, seed)); runs.push(budget.run(run, snapshot));
+  validateSeeds(seeds);
+  const replicationSeeds = [...seeds]; const runOptions = { ...options };
+  assertModel(model); const runs: RunResult[] = []; const budget = new RetentionBudget(); const snapshot = budget.snapshot(model);
+  for (const seed of replicationSeeds) {
+    const run = await simulateAsync(snapshot, experimentOptions(runOptions, seed)); runs.push(budget.run(run, snapshot));
   }
-  return summarize(snapshot, seeds, runs);
+  return summarize(snapshot, replicationSeeds, runs);
 }
 
 export function comparePaired(baselineModel: SimulationModel, candidateModel: SimulationModel, seeds: readonly number[], options: RunOptions = {}): PairedComparison {
+  validateSeeds(seeds);
+  const replicationSeeds = [...seeds]; const runOptions = { ...options };
+  assertModel(baselineModel); assertModel(candidateModel);
   const budget = new RetentionBudget();
   budget.check(encodedBytes(baselineModel) + encodedBytes(candidateModel));
-  const baseline = replications(baselineModel, seeds, options, budget); const candidate = replications(candidateModel, seeds, options, budget);
+  const baselineSnapshot = budget.snapshot(baselineModel); const candidateSnapshot = budget.snapshot(candidateModel);
+  const baseline = replications(baselineSnapshot, replicationSeeds, runOptions, budget); const candidate = replications(candidateSnapshot, replicationSeeds, runOptions, budget);
   const coupling = buildCouplingManifest(baseline.runs[0], candidate.runs[0]); budget.retain(coupling);
   const paired = coupling.compatibility.sameMeasurementPolicies && baseline.runs.every((r, i) => r.demandHash === candidate.runs[i].demandHash);
   if (!paired) return { paired, reason: 'External demand fingerprints or measurement/currency policies differ; paired deltas are unavailable.', baseline, candidate, coupling, delta: { completed: estimate([]), wait: estimate([]), cost: estimate([]) } };
   const measuredPairs = candidate.runs.flatMap((r, i) => r.summary.waitSampleSize && baseline.runs[i].summary.waitSampleSize ? [{ candidate: r, baseline: baseline.runs[i] }] : []);
-  return { paired, baseline, candidate, coupling, reason: measuredPairs.length < seeds.length ? 'Wait delta excludes pairs without completed-cohort observations in both runs; inspect its sample count.' : undefined, delta: {
+  return { paired, baseline, candidate, coupling, reason: measuredPairs.length < replicationSeeds.length ? 'Wait delta excludes pairs without completed-cohort observations in both runs; inspect its sample count.' : undefined, delta: {
     completed: estimate(candidate.runs.map((r, i) => r.summary.completed - baseline.runs[i].summary.completed)),
     wait: estimate(measuredPairs.map(p => p.candidate.summary.meanWait - p.baseline.summary.meanWait)),
     cost: estimate(candidate.runs.map((r, i) => r.summary.cost - baseline.runs[i].summary.cost)),
@@ -115,7 +123,7 @@ export function capacitySearchPlan(model: SimulationModel, spec: CapacitySearchS
   assertModel(model); validateSeeds(spec.trainingSeeds); validateSeeds(spec.verificationSeeds);
   const pool = model.resources.find(p => p.id === spec.poolId);
   if (!pool) throw new Error('Capacity search requires an existing resource pool.');
-  if (!spec.capacities.length || spec.capacities.length > 32 || new Set(spec.capacities).size !== spec.capacities.length || spec.capacities.some(c => !Number.isSafeInteger(c) || c < 0 || c > pool.installedCapacity)) throw new Error('Use 1–32 distinct capacities within installed capacity.');
+  if (!spec.capacities.length || spec.capacities.length > 32 || new Set(spec.capacities).size !== spec.capacities.length || Array.from(spec.capacities).some(c => !Number.isSafeInteger(c) || c < 0 || c > pool.installedCapacity)) throw new Error('Use 1–32 distinct capacities within installed capacity.');
   if (spec.trainingSeeds.some(s => spec.verificationSeeds.includes(s))) throw new Error('Held-out verification seeds must be disjoint from training seeds.');
   if ([spec.targetCompleted, spec.maxMeanWait].some(v => v !== undefined && (!Number.isFinite(v) || v < 0))) throw new Error('Search constraints must be finite and non-negative.');
   const runBudget = spec.maxRuns ?? 256;
@@ -129,18 +137,21 @@ export function capacitySearchPlan(model: SimulationModel, spec: CapacitySearchS
  * This is neither a global optimum nor a statistical guarantee of feasibility. */
 export function capacitySearch(model: SimulationModel, spec: CapacitySearchSpec, options: RunOptions = {}): CapacitySearchResult {
   const { maximumRuns: plannedRuns, runBudget } = capacitySearchPlan(model, spec);
+  spec = { ...spec, capacities: [...spec.capacities], trainingSeeds: [...spec.trainingSeeds], verificationSeeds: [...spec.verificationSeeds] };
+  const runOptions = { ...options };
   const budget = new RetentionBudget();
   budget.check(encodedBytes(model) * spec.capacities.length);
+  const input = structuredClone(model);
   const candidateModel = (capacity: number) => {
-    const copy = structuredClone(model); copy.resources.find(p => p.id === spec.poolId)!.capacity = capacity; return copy;
+    const copy = structuredClone(input); copy.resources.find(p => p.id === spec.poolId)!.capacity = capacity; return copy;
   };
   const feasible = (experiment: ExperimentResult) => (spec.targetCompleted === undefined || experiment.completed.mean >= spec.targetCompleted) && (spec.maxMeanWait === undefined || experiment.wait.samples === experiment.runs.length && experiment.wait.mean <= spec.maxMeanWait);
   const candidates = [...spec.capacities].sort((a, b) => a - b).map(capacity => {
-    const experiment = replications(candidateModel(capacity), spec.trainingSeeds, options, budget);
+    const experiment = replications(candidateModel(capacity), spec.trainingSeeds, runOptions, budget);
     return { capacity, experiment, feasible: feasible(experiment) };
   });
   const selected = candidates.filter(c => c.feasible).sort((a, b) => a.experiment.cost.mean - b.experiment.cost.mean || b.experiment.completed.mean - a.experiment.completed.mean || a.experiment.wait.mean - b.experiment.wait.mean || a.capacity - b.capacity)[0];
   if (!selected) return { candidates, selectedCapacity: null, verification: null, verified: false, totalRuns: candidates.length * spec.trainingSeeds.length, runBudget, reason: 'No training candidate meets the configured mean constraints.' };
-  const verification = replications(selected.experiment.runs[0].model, spec.verificationSeeds, options, budget);
+  const verification = replications(selected.experiment.runs[0].model, spec.verificationSeeds, runOptions, budget);
   return { candidates, selectedCapacity: selected.capacity, verification, verified: feasible(verification), totalRuns: plannedRuns, runBudget, reason: feasible(verification) ? undefined : 'Selected training candidate failed the independent held-out mean constraints.' };
 }

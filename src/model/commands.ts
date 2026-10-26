@@ -10,7 +10,15 @@ export function meanDuration(d: Distribution): number {
 }
 
 export function mutateProject(project: Project, edit: (copy: Project) => void): Project {
-  const next = structuredClone(project); edit(next); next.revision++; delete next.savedAt; return next;
+  const revision = nextRevision(project);
+  const next = structuredClone(project); edit(next); next.revision = revision; delete next.savedAt; return next;
+}
+
+export function nextRevision(project: Pick<Project, 'revision'>): number {
+  if (!Number.isSafeInteger(project.revision) || project.revision < 0 || project.revision >= Number.MAX_SAFE_INTEGER) {
+    throw new Error('Revision limit reached. Duplicate this project to continue editing.');
+  }
+  return project.revision + 1;
 }
 
 /** Quick capacity control also scales a dedicated pool. Shared resources stay explicit. */

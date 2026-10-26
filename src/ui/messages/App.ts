@@ -1,5 +1,7 @@
 /** English product messages for App. Keep model data and canonical identifiers at the call site. */
 export const appMessages = {
+  revisionLimitReached: 'Revision limit reached. Duplicate this project to continue editing.',
+  duplicateToEdit: 'Duplicate to edit',
   build: 'Build',
   selectTool: 'Select',
   moveTool: 'Move',

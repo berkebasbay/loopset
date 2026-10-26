@@ -95,3 +95,21 @@ describe('named bounded project history', () => {
     expect(describeProjectEdit(project, mutateProject(project, next => { next.description = 'A useful note'; }))).toBe('Edit project description');
   });
 });
+
+describe('revision exhaustion preserves the last valid document', () => {
+  it('refuses overflow edits/Undo and allows a new duplicate to continue', async () => {
+    const { duplicateProject } = await import('../src/model/commands');
+    const { validateProject } = await import('../src/model/validate');
+    const original = createExample('factory'); original.revision = Number.MAX_SAFE_INTEGER - 1;
+    const changed = mutateProject(original, copy => { copy.name = 'Last valid edit'; });
+    const committed = commitEdit(emptyHistory(), original, changed);
+    expect(committed.project.revision).toBe(Number.MAX_SAFE_INTEGER);
+    expect(validateProject(committed.project).filter(issue => issue.severity === 'error')).toEqual([]);
+    expect(() => mutateProject(committed.project, copy => { copy.name = 'Must not apply'; })).toThrow(/Duplicate/);
+    expect(() => undoEdit(committed.history, committed.project)).toThrow(/Duplicate/);
+    expect(committed.project.name).toBe('Last valid edit');
+    const duplicate = duplicateProject(committed.project);
+    expect(duplicate.id).not.toBe(original.id); expect(duplicate.revision).toBe(0);
+    expect(mutateProject(duplicate, copy => { copy.name = 'Editable copy'; }).revision).toBe(1);
+  });
+});

@@ -45,8 +45,10 @@ for (const args of [[], ['--example', 'unknown'], ['--example', 'factory', '--se
 await mkdir('.cache', { recursive: true });
 const folder = await mkdtemp(resolve('.cache/headless-check-'));
 const project = createExample('factory');
+const brokenLink = structuredClone(project); brokenLink.model.nodes.find(node => node.kind === 'source').label = 'sensitive-fixture-value'; brokenLink.model.nodes.find(node => node.kind === 'source').next = 'missing';
 const invalid = [
   ['malformed.json', '{sensitive-fixture-value'],
+  ['private-link.json', JSON.stringify(brokenLink)],
   ['version.json', JSON.stringify({ ...project, schemaVersion: 99 })],
   ['schema.json', JSON.stringify({ ...project, model: { ...project.model, horizon: -1 } })],
   ['unsafe.json', '{"__proto__":{"value":"sensitive-fixture-value"}}'],

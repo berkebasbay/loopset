@@ -152,3 +152,13 @@ describe('shared resource staff illustrations', () => {
     expect(finalDistance).toBeGreaterThan(3.5);
   });
 });
+
+describe('example staff identity', () => {
+  it('keeps staff visible after a purely cosmetic pool-label rename', () => {
+    const project = createExample('factory'), assignments = new Map<string, string>();
+    const frame: WorldFrame = { time: 10, actors: [], queues: {}, busy: {}, arrivals: 0, completed: 0, abandoned: 0, inSystem: 0, aggregated: false };
+    const before = operatorTargets(project, frame, project.layout, assignments).map(person => person.id);
+    project.model.resources.forEach((pool, index) => { pool.label = `Ekip ${index + 1}`; });
+    expect(operatorTargets(project, frame, project.layout, assignments).map(person => person.id)).toEqual(before);
+  });
+});

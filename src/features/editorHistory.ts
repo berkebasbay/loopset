@@ -1,5 +1,6 @@
 import { editorHistoryMessages as m } from '../ui/messages/editorHistory';
 import type { Point, Project } from '../model/types';
+import { nextRevision } from '../model/commands';
 
 export const HISTORY_ACTION_LIMIT = 50;
 export const HISTORY_BYTE_LIMIT = 16 * 1024 * 1024;
@@ -57,13 +58,14 @@ function restored(snapshot: Project, revision: number): Project {
   const project = { ...snapshot, revision }; delete project.savedAt; return project;
 }
 function apply(entry: HistoryEntry, project: Project, direction: 'before' | 'after'): Project {
-  if (entry.kind === 'snapshot') return restored(entry[direction], project.revision + 1);
+  const revision = nextRevision(project);
+  if (entry.kind === 'snapshot') return restored(entry[direction], revision);
   const layout = { ...project.layout };
   for (const change of entry.changes) {
     const point = change[direction];
     if (point === undefined) delete layout[change.id]; else layout[change.id] = point;
   }
-  return restored({ ...project, layout }, project.revision + 1);
+  return restored({ ...project, layout }, revision);
 }
 
 export function describeProjectEdit(before: Project, after: Project): string {
@@ -110,7 +112,7 @@ export function describeProjectEdit(before: Project, after: Project): string {
 
 export function commitEdit(history: EditorHistory, before: Project, requested: Project, label = describeProjectEdit(before, requested)): { history: EditorHistory; project: Project; entry?: HistoryEntry } {
   if (sameExcept(before, requested, ['revision', 'savedAt'])) return { history, project: before };
-  const project = restored(requested, before.revision + 1);
+  const project = restored(requested, nextRevision(before));
   let body: EntryBody;
   if (sameExcept(before, project, ['layout', 'revision', 'savedAt'])) {
     const ids = [...new Set([...Object.keys(before.layout), ...Object.keys(project.layout)])];

@@ -22,12 +22,14 @@ function factoryActivity(id: string, position: PersonTarget['position'], seconds
   };
 }
 
+const exampleStaff = new Set(['team-a', 'team-b', 'team-c', 'specialists']);
+
 /** Anonymous pool-unit illustrations; shared pools never create duplicate people. */
 export function operatorTargets(project: Project, frame: WorldFrame, layout: Record<string, { x: number; z: number }>, previous: Map<string, string>, activity?: OperatorActivity): PersonTarget[] {
   const targets: PersonTarget[] = [];
   const services = project.model.nodes.filter(node => node.kind === 'service');
   for (const pool of project.model.resources) {
-    if (!/team|staff|specialist|operator|worker|crew/i.test(pool.label)) continue;
+    if (!exampleStaff.has(pool.id) && !/team|staff|specialist|operator|worker|crew/i.test(pool.label)) continue;
     const uses = services.filter(node => node.resources.some(req => req.poolId === pool.id));
     if (!uses.length) continue;
     const requests = new Map(uses.map(node => [node.id, (frame.busy[node.id] ?? 0) * (node.resources.find(req => req.poolId === pool.id)?.units ?? 1)]));

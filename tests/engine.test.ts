@@ -140,6 +140,12 @@ describe('keyed randomness and exact numeric semantics', () => {
     (m.nodes[0] as SourceNode).arrival = { kind: 'schedule', times: [0.3, 0.1 + 0.2] };
     const r = simulate(m); expect(r.events.filter(e => e.kind === 'arrival').map(e => e.time)).toEqual([0.3, 0.30000000000000004]);
   });
+  it.each([Number.MIN_VALUE, 1e-307, 1e-305, 1e-300])('keeps the time-zero arrival for tiny positive fixed rate %s', perHour => {
+    const m = fixture([], 0.01, 1); (m.nodes[0] as SourceNode).arrival = { kind: 'fixed', perHour };
+    const run = simulate(m);
+    expect(run.status).toBe('completed'); expect(run.entities.map(entity => entity.arrivedAt)).toEqual([0]);
+    expect(run.summary).toMatchObject({ arrivals: 1, completed: 1 });
+  });
   it('uses integrated hazard across changing rates and zero-rate gaps', () => {
     const m = fixture([], 0.01, 100);
     (m.nodes[0] as SourceNode).arrival = { kind: 'poisson', segments: [{ start: 0, end: 2, perHour: 1 }, { start: 10, end: 100, perHour: 3600 }] };

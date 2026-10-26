@@ -4,6 +4,10 @@ const object = (v: unknown): v is Record<string, unknown> => typeof v === 'objec
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const id = (v: unknown) => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v) && !['constructor', 'prototype', '__proto__'].includes(v);
 const text = (v: unknown) => typeof v === 'string' && v.trim().length > 0 && v.length <= 160;
+const dense = (values: unknown[]) => {
+  for (let i = 0; i < values.length; i++) if (!Object.hasOwn(values, i)) return false;
+  return true;
+};
 
 export function validateModel(value: unknown): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -16,10 +20,10 @@ export function validateModel(value: unknown): ValidationIssue[] {
   if (!finite(m.seed) || !Number.isSafeInteger(m.seed)) error('seed', 'Seed must be a safe integer.');
   if (!finite(m.slaSeconds) || m.slaSeconds < 0) error('slaSeconds', 'The wait target must be a non-negative number of seconds.');
   if (typeof m.currency !== 'string' || !/^[A-Z]{3}$/.test(m.currency)) error('currency', 'Currency must be a three-letter code.');
-  if (!Array.isArray(m.nodes) || m.nodes.length < 2 || m.nodes.length > 100) {
+  if (!Array.isArray(m.nodes) || m.nodes.length < 2 || m.nodes.length > 100 || !dense(m.nodes)) {
     error('nodes', 'A model needs 2–100 process nodes.'); return issues;
   }
-  if (!Array.isArray(m.resources) || m.resources.length > 50) { error('resources', 'Resources must be a list of at most 50 pools.'); return issues; }
+  if (!Array.isArray(m.resources) || m.resources.length > 50 || !dense(m.resources)) { error('resources', 'Resources must be a list of at most 50 pools.'); return issues; }
   const poolIds = new Set<string>();
   const installed = new Map<string, number>();
   for (const [i, p] of m.resources.entries()) {
@@ -32,7 +36,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
     else installed.set(String(p.id), p.installedCapacity);
     if (!finite(p.capacity) || !Number.isInteger(p.capacity) || p.capacity < 0 || !finite(p.installedCapacity) || p.capacity > p.installedCapacity) error(`${at}.capacity`, 'Scheduled capacity cannot exceed installed capacity.');
     for (const field of ['costPerHour', 'overtimeCostPerHour']) if (!finite(p[field]) || p[field] < 0 || p[field] > 1e6) error(`${at}.${field}`, 'Hourly cost must be between 0 and 1,000,000.');
-    if (!Array.isArray(p.calendar) || p.calendar.length > 200) error(`${at}.calendar`, 'A calendar can contain at most 200 periods.');
+    if (!Array.isArray(p.calendar) || p.calendar.length > 200 || !dense(p.calendar)) error(`${at}.calendar`, 'A calendar can contain at most 200 periods.');
     else {
       let lastEnd = 0;
       p.calendar.forEach((s, j) => {
@@ -48,7 +52,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
       case 'constant': if (!validTime(v.value)) error(at, `Time must be ${zero ? 'non-negative' : 'positive'} and no longer than 7 days.`); break;
       case 'exponential': if (!finite(v.mean) || v.mean <= 0 || v.mean > 604800) error(at, 'Mean time must be positive and no longer than 7 days.'); break;
       case 'triangular': if (!validTime(v.min) || !validTime(v.mode) || !validTime(v.max) || Number(v.min) > Number(v.mode) || Number(v.mode) > Number(v.max)) error(at, 'Use valid times with minimum ≤ most likely ≤ maximum.'); break;
-      case 'empirical': if (!Array.isArray(v.values) || v.values.length === 0 || v.values.length > 10000 || !v.values.every(validTime)) error(at, 'Provide 1–10,000 valid time samples.'); break;
+      case 'empirical': if (!Array.isArray(v.values) || v.values.length === 0 || v.values.length > 10000 || !dense(v.values) || !v.values.every(validTime)) error(at, 'Provide 1–10,000 valid time samples.'); break;
       default: error(at, 'Unknown time distribution.');
     }
   }
@@ -66,9 +70,9 @@ export function validateModel(value: unknown): ValidationIssue[] {
       else if (n.arrival.kind === 'fixed') { if (!finite(n.arrival.perHour) || n.arrival.perHour < 0 || n.arrival.perHour > 1e6) error(`${at}.arrival`, 'Arrivals per hour must be between 0 and 1,000,000.'); }
       else if (n.arrival.kind === 'schedule') {
         const times = n.arrival.times;
-        if (!Array.isArray(times) || times.length > 100000 || times.some((t, k) => !finite(t) || t < 0 || !finite(m.horizon) || t >= m.horizon || (k > 0 && Number(times[k - 1]) > t))) error(`${at}.arrival.times`, 'Arrival times must be ordered, non-negative, before the run ends, and limited to 100,000 rows.');
+        if (!Array.isArray(times) || times.length > 100000 || !dense(times) || times.some((t, k) => !finite(t) || t < 0 || !finite(m.horizon) || t >= m.horizon || (k > 0 && Number(times[k - 1]) > t))) error(`${at}.arrival.times`, 'Arrival times must be ordered, non-negative, before the run ends, and limited to 100,000 rows.');
       } else if (n.arrival.kind === 'poisson') {
-        if (!Array.isArray(n.arrival.segments) || n.arrival.segments.length > 200) error(`${at}.arrival`, 'Provide up to 200 rate periods.');
+        if (!Array.isArray(n.arrival.segments) || n.arrival.segments.length > 200 || !dense(n.arrival.segments)) error(`${at}.arrival`, 'Provide up to 200 rate periods.');
         else {
           let last = 0;
           n.arrival.segments.forEach((s, j) => {
@@ -77,7 +81,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
           });
         }
       } else error(`${at}.arrival`, 'Unknown arrival pattern.');
-      if (!Array.isArray(n.classes) || n.classes.length === 0 || n.classes.length > 20) error(`${at}.classes`, 'Provide 1–20 visitor or job classes.');
+      if (!Array.isArray(n.classes) || n.classes.length === 0 || n.classes.length > 20 || !dense(n.classes)) error(`${at}.classes`, 'Provide 1–20 visitor or job classes.');
       else {
         const seen = new Set<string>(); let sum = 0;
         n.classes.forEach((c, j) => {
@@ -93,7 +97,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
     } else if (n.kind === 'service') {
       distribution(n.duration, `${at}.duration`, false);
       if (!finite(n.servers) || !Number.isInteger(n.servers) || n.servers < 1 || n.servers > 1000) error(`${at}.servers`, 'Parallel servers must be an integer from 1 to 1,000.');
-      if (!Array.isArray(n.resources) || n.resources.length > 10) error(`${at}.resources`, 'Provide at most 10 resource requirements.');
+      if (!Array.isArray(n.resources) || n.resources.length > 10 || !dense(n.resources)) error(`${at}.resources`, 'Provide at most 10 resource requirements.');
       else {
         const seen = new Set<string>();
         n.resources.forEach((req, j) => {
@@ -103,7 +107,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
       }
     } else if (n.kind === 'delay') distribution(n.duration, `${at}.duration`, true);
     else if (n.kind === 'route') {
-      if (!Array.isArray(n.branches) || n.branches.length === 0 || n.branches.length > 100) error(`${at}.branches`, 'Provide 1–100 destinations.');
+      if (!Array.isArray(n.branches) || n.branches.length === 0 || n.branches.length > 100 || !dense(n.branches)) error(`${at}.branches`, 'Provide 1–100 destinations.');
       else {
         let sum = 0;
         n.branches.forEach((b, j) => {
@@ -158,7 +162,7 @@ export function validateProject(value: unknown): ValidationIssue[] {
   if (!object(value.layout) || Object.entries(value.layout).length > 100) error('layout', 'Layout must contain at most 100 positions.');
   else for (const [key, p] of Object.entries(value.layout)) if (!id(key) || !object(p) || !finite(p.x) || !finite(p.z) || Math.abs(p.x) > 100 || Math.abs(p.z) > 100) error(`layout.${key}`, 'Use valid positions within the workspace.');
   if (value.scenarios !== undefined) {
-    if (!Array.isArray(value.scenarios) || value.scenarios.length > 20) error('scenarios', 'A project can keep at most 20 saved scenarios.');
+    if (!Array.isArray(value.scenarios) || value.scenarios.length > 20 || !dense(value.scenarios)) error('scenarios', 'A project can keep at most 20 saved scenarios.');
     else {
       const seen = new Set<string>();
       value.scenarios.forEach((scenario, i) => {

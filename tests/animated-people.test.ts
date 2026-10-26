@@ -73,3 +73,22 @@ describe('source interaction poses for factory work', () => {
     people.dispose(); source.body.geometry.dispose(); source.hand.geometry.dispose(); source.material.dispose();
   });
 });
+
+describe('normalized glTF positions', () => {
+  it('bakes quantized source coordinates into float world-space poses', () => {
+    const plain = character(), quantized = character();
+    for (const mesh of [quantized.body, quantized.hand]) {
+      const positions = mesh.geometry.getAttribute('position');
+      mesh.geometry.setAttribute('position', new THREE.Int16BufferAttribute(Int16Array.from(positions.array, value => Math.round(Number(value) * 32767)), 3, true));
+    }
+    const a = new THREE.Scene(), b = new THREE.Scene(), peopleA = new AnimatedPeople(a), peopleB = new AnimatedPeople(b);
+    peopleA.addVariant(0, plain.root); peopleB.addVariant(0, quantized.root);
+    peopleA.update([worker({ activityPhase: .5 })]); peopleB.update([worker({ activityPhase: .5 })]);
+    const reference = vertices(a).flat(), actual = vertices(b).flat();
+    expect(actual.length).toBe(reference.length);
+    expect(Math.max(...actual.map((value, index) => Math.abs(value - reference[index])))).toBeLessThan(.001);
+    expect(drawnGeometry(b).every(geometry => geometry.getAttribute('position').array instanceof Float32Array)).toBe(true);
+    peopleA.dispose(); peopleB.dispose();
+    for (const source of [plain, quantized]) { source.body.geometry.dispose(); source.hand.geometry.dispose(); source.material.dispose(); }
+  });
+});

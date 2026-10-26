@@ -48,6 +48,6 @@ export function parsePortableProject(text: string): Project {
   if (value && typeof value === 'object' && 'savedAt' in value &&
     (typeof value.savedAt !== 'string' || !Number.isFinite(Date.parse(value.savedAt)))) throw new Error('Project save timestamp is invalid.');
   const errors = validateProject(value).filter(issue => issue.severity === 'error');
-  if (errors.length) throw new Error(`Project schema validation failed: ${errors[0].message}`);
+  if (errors.length) throw new Error('Project schema validation failed. Check the model fields and connections.');
   return value as Project;
 }

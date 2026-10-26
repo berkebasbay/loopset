@@ -18,7 +18,7 @@ export function arrivalExpectation(model: SimulationModel): { count: number; sto
     if (arrival.kind === 'schedule') count += arrival.times.length;
     else if (arrival.kind === 'fixed' && arrival.perHour > 0) {
       const interval = 3600 / arrival.perHour;
-      let n = Math.ceil(model.horizon / interval);
+      let n = Math.max(1, Math.ceil(model.horizon / interval));
       // Use the engine's multiplication at the half-open horizon boundary.
       // A quotient alone can round across an integer in binary floating point.
       if (n > 0 && (n - 1) * interval >= model.horizon) n--;

@@ -53,7 +53,10 @@ function samplePose(root: THREE.Group): RawPose {
     const geometry = mesh.geometry.clone();
     parts.push({ geometry, material: mesh.material });
     const sourcePositions = mesh.geometry.getAttribute('position');
-    const positions = geometry.getAttribute('position');
+    // glTF may use normalized integer positions. World-space skinned output
+    // needs floats rather than writing metres back into a quantized attribute.
+    const positions = new THREE.Float32BufferAttribute(new Float32Array(sourcePositions.count * 3), 3);
+    geometry.setAttribute('position', positions);
     const skinned = mesh as THREE.SkinnedMesh;
     if (skinned.isSkinnedMesh) skinned.skeleton.update();
     for (let index = 0; index < sourcePositions.count; index++) {

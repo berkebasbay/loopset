@@ -1,5 +1,8 @@
 import type { SimulationModel } from './types';
 
+// Model identifiers use ASCII; fingerprints must not depend on the host locale.
+const idOrder = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
+
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value !== null && typeof value === 'object') {
@@ -20,15 +23,15 @@ export function modelHash(model: SimulationModel): string {
     horizon: model.horizon, warmup: model.warmup, slaSeconds: model.slaSeconds, currency: model.currency,
     nodes: model.nodes.map(n => {
       const { label: _label, ...node } = n;
-      if (node.kind === 'source') return { ...node, classes: node.classes.map(({ label: _name, ...c }) => c).sort((a, b) => a.id.localeCompare(b.id)) };
-      if (node.kind === 'route') return { ...node, branches: [...node.branches].sort((a, b) => a.to.localeCompare(b.to) || a.probability - b.probability) };
-      if (node.kind === 'service') return { ...node, resources: [...node.resources].sort((a, b) => a.poolId.localeCompare(b.poolId)) };
+      if (node.kind === 'source') return { ...node, classes: node.classes.map(({ label: _name, ...c }) => c).sort((a, b) => idOrder(a.id, b.id)) };
+      if (node.kind === 'route') return { ...node, branches: [...node.branches].sort((a, b) => idOrder(a.to, b.to) || a.probability - b.probability) };
+      if (node.kind === 'service') return { ...node, resources: [...node.resources].sort((a, b) => idOrder(a.poolId, b.poolId)) };
       return node;
-    }).sort((a, b) => a.id.localeCompare(b.id)),
-    resources: model.resources.map(({ label: _label, ...pool }) => pool).sort((a, b) => a.id.localeCompare(b.id)),
+    }).sort((a, b) => idOrder(a.id, b.id)),
+    resources: model.resources.map(({ label: _label, ...pool }) => pool).sort((a, b) => idOrder(a.id, b.id)),
   });
 }
 
 export function demandHash(model: SimulationModel, seed: number): string {
-  return fingerprint({ seed, horizon: model.horizon, sources: model.nodes.filter(n => n.kind === 'source').map(n => ({ samplingId: n.samplingId, arrival: n.arrival, classes: n.classes.map(c => ({ id: c.id, priority: c.priority, probability: c.probability })).sort((a, b) => a.id.localeCompare(b.id)) })).sort((a, b) => a.samplingId.localeCompare(b.samplingId)) });
+  return fingerprint({ seed, horizon: model.horizon, sources: model.nodes.filter(n => n.kind === 'source').map(n => ({ samplingId: n.samplingId, arrival: n.arrival, classes: n.classes.map(c => ({ id: c.id, priority: c.priority, probability: c.probability })).sort((a, b) => idOrder(a.id, b.id)) })).sort((a, b) => idOrder(a.samplingId, b.samplingId)) });
 }

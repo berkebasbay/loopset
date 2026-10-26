@@ -142,3 +142,17 @@ describe('run-bound result exports', () => {
     expect(resultCSV(result)).toContain("'=HYPERLINK");
   });
 });
+
+describe('portable parser diagnostic privacy', () => {
+  it('keeps imported labels out of public errors while preserving useful UI validation', async () => {
+    const { parsePortableProject, validateProject } = await import('../src/public-api');
+    const project = createExample('factory');
+    const source = project.model.nodes.find(node => node.kind === 'source')!;
+    source.label = 'SYNTHETIC_PRIVATE_LABEL'; source.next = 'SYNTHETIC_MISSING_STEP';
+    expect(validateProject(project).some(issue => issue.message.includes(source.label))).toBe(true);
+    let message = '';
+    try { parsePortableProject(JSON.stringify(project)); } catch (error) { message = (error as Error).message; }
+    expect(message).toContain('schema validation failed');
+    expect(message).not.toMatch(/SYNTHETIC_PRIVATE_LABEL|SYNTHETIC_MISSING_STEP/);
+  });
+});

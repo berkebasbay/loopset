@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { capacitySearch, comparePaired, estimate, runExperiment, runExperimentAsync } from '../src/experiments';
-import type { SimulationModel } from '../src/model/types';
+import type { RunOptions, SimulationModel } from '../src/model/types';
 
 function model(): SimulationModel {
   return { id: 'm', name: 'Experiment', horizon: 20, warmup: 0, seed: 1, slaSeconds: 10, currency: 'USD',
@@ -33,6 +33,30 @@ describe('replications and uncertainty', () => {
     const copy = structuredClone(r); expect(copy.runs[0].model).toBe(copy.runs[2].model);
     const async = await runExperimentAsync(input, [1, 2]); expect(async.runs[0].model).toBe(async.runs[1].model);
   });
+  it('seals synchronous seed and limit inputs before progress callbacks can change the plan', () => {
+    const input = model(); const seeds = [11, 22]; let changed = false;
+    const options: RunOptions = { maxEvents: 1000, onProgress: () => {
+      if (changed) return; changed = true;
+      seeds[0] = 99; seeds.push(33); options.maxEvents = 0; input.name = 'Later draft';
+    } };
+    const result = runExperiment(input, seeds, options);
+    expect(changed).toBe(true); expect(result.seeds).toEqual([11, 22]);
+    expect(result.runs.map(run => run.seed)).toEqual([11, 22]); expect(result.completed.samples).toBe(2);
+    expect(result.runs.every(run => run.model.name === 'Experiment' && run.provenance.limits.maxEvents === 1000)).toBe(true);
+  });
+  it('seals asynchronous seeds, model and limits before returning control to the caller', async () => {
+    const input = model(); const seeds = [11, 22]; const options = { maxEvents: 1000 };
+    const pending = runExperimentAsync(input, seeds, options);
+    seeds[0] = 99; seeds[1] = 11; seeds.push(11); input.warmup = 1; options.maxEvents = 0;
+    const result = await pending;
+    expect(result.seeds).toEqual([11, 22]); expect(result.runs.map(run => run.seed)).toEqual([11, 22]);
+    expect(result.completed.samples).toBe(2);
+    expect(result.runs.every(run => run.model.warmup === 0 && run.provenance.limits.maxEvents === 1000)).toBe(true);
+  });
+  it('rejects a sparse replication seed list before execution', async () => {
+    expect(() => runExperiment(model(), new Array(1))).toThrow('distinct');
+    await expect(runExperimentAsync(model(), new Array(1))).rejects.toThrow('distinct');
+  });
   it('excludes incomplete runs from all estimates', () => {
     expect(() => runExperiment(model(), [1, 2], { maxEvents: 1 })).toThrow('limited');
   });
@@ -45,6 +69,20 @@ describe('replications and uncertainty', () => {
     const a = model(); const b = model(); b.resources[0].capacity = 2;
     const result = comparePaired(a, b, [1, 2, 3]); expect(result.paired).toBe(true); expect(result.delta.completed.mean).toBe(1); expect(result.delta.wait.mean).toBeCloseTo(-5 / 3, 12); expect(result.delta.cost.mean).toBe(20);
     expect(result.delta.completed.standardError).toBe(0);
+  });
+  it('seals both paired models and their shared seed/limit plan before baseline callbacks', () => {
+    const baseline = model(); const candidate = model(); const seeds = [11, 22]; let changed = false;
+    const options: RunOptions = { maxEvents: 1000, onProgress: () => {
+      if (changed) return; changed = true;
+      candidate.warmup = 1; seeds.push(33); options.maxEvents = 0;
+    } };
+    const result = comparePaired(baseline, candidate, seeds, options);
+    expect(result.paired).toBe(true); expect(result.delta.completed.samples).toBe(2);
+    for (const experiment of [result.baseline, result.candidate]) {
+      expect(experiment.seeds).toEqual([11, 22]);
+      expect(experiment.runs.map(run => run.seed)).toEqual([11, 22]);
+      expect(experiment.runs.every(run => run.model.warmup === 0 && run.provenance.limits.maxEvents === 1000)).toBe(true);
+    }
   });
   it('does not label differing demand or windows as paired', () => {
     const a = model(); const b = model(); b.warmup = 1;
@@ -59,9 +97,26 @@ describe('bounded capacity candidates and held-out verification', () => {
     expect(result.candidates.map(c => [c.capacity, c.feasible])).toEqual([[1, false], [2, true], [3, true]]);
     expect(result.selectedCapacity).toBe(2); expect(result.verification?.seeds).toEqual([3, 4]); expect(result.verified).toBe(true); expect(result.totalRuns).toBe(8);
   });
+  it('retains the counted search plan when progress callbacks edit caller inputs', () => {
+    const input = model(); const spec = { poolId: 'team', capacities: [1, 2], trainingSeeds: [1], verificationSeeds: [2], targetCompleted: 3, maxRuns: 3 }; let changed = false;
+    const options: RunOptions = { maxEvents: 1000, onProgress: () => {
+      if (changed) return; changed = true;
+      input.warmup = 1; spec.trainingSeeds.push(3); spec.verificationSeeds.push(4);
+      spec.capacities.push(3); spec.targetCompleted = 100; options.maxEvents = 0;
+    } };
+    const result = capacitySearch(input, spec, options);
+    expect(result.candidates.map(candidate => [candidate.capacity, candidate.feasible])).toEqual([[1, false], [2, true]]);
+    expect(result.selectedCapacity).toBe(2); expect(result.verified).toBe(true);
+    expect(result.totalRuns).toBe(3); expect(result.runBudget).toBe(3);
+    const experiments = [...result.candidates.map(candidate => candidate.experiment), result.verification!];
+    expect(experiments.reduce((sum, experiment) => sum + experiment.runs.length, 0)).toBe(3);
+    expect(experiments.map(experiment => experiment.seeds)).toEqual([[1], [1], [2]]);
+    expect(experiments.flatMap(experiment => experiment.runs).every(run => run.model.warmup === 0 && run.provenance.limits.maxEvents === 1000)).toBe(true);
+  });
   it('rejects overlapping held-out seeds and over-budget searches before execution', () => {
     expect(() => capacitySearch(model(), { poolId: 'team', capacities: [1, 2], trainingSeeds: [1], verificationSeeds: [1] })).toThrow('disjoint');
     expect(() => capacitySearch(model(), { poolId: 'team', capacities: [1, 2], trainingSeeds: [1], verificationSeeds: [2], maxRuns: 2 })).toThrow('budget');
+    expect(() => capacitySearch(model(), { poolId: 'team', capacities: new Array(1), trainingSeeds: [1], verificationSeeds: [2] })).toThrow('capacities');
   });
   it('rejects oversized retained candidate snapshots before any simulation runs', () => {
     const m = model();

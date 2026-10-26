@@ -30,11 +30,13 @@ export function FlowGuide({ nodes, walk, shared, open, cursor, unavailable, susp
   useLayoutEffect(() => {
     const element = paper.current, scene = element?.closest('.world-workspace')?.querySelector('.scene-area');
     if (!element || !scene) return;
-    // Reserve a clear scene window above the anchored paper, without changing
-    // canvas dimensions or the user's camera. Only the paper itself scrolls.
-    const size = () => { element.style.maxHeight = `${Math.min(250, Math.max(80, scene.clientHeight - 150))}px`; };
+    // A dock must not size itself from the canvas that it shrinks. Keep its
+    // scrolling body bounded by the viewport; floating paper reserves scene space.
+    const docked = getComputedStyle(element).position === 'static';
+    const size = () => { element.style.maxHeight = `${docked ? Math.min(200, Math.max(80, innerHeight * .28)) : Math.min(250, Math.max(80, scene.clientHeight - 150))}px`; };
     size();
     if (sharedRequested && sharedDetails.current) element.scrollTop = sharedDetails.current.offsetTop - 12;
+    if (docked) { window.addEventListener('resize', size); return () => window.removeEventListener('resize', size); }
     const observer = new ResizeObserver(size); observer.observe(scene);
     return () => observer.disconnect();
   }, [visible, sharedRequested]);
