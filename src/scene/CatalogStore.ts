@@ -38,12 +38,12 @@ export class CatalogStore {
         bytes = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
       }
       if (!isGLB(bytes)) throw new Error('Invalid model payload');
+      return await this.loader.parseAsync(bytes, url.slice(0, url.lastIndexOf('/') + 1));
     } catch {
       // Standalone GLBs remain available on hosts without compressed transport
-      // or native gzip support. A failed fallback is still surfaced to callers.
+      // or with a damaged compressed payload. A failed fallback still surfaces.
       return this.loader.loadAsync(url);
     }
-    return this.loader.parseAsync(bytes, url.slice(0, url.lastIndexOf('/') + 1));
   }
 
   load(url: string): Promise<THREE.Group> {
