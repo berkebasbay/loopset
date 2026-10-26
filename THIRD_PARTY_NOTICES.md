@@ -4,7 +4,7 @@ Inventory checked against the installed packages and `package-lock.json` on 20 O
 
 ## Product assets and browser runtime
 
-The miniature worlds use original procedural geometry. No shapez GPL code or assets are copied into QueueLab. DM Sans is served locally from `public/fonts/DMSans.ttf`; its complete SIL Open Font License 1.1 is retained at [`public/fonts/OFL.txt`](public/fonts/OFL.txt). Font copyright: 2014 The DM Sans Project Authors, https://github.com/googlefonts/dm-fonts.
+The current miniature worlds use the sourced model adaptations listed below. Lines, selection rings and move guides are original editor annotations. No shapez GPL code or assets are copied into QueueLab. DM Sans is served locally from `public/fonts/DMSans.ttf`; its complete SIL Open Font License 1.1 is retained at [`public/fonts/OFL.txt`](public/fonts/OFL.txt). Font copyright: 2014 The DM Sans Project Authors, https://github.com/googlefonts/dm-fonts.
 
 React, React DOM, scheduler and Three.js use the MIT license. Lucide uses ISC and retains MIT notices for icons derived from Feather. Their installed license texts are reproduced below. The headless engine bundle contains QueueLab code and no third-party runtime dependency.
 
@@ -278,17 +278,48 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 # NVIDIA SimReady asset adaptations
 
-The files in `public/assets/simready/*.glb` are adaptations of NVIDIA's
-`furniture_workbench_standard_e01`, `conveyor_belt_a05`, and `pallet_a01`
-from [nvidia/simready-assets](https://huggingface.co/datasets/nvidia/simready-assets).
-These assets are licensed under **Creative Commons Attribution 4.0 International**,
-separately from QueueLab's MIT source license. The complete asset license is
-included at `public/assets/simready/LICENSE-CC-BY-4.0.txt` (runtime:
-`assets/simready/LICENSE-CC-BY-4.0.txt`).
+`public/assets/simready` contains adapted NVIDIA CC-BY-4.0 geometry/thumbnails from [nvidia/simready-assets](https://huggingface.co/datasets/nvidia/simready-assets): `furniture_workbench_standard_e01`, `conveyor_belt_a05`, `pallet_a01`, `environment_floor_a01`, `desk_a01`, `computer_monitor_office_a01`, `chair_office_amf_black_a01`, `box_corrugated_brown_b08`, `serviceTool_brake_lathe_a01`, `instrument_caliper_a01` and `computer_scanner_barcode_a01`.
 
-Modifications: OpenUSD composition, metric coordinate normalization, static
-GLB conversion, shared material batches and a local PBR palette. Original
-physics, MDL and high-resolution texture payloads are not included in the app.
-The pinned dataset revision, source paths, source/output hashes and individual
-asset license declarations are recorded in `public/assets/simready/manifest.json`.
-See [asset preparation](docs/NVIDIA_ASSETS.md) for the bounded download workflow.
+Creator: NVIDIA. **CC-BY-4.0**, separately from QueueLab's MIT code. Full licence: `public/assets/simready/LICENSE-CC-BY-4.0.txt` (runtime `assets/simready/LICENSE-CC-BY-4.0.txt`). Pinned revision, individual licences, source/output SHA256 hashes, textures, LOD and codec modifications: `public/assets/simready/manifest.json`.
+
+Adaptations: offline OpenUSD composition, static GLB, shared material batches, local PBR palette and metric presentation scale; lathe retains original UVs and three official512px albedo atlases. Meshopt compression/vertex quantization uses gltfpack without intentional mesh simplification; repeated cartons use source-derived vertex clustering. Source physics, MDL and high-resolution texture payloads are excluded. [Preparation and bounds](docs/NVIDIA_ASSETS.md).
+
+# Quaternius people
+
+`public/assets/characters/*.glb`: **Quaternius**, Ultimate Modular Men / Women, **CC0-1.0**. Author: https://quaternius.com/. Original GLB or embedded glTF repacked as GLB. Source/output identity, public archive revision/path, modifications and role: `public/assets/characters/manifest.json`. The source Idle/Walk animation poses are baked locally for distance-driven instancing. Complete CC0 legal text and archived pack notice accompany the models. Archive sources are not the original authors.
+
+# Kenney plant
+
+`public/assets/kenney/potted-plant.glb`: **Kenney**, [Furniture Kit](https://kenney.nl/assets/furniture-kit), **CC0-1.0**. Original GLB; manifest and pack licence included. No Mini Characters models are distributed.
+
+# Studio lighting
+
+`public/assets/environment/studio-small-09.hdr`: **Sergej Majboroda / Poly Haven**, [Studio Small09](https://polyhaven.com/a/studio_small_09), **CC0-1.0**, [licence](https://polyhaven.com/license). Local1K HDR environment; exact file hash in the adjacent manifest. No remote runtime request.
+
+# meshoptimizer decoder
+
+The browser asset loader bundles the MIT-licensed decoder shipped with Three.js, built from meshoptimizer1.1. Copyright (c)2016–2026 Arseny Kapoulkine. Source: https://github.com/zeux/meshoptimizer. The optional preparation tool gltfpack1.3.0 is not shipped as an application executable.
+
+```text
+MIT License
+
+Copyright (c) 2016-2026 Arseny Kapoulkine
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

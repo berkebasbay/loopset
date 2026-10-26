@@ -5,10 +5,10 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repo = 'nvidia/simready-assets';
-const choices = ['furniture_workbench_standard_e01', 'conveyor_belt_a05', 'pallet_a01'];
+const choices = ['furniture_workbench_standard_e01', 'conveyor_belt_a05', 'pallet_a01', 'environment_floor_a01', 'desk_a01', 'computer_monitor_office_a01', 'chair_office_amf_black_a01', 'box_corrugated_brown_b08', 'serviceTool_brake_lathe_a01', 'instrument_caliper_a01', 'computer_scanner_barcode_a01'];
 const source = new URL('../.private/assets/simready/', import.meta.url);
 const output = new URL('../public/assets/simready/', import.meta.url);
-const limit = 30 * 1024 * 1024;
+const limit = 100 * 1024 * 1024;
 let downloaded = 0;
 const hash = data => createHash('sha256').update(data).digest('hex');
 let revision = process.env.SIMREADY_REVISION;
@@ -65,13 +65,34 @@ for (const name of choices) {
     const data = await get(item);
     inputs.push({ path: item.path, bytes: data.length, sha256: hash(data) });
   }
+  const textures = [];
+  if (name === 'serviceTool_brake_lathe_a01') for (const tile of [1001, 1002, 1003]) {
+    const item = tree.find(entry => entry.type === 'file' && entry.path.includes('/Textures/.thumbs/512x512/') && entry.path.endsWith(`t_serviceTool_brake_lathe_a01_alb.${tile}.png.png`));
+    if (!item || item.size > 1024 * 1024) throw new Error(`Missing bounded lathe albedo ${tile}`);
+    const data = await get(item), file = `lathe-albedo-${tile}.png`;
+    await writeFile(new URL(file, output), data);
+    const record = { path: item.path, file, bytes: data.length, sha256: hash(data), tile, resolution: [512, 512] };
+    inputs.push({ path: item.path, bytes: data.length, sha256: hash(data) }); textures.push(record);
+  }
   const file = `${name}.glb`;
   const conversion = spawnSync(process.env.QUEUELAB_ASSET_PYTHON || 'python3', [fileURLToPath(new URL('./simready-to-glb.py', import.meta.url)), fileURLToPath(new URL(root.path, source)), fileURLToPath(new URL(file, output))], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1', PYTHONPATH: fileURLToPath(new URL('../.private/tools/usd-core-26.11/', import.meta.url)) }, maxBuffer: 1024 * 1024 });
   if (conversion.status !== 0) throw new Error(conversion.stderr || conversion.stdout);
   const statistics = JSON.parse(conversion.stdout.trim().split('\n').at(-1));
   const glb = await readFile(new URL(file, output));
-  if (glb.length > 14 * 1024 * 1024) throw new Error(`Browser asset too large: ${file}`);
-  records.push({ name, file, revision, license: metadata.license, creator: 'NVIDIA', source: `https://huggingface.co/datasets/${repo}/tree/${revision}/${name}`, modifications: 'Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.', bytes: glb.length, sha256: hash(glb), ...statistics, inputs });
+  if (glb.length > (name === 'serviceTool_brake_lathe_a01' ? 24 : 20) * 1024 * 1024) throw new Error(`Browser asset too large: ${file}`);
+  let actorLOD;
+  if (name === 'box_corrugated_brown_b08') {
+    const actorFile = `${name}-actor.glb`;
+    const reduced = spawnSync(process.env.QUEUELAB_ASSET_PYTHON || 'python3', [fileURLToPath(new URL('./simready-to-glb.py', import.meta.url)), fileURLToPath(new URL(root.path, source)), fileURLToPath(new URL(actorFile, output)), 'actor'], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1', PYTHONPATH: fileURLToPath(new URL('../.private/tools/usd-core-26.11/', import.meta.url)) }, maxBuffer: 1024 * 1024 });
+    if (reduced.status !== 0) throw new Error(reduced.stderr || reduced.stdout);
+    const data = await readFile(new URL(actorFile, output));
+    actorLOD = { file: actorFile, bytes: data.length, sha256: hash(data), modification: 'Source-derived vertex-clustered LOD for repeated work items.' };
+  }
+  const thumb = tree.find(x => x.type === 'file' && x.path.includes('/.thumbs/256x256/') && x.path.endsWith('.usd_light.png'));
+  if (!thumb || thumb.size > 2 * 1024 * 1024) throw new Error(`Missing bounded thumbnail: ${name}`);
+  const thumbData = await get(thumb);
+  await writeFile(new URL(`${name}.png`, output), thumbData);
+  records.push({ name, file, actorLOD, ...(textures.length ? { textures } : {}), thumbnail: `${name}.png`, thumbnailSHA256: hash(thumbData), revision, license: metadata.license, creator: 'NVIDIA', source: `https://huggingface.co/datasets/${repo}/tree/${revision}/${name}`, modifications: textures.length ? 'Composed OpenUSD geometry with retained UVs, three source-provided 512px UDIM albedo atlases and material-family PBR; no physics/MDL/4K payloads.' : 'Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.', bytes: glb.length, sha256: hash(glb), ...statistics, inputs });
   console.log(JSON.stringify({ asset: name, ...statistics, glbBytes: glb.length, selectedSourceBytes: downloaded }));
 }
 const manifest = { dataset: repo, revision, sourceBudgetBytes: limit, selectedSourceBytes: downloaded, fullDatasetDownloaded: false, runtimeRemoteRequests: false, assets: records };

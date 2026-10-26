@@ -1,21 +1,23 @@
 {
   "dataset": "nvidia/simready-assets",
   "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
-  "sourceBudgetBytes": 31457280,
-  "selectedSourceBytes": 29883619,
+  "sourceBudgetBytes": 104857600,
+  "selectedSourceBytes": 85290864,
   "fullDatasetDownloaded": false,
   "runtimeRemoteRequests": false,
   "assets": [
     {
       "name": "furniture_workbench_standard_e01",
       "file": "furniture_workbench_standard_e01.glb",
+      "thumbnail": "furniture_workbench_standard_e01.png",
+      "thumbnailSHA256": "7a4ddfe9c7a1e08491047befe9f3d6bc2b6744ead5e7cb946f790a157d882f77",
       "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
       "license": "CC-BY-4.0",
       "creator": "NVIDIA",
       "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/furniture_workbench_standard_e01",
       "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
-      "bytes": 12095112,
-      "sha256": "c17a861a77b58de54c846484528043d51d90223186d32542d61627e70cc61298",
+      "bytes": 2043572,
+      "sha256": "1dfaaba6807a59df8d143976ce68b0071d5738f9c438d5029e0a96ffbf3d0142",
       "meshes": 6,
       "triangles": 505434,
       "materialBatches": 4,
@@ -50,21 +52,30 @@
           "bytes": 42695,
           "sha256": "ade6bc9aec849e1d1d092db30b6c43a1924b2c76ee67397749a4f5840da2751b"
         }
-      ]
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 12095112,
+        "sourceSHA256": "2849bea2a2e0de3946bd74d15497c86b3a65d09dfaf99ccce9dc6da45f652c59",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
     },
     {
       "name": "conveyor_belt_a05",
       "file": "conveyor_belt_a05.glb",
+      "thumbnail": "conveyor_belt_a05.png",
+      "thumbnailSHA256": "c7bf39737831b46d3a3aeae02bbc5bed20c59151196da70053e33d6164dcc3be",
       "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
       "license": "CC-BY-4.0",
       "creator": "NVIDIA",
       "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/conveyor_belt_a05",
       "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
-      "bytes": 5659616,
-      "sha256": "6a178a5622fdb769a0e30ed40893922305795c3d9842d86b4930dcca4d49a7b1",
+      "bytes": 1001956,
+      "sha256": "9540bfa4d02604d381d9d237b5d1fdcb410fad54d452d28365e0a77c6a9ba7a0",
       "meshes": 30,
       "triangles": 228964,
-      "materialBatches": 2,
+      "materialBatches": 3,
       "originalDimensions": [
         1.1509521007537842,
         1.1663306951522827,
@@ -96,18 +107,27 @@
           "bytes": 52751,
           "sha256": "e3451c7f9d7094be941a7fdc51dd8bccc7e13151a58514958d212ac4f6fa4b2a"
         }
-      ]
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 5660360,
+        "sourceSHA256": "d2ed2eae1f9b63c99b5eee60c138f4dbb469f10fcf2c9dc7fbff6dfde6b9e2ca",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
     },
     {
       "name": "pallet_a01",
       "file": "pallet_a01.glb",
+      "thumbnail": "pallet_a01.png",
+      "thumbnailSHA256": "cef148c470c3115d9399137d3b4ce1ab3558f70d559152f01954a52beea71876",
       "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
       "license": "CC-BY-4.0",
       "creator": "NVIDIA",
       "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/pallet_a01",
       "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
-      "bytes": 51256,
-      "sha256": "99cb9756ef8e5705bbe7380d95dbdfef9fb27d27ef4e8d3e0c3b96e5f92fcd97",
+      "bytes": 12224,
+      "sha256": "457f491d146734b0817afc9209ce81643158f14754ef6c0fb3ea61b981e3f0af",
       "meshes": 1,
       "triangles": 2052,
       "materialBatches": 1,
@@ -142,7 +162,524 @@
           "bytes": 11424,
           "sha256": "6ca9c82133994ee805bad4588e77544f809810274878eeb32709b17089b5c5a8"
         }
-      ]
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 51256,
+        "sourceSHA256": "99cb9756ef8e5705bbe7380d95dbdfef9fb27d27ef4e8d3e0c3b96e5f92fcd97",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
+    },
+    {
+      "name": "environment_floor_a01",
+      "file": "environment_floor_a01.glb",
+      "thumbnail": "environment_floor_a01.png",
+      "thumbnailSHA256": "3ee4efc424144703100981ab0e06a5291645f0cafa3755670c4d6f2a3627122c",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/environment_floor_a01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 44684,
+      "sha256": "9cd4ca4cdc339dee984c99bb8c41737bee2b521a6eecbf8f44a120d1319e43e7",
+      "meshes": 1,
+      "triangles": 8738,
+      "materialBatches": 2,
+      "originalDimensions": [
+        6.000000476837158,
+        0.10000818816479295,
+        6.000000476837158
+      ],
+      "inputs": [
+        {
+          "path": "environment_floor_a01/simready_usd/sm_environment_floor_a01_01.usd",
+          "bytes": 22919,
+          "sha256": "615fd6975c2ba7ee1f64b84624a256c7e0a3bd2d2695a085c7062e7021b4532e"
+        },
+        {
+          "path": "environment_floor_a01/simready_usd/payloads/base.usda",
+          "bytes": 10066,
+          "sha256": "9c2b6a45b200b33cf9b66ec400a806afbfd93326228562985c453c8718c6d197"
+        },
+        {
+          "path": "environment_floor_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 605998,
+          "sha256": "d7de3e4e9ba16c16ca7e7cb94283ed2a1368bdd83530b9ec4f043d13501e838f"
+        },
+        {
+          "path": "environment_floor_a01/simready_usd/payloads/instances.usda",
+          "bytes": 9905,
+          "sha256": "aa952ee079b84e3f7cb6aef6ad60c06b99cf6dac4a04b868319e2030aac0c0b9"
+        },
+        {
+          "path": "environment_floor_a01/simready_usd/payloads/materials.usda",
+          "bytes": 24253,
+          "sha256": "05663fc38a22f7af001bf3db68bf5cdd3b0f46cc620aca5ba28912a317464f76"
+        }
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 236068,
+        "sourceSHA256": "7b45b46939ed0876f84bdf05fae75cfd990334da8daa0b344e4c4c65d1c5665c",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
+    },
+    {
+      "name": "desk_a01",
+      "file": "desk_a01.glb",
+      "thumbnail": "desk_a01.png",
+      "thumbnailSHA256": "df3c0c79b9763d99ce210e79d2d2b4ff3f1de5151a94b9738aefc0033a1cf434",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/desk_a01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 1023520,
+      "sha256": "79f9248f4823b751094bcc15145a7b148f57de47318711a831de38be44d383ce",
+      "meshes": 1,
+      "triangles": 277118,
+      "materialBatches": 3,
+      "originalDimensions": [
+        0.8019995391368866,
+        0.7591531127691269,
+        1.8019997477531433
+      ],
+      "inputs": [
+        {
+          "path": "desk_a01/simready_usd/sm_desk_a01_01.usd",
+          "bytes": 22952,
+          "sha256": "fa9b578aaad95e1de1f03bf2015970549a455b4a99ea43c9cd3fcabef8dda375"
+        },
+        {
+          "path": "desk_a01/simready_usd/payloads/base.usda",
+          "bytes": 9778,
+          "sha256": "ffb7d5fea0f3fc68d7ad15004726219c42b7fe3887b445f7e0942b0e5d4b5b1e"
+        },
+        {
+          "path": "desk_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 14098210,
+          "sha256": "040f8de8693520278a0591808156aa0c3714be600e016c3b27c362f442351e74"
+        },
+        {
+          "path": "desk_a01/simready_usd/payloads/instances.usda",
+          "bytes": 9302,
+          "sha256": "adfc0e4e11fd5c0c1a698320f519e3d5c35ca1e15590862657d89d447143e074"
+        },
+        {
+          "path": "desk_a01/simready_usd/payloads/materials.usda",
+          "bytes": 24215,
+          "sha256": "7d64d48e0fd21761350fa0679adb81ce2971d03fe6d732061b5953ea519e51d8"
+        }
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 6708004,
+        "sourceSHA256": "73b7f4f72f1e4ad55b24df9947d27508dcfd0540c18eec0f1bbbc126796e2584",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
+    },
+    {
+      "name": "computer_monitor_office_a01",
+      "file": "computer_monitor_office_a01.glb",
+      "thumbnail": "computer_monitor_office_a01.png",
+      "thumbnailSHA256": "b9f6f1b479739f939c247ed3789040800de4b638b6d44e008d1ce62fb5943366",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/computer_monitor_office_a01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 61608,
+      "sha256": "eeda1c54cce9cdaa74da2330e4b0ed40f7cbd6c661cbaef6c3a833e90cb1b94d",
+      "meshes": 1,
+      "triangles": 10867,
+      "materialBatches": 4,
+      "originalDimensions": [
+        0.5419999957084656,
+        0.3941999673843384,
+        0.17222082614898682
+      ],
+      "inputs": [
+        {
+          "path": "computer_monitor_office_a01/simready_usd/sm_computer_monitor_office_a01_01.usd",
+          "bytes": 22881,
+          "sha256": "5167fbf30ee6a190ab927a9635d11de8d37b006c27898c9bfa299ebf67453e5f"
+        },
+        {
+          "path": "computer_monitor_office_a01/simready_usd/payloads/base.usda",
+          "bytes": 9041,
+          "sha256": "c7fa43720211a6c92f538c527eafbe561b9fec88822ceae2762a8f0ff43a14a3"
+        },
+        {
+          "path": "computer_monitor_office_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 634410,
+          "sha256": "3dd0a32c0a2aa6935680462f2b2d316050071b7d4ba81a9a4c86b0518d4d0812"
+        },
+        {
+          "path": "computer_monitor_office_a01/simready_usd/payloads/instances.usda",
+          "bytes": 8724,
+          "sha256": "ffc21284c80381f9455b2ef1f5055f3991b15873463811e16ac50d8826419cdb"
+        },
+        {
+          "path": "computer_monitor_office_a01/simready_usd/payloads/materials.usda",
+          "bytes": 34017,
+          "sha256": "f0dc2045064d76a30beaedcb314f570b876692e36a1ce8da7d178daa56af51af"
+        }
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 313688,
+        "sourceSHA256": "9eea131a7857680a96f2635c56da2a67f371bd769af577185b45a3e1e6e5c0db",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
+    },
+    {
+      "name": "chair_office_amf_black_a01",
+      "file": "chair_office_amf_black_a01.glb",
+      "thumbnail": "chair_office_amf_black_a01.png",
+      "thumbnailSHA256": "4e3e8aaab119e7b52cda78667a1becc8ddb307d0c04216c120cd139c76637395",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/chair_office_amf_black_a01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 153668,
+      "sha256": "2ea4784764afb8e9225188afce52cf04918aff7e468f4628754291e775fd148c",
+      "meshes": 1,
+      "triangles": 32253,
+      "materialBatches": 1,
+      "originalDimensions": [
+        0.5397186279296875,
+        0.8096046261489391,
+        0.5722833871841431
+      ],
+      "inputs": [
+        {
+          "path": "chair_office_amf_black_a01/simready_usd/sm_chair_office_amf_black_a01_01.usd",
+          "bytes": 22915,
+          "sha256": "6479861d24d982a380d9e3b97b19ce4302ab4a28c215576abde4175aaf6f1db5"
+        },
+        {
+          "path": "chair_office_amf_black_a01/simready_usd/payloads/base.usda",
+          "bytes": 8757,
+          "sha256": "b15befc9f1e2cbf0e8032467f34475bb0ecf8c86cf34c9ea4c1fa1e21c51b71b"
+        },
+        {
+          "path": "chair_office_amf_black_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 1778523,
+          "sha256": "0d3023af60013d4ef4c548262bfbd17454afa1eec1ab3a36bff983b8551f1182"
+        },
+        {
+          "path": "chair_office_amf_black_a01/simready_usd/payloads/instances.usda",
+          "bytes": 7527,
+          "sha256": "b9615546995f746db6d027266b4472816c7e92f8761082ba3e9ca857a18e6e84"
+        },
+        {
+          "path": "chair_office_amf_black_a01/simready_usd/payloads/materials.usda",
+          "bytes": 24173,
+          "sha256": "b034812966a6f077afeaa35f5e7842a17a2a0bab582cee8a6389f59e187b4158"
+        }
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 789128,
+        "sourceSHA256": "c745fecc03657d7cf09fe6e08488244a1a23381c264f756a07f1d8a0f871f99f",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
+    },
+    {
+      "name": "box_corrugated_brown_b08",
+      "file": "box_corrugated_brown_b08.glb",
+      "thumbnail": "box_corrugated_brown_b08.png",
+      "thumbnailSHA256": "7b3fcb921c280e8f4900d311d690db3bbcd0686081c216a9433d9fc2ba055ed6",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/box_corrugated_brown_b08",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 81484,
+      "sha256": "d74c2be29802966d7205ef52b3e9f4438df4dead300055e110fcc8aa9550d7ea",
+      "meshes": 1,
+      "triangles": 15999,
+      "materialBatches": 1,
+      "originalDimensions": [
+        0.297277495265007,
+        0.3036590814590454,
+        0.3037722557783127
+      ],
+      "inputs": [
+        {
+          "path": "box_corrugated_brown_b08/simready_usd/sm_box_corrugated_brown_b08_01.usd",
+          "bytes": 22948,
+          "sha256": "284db7089bb3f34fdb528b38615100f07328557fe6ca3f514b57e1db8185dd5b"
+        },
+        {
+          "path": "box_corrugated_brown_b08/simready_usd/payloads/base.usda",
+          "bytes": 8907,
+          "sha256": "ef838ddeb69f7482edd6527ff359f566c5cf6b54d43cf374f0ea8774dac5e8ac"
+        },
+        {
+          "path": "box_corrugated_brown_b08/simready_usd/payloads/geometries.usd",
+          "bytes": 1059187,
+          "sha256": "080f4593a2281921ccd7a93cbb33252ba9b4254f651a095f7fda4e428f29472a"
+        },
+        {
+          "path": "box_corrugated_brown_b08/simready_usd/payloads/instances.usda",
+          "bytes": 8006,
+          "sha256": "bf39a4062f3cbc471569ffcff38a242e39b194e6be753db3897087fe8fc89739"
+        },
+        {
+          "path": "box_corrugated_brown_b08/simready_usd/payloads/materials.usda",
+          "bytes": 29433,
+          "sha256": "bbee8d3ffe27012ddae6d73c994712cfbe342d1acd8a8904a3f7497ea372c1d2"
+        }
+      ],
+      "actorLOD": {
+        "file": "box_corrugated_brown_b08-actor.glb",
+        "bytes": 61064,
+        "sha256": "833d5e764e18c9dc2bb6d119e7f7a8fca1811e045ebbd8ab20aa3ea2f6b537a1",
+        "triangles": 1952,
+        "modification": "Source-derived vertex clustering for repeated work items."
+      },
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 533812,
+        "sourceSHA256": "8affc1f69c3064e425b7abc7c2701bb830266da25cbb565212699d2fd83181a2",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
+    },
+    {
+      "name": "serviceTool_brake_lathe_a01",
+      "file": "serviceTool_brake_lathe_a01.glb",
+      "thumbnail": "serviceTool_brake_lathe_a01.png",
+      "thumbnailSHA256": "e0241981cb3930f6ad4450c097a41d437d373a443992bb40414e7110dd52437b",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/serviceTool_brake_lathe_a01",
+      "modifications": "Composed OpenUSD geometry with retained UVs, three source-provided 512px UDIM albedo atlases and material-family PBR factors; no physics/MDL/4K payloads.",
+      "bytes": 3863268,
+      "sha256": "d4687ab7c1335b4b218502092855a9ba4f0dd8f909b99c5c5cf24c0070557297",
+      "meshes": 10,
+      "triangles": 451042,
+      "materialBatches": 12,
+      "originalDimensions": [
+        1.031200751567665,
+        1.2086000442504883,
+        1.279061608005987
+      ],
+      "inputs": [
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/sm_serviceTool_brake_lathe_a01_01.usd",
+          "bytes": 21945,
+          "sha256": "2a1fe3c8dd1b722d659ae4131c2c1b3342d86d2f5f52a13d9b7cc6b676e66022"
+        },
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/payloads/base.usda",
+          "bytes": 35464,
+          "sha256": "a79f6eb73264181a80c8bebd6034436c5c71e4944e7c15e8f034713f1e993b72"
+        },
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 17151209,
+          "sha256": "f360a689bf0427fcd1b5faac8beafc232189548b375b542cea2b41c237738beb"
+        },
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/payloads/instances.usda",
+          "bytes": 28762,
+          "sha256": "639756d2f2e147dbcd0455cbdac283b3ade0fb706411c245ff8d82ef97aaf301"
+        },
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/payloads/materials.usda",
+          "bytes": 30709,
+          "sha256": "ef72f5bfeb214965f52887dda1e753cd53f0da97fdb411a62c52daced442e090"
+        },
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/Textures/.thumbs/512x512/t_serviceTool_brake_lathe_a01_alb.1001.png.png",
+          "bytes": 198974,
+          "sha256": "6468083d6f9d2d54c4be40b3e5002c8b814f28d89bd4b5db3bf301b990ae7b6b"
+        },
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/Textures/.thumbs/512x512/t_serviceTool_brake_lathe_a01_alb.1002.png.png",
+          "bytes": 286935,
+          "sha256": "ea44277493b0e93eec45ff7be28d2790f40948bd54f0a58ac1b742b4fb1b15a5"
+        },
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/Textures/.thumbs/512x512/t_serviceTool_brake_lathe_a01_alb.1003.png.png",
+          "bytes": 274499,
+          "sha256": "a401eecbccf103cc6396aff240476167d1bb6136d85461eceadcc4d8a4a4a790"
+        }
+      ],
+      "textures": [
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/Textures/.thumbs/512x512/t_serviceTool_brake_lathe_a01_alb.1001.png.png",
+          "file": "lathe-albedo-1001.png",
+          "bytes": 198974,
+          "sha256": "6468083d6f9d2d54c4be40b3e5002c8b814f28d89bd4b5db3bf301b990ae7b6b",
+          "tile": 1001,
+          "resolution": [
+            512,
+            512
+          ]
+        },
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/Textures/.thumbs/512x512/t_serviceTool_brake_lathe_a01_alb.1002.png.png",
+          "file": "lathe-albedo-1002.png",
+          "bytes": 286935,
+          "sha256": "ea44277493b0e93eec45ff7be28d2790f40948bd54f0a58ac1b742b4fb1b15a5",
+          "tile": 1002,
+          "resolution": [
+            512,
+            512
+          ]
+        },
+        {
+          "path": "serviceTool_brake_lathe_a01/simready_usd/Textures/.thumbs/512x512/t_serviceTool_brake_lathe_a01_alb.1003.png.png",
+          "file": "lathe-albedo-1003.png",
+          "bytes": 274499,
+          "sha256": "a401eecbccf103cc6396aff240476167d1bb6136d85461eceadcc4d8a4a4a790",
+          "tile": 1003,
+          "resolution": [
+            512,
+            512
+          ]
+        }
+      ],
+      "sourcedAlbedoTiles": [
+        1001,
+        1002,
+        1003
+      ],
+      "trianglesByUDIM": {
+        "1001": 126603,
+        "1002": 185399,
+        "1003": 139040
+      },
+      "uvEncoding": "normalized unsigned-short VEC2",
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 20537496,
+        "sourceSHA256": "c1ce4977ab61d29957868d552396999ade94defd9b9fdcef2361e416502b408f",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
+    },
+    {
+      "name": "instrument_caliper_a01",
+      "file": "instrument_caliper_a01.glb",
+      "thumbnail": "instrument_caliper_a01.png",
+      "thumbnailSHA256": "9391f59d575669e0878ea5aad1d97d837214f5cb4dd148f38abace1425e2844f",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/instrument_caliper_a01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 158020,
+      "sha256": "5c3af06a4d1769028dc5c61ea6d72a66bf543ef0b29feeccbcdae88822edd0fd",
+      "meshes": 2,
+      "triangles": 36461,
+      "materialBatches": 2,
+      "originalDimensions": [
+        0.23831230960786343,
+        0.007558476645499468,
+        0.0784570686519146
+      ],
+      "inputs": [
+        {
+          "path": "instrument_caliper_a01/simready_usd/sm_instrument_caliper_a01_01.usd",
+          "bytes": 20145,
+          "sha256": "e8df8a420cdcfe4e97a1b74832908fa6684e5783ca5e21571d6b5f91adf0974f"
+        },
+        {
+          "path": "instrument_caliper_a01/simready_usd/payloads/base.usda",
+          "bytes": 10648,
+          "sha256": "0f1298869929f14a59d80f48da7c88a4ba9cd2bbf382b3c0d97cc972e0fe0f2b"
+        },
+        {
+          "path": "instrument_caliper_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 1676445,
+          "sha256": "a1009911882507317d07cf1783a805a33426e2a98aea061b71b434b8d9fae763"
+        },
+        {
+          "path": "instrument_caliper_a01/simready_usd/payloads/instances.usda",
+          "bytes": 8015,
+          "sha256": "28e760195d24cbcb75d36de323407c7dad0e8ad23443169541c50aebf9c009e2"
+        },
+        {
+          "path": "instrument_caliper_a01/simready_usd/payloads/materials.usda",
+          "bytes": 12599,
+          "sha256": "d0a459165c3a2cc614f42705a4668b250d976e80fa01538323e64c06f0d8afb4"
+        }
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 1041844,
+        "sourceSHA256": "8ec49a07036b73de569eb218f994dee0de30f1187689d6a187b27b3c2346b8d4",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
+    },
+    {
+      "name": "computer_scanner_barcode_a01",
+      "file": "computer_scanner_barcode_a01.glb",
+      "thumbnail": "computer_scanner_barcode_a01.png",
+      "thumbnailSHA256": "aa65b54d43ed45c376974d1d53774b0cf88f3a78fab0e1e376c88e4087e2c233",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/computer_scanner_barcode_a01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 361848,
+      "sha256": "0d556435e1a0791095ec9aec78037bb22741dfc902030ac0f3f6effc46e9a7fc",
+      "meshes": 3,
+      "triangles": 72947,
+      "materialBatches": 2,
+      "originalDimensions": [
+        0.2832787781972366,
+        0.3029109835624695,
+        0.5370064377784729
+      ],
+      "inputs": [
+        {
+          "path": "computer_scanner_barcode_a01/simready_usd/sm_computer_scanner_barcode_a01_01.usd",
+          "bytes": 20705,
+          "sha256": "95d1bae7a06c96fbfa0a8e0af8a8956c6f90ed4cdfc84d4b1b53fe34ab562a51"
+        },
+        {
+          "path": "computer_scanner_barcode_a01/simready_usd/payloads/base.usda",
+          "bytes": 14764,
+          "sha256": "2fd47945242d85969498158a73c9607d20cf7abaf0c37b8aa27e62c6e931baf0"
+        },
+        {
+          "path": "computer_scanner_barcode_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 6006943,
+          "sha256": "0bc2eaacfd49d600dc4a333896c75dbfc5cb167956d6e3062c9e2f4d03475551"
+        },
+        {
+          "path": "computer_scanner_barcode_a01/simready_usd/payloads/instances.usda",
+          "bytes": 9372,
+          "sha256": "85585f510c335ca63419101f191cf154b097c9e05798f8040bda76596d5b6fa4"
+        },
+        {
+          "path": "computer_scanner_barcode_a01/simready_usd/payloads/materials.usda",
+          "bytes": 15455,
+          "sha256": "92c8cd595a54528351d10bc54d6e18237fd9b6b0d58c16c8caee14792522295b"
+        }
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 1818484,
+        "sourceSHA256": "1f927d89e4045d9245ef6dc4f6289f2b5dca37728dc2c1d9c5807c2f74db2b4b",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
     }
-  ]
+  ],
+  "runtimeModelBytes": 8805852,
+  "selectedSourceBytesNote": "Historical bounded preparation total includes the visually rejected standalone hard hat; that model is not distributed."
 }
