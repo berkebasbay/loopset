@@ -86,7 +86,7 @@ export function ModelEditor({ project, onChange, selectedId, selectedIds, onSele
   const selection = selectedIds ?? (selected ? [selected.id] : []);
   const issues = validateProject(project);
   const select = (id: string | null, intent: SelectionIntent = 'inspect') => { setLocalSelected(id ?? ''); onSelect?.(id, intent); setPendingDelete(null); };
-  const edit = (operation: (p: Project) => void) => onChange(mutateProject(project, operation));
+  const edit = (operation: (p: Project) => void) => attempt(() => onChange(mutateProject(project, operation)));
   const updateNode = (node: ModelNode) => edit(p => { const index = p.model.nodes.findIndex(n => n.id === node.id); if (index >= 0) p.model.nodes[index] = node; });
   const destinations = (_id: string, queue = false) => [{ value: '', label: m.chooseAConnection }, ...project.model.nodes.filter(n => n.kind !== 'source' && (!queue || n.kind === 'service')).map(n => ({ value: n.id, label: m.destinationOption(n.label, stepKindLabels[n.kind]) }))];
   function attempt(operation: () => void) { try { operation(); setMessage(''); } catch (e) { setMessage(e instanceof Error ? e.message : m.theEditCouldNotBeApplied); } }

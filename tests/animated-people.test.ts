@@ -77,6 +77,7 @@ describe('source interaction poses for factory work', () => {
 describe('normalized glTF positions', () => {
   it('bakes quantized source coordinates into float world-space poses', () => {
     const plain = character(), quantized = character();
+    plain.root.scale.setScalar(1 / 65535); quantized.root.scale.setScalar(1 / 65535);
     for (const mesh of [quantized.body, quantized.hand]) {
       const positions = mesh.geometry.getAttribute('position');
       mesh.geometry.setAttribute('position', new THREE.Int16BufferAttribute(Int16Array.from(positions.array, value => Math.round(Number(value) * 32767)), 3, true));

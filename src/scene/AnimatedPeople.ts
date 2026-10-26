@@ -36,7 +36,9 @@ function visibleMeshes(root: THREE.Object3D): THREE.Mesh[] {
     const mesh = object as THREE.Mesh;
     if (!mesh.isMesh || !mesh.geometry.getAttribute('position')?.count) return;
     for (let parent: THREE.Object3D | null = object; parent; parent = parent.parent) if (!parent.visible) return;
-    if (Math.abs(object.matrixWorld.determinant()) < 1e-12) return;
+    const determinant = object.matrixWorld.determinant();
+    // Quantized glTF nodes legitimately use tiny dequantization scales.
+    if (!Number.isFinite(determinant) || determinant === 0) return;
     const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     if (materials.every(material => !material.visible)) return;
     result.push(mesh);
