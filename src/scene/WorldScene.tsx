@@ -144,6 +144,13 @@ export function WorldScene(props: Props) {
     const labelLayer = document.createElement('div'); labelLayer.className = 'scene-labels scene-label-layer'; host.appendChild(labelLayer);
     const readout = document.createElement('div'); readout.className = 'scene-move-readout'; readout.hidden = true; host.appendChild(readout);
     const loading = document.createElement('div'); loading.className = 'scene-loading'; loading.setAttribute('role', 'status'); host.appendChild(loading);
+    let measureLabels = true, labelMeasureVersion = 0, labelPlacementKey = '', pickPointsKey = '', overlayVersion = 0;
+    let labelSizes = new Map<string, { width: number; height: number }>();
+    let previousPeopleShadows = '';
+    const movingOverlays = new Set<Element>();
+    const overlayMotions = new Map<Element, Set<string>>();
+    let overlayIntersection: IntersectionObserver | null = null, overlayRootMargin = '';
+    const overlayRects = new WeakMap<Element, DOMRect>();
     setFailed(false); host.dataset.status = 'loading'; host.dataset.world = world; host.dataset.assetPolicy = 'catalog-first';
     for (const key of ['pickPoints', 'flowGuide', 'connectionFit', 'alignmentGuides']) delete host.dataset[key];
     function requestRender() {
@@ -289,6 +296,7 @@ export function WorldScene(props: Props) {
         const geometry = own(new THREE.BufferGeometry().setFromPoints(points));
         const material = visual.footprint?.material ?? own(new THREE.LineBasicMaterial({ color: '#879990', transparent: true, opacity: .55 }));
         visual.footprint = new THREE.LineSegments(geometry, material); visual.group.add(visual.footprint);
+        visual.footprint.visible = count > 1;
         visual.count = count; renderer.shadowMap.needsUpdate = true;
       }
       const extra = count - realCount;
@@ -394,6 +402,7 @@ export function WorldScene(props: Props) {
       if (!alive || !host.clientWidth || !host.clientHeight) return;
       const width = host.clientWidth, height = host.clientHeight, previous = renderer.getSize(new THREE.Vector2());
       if (previous.x === width && previous.y === height) return;
+      measureLabels = true;
       renderer.setSize(width, height);
       // Opening a dock or resizing a viewport is not a Fit command. Preserve
       // the user's view and vertical world scale; only the aspect changes.
@@ -500,6 +509,97 @@ export function WorldScene(props: Props) {
       requestRender();
     };
     const visible = () => { if (!document.hidden) requestRender(); };
+    const generatedDOM = (node: Node) => node === canvas || labelLayer.contains(node) || connectorLayer.contains(node) || readout.contains(node) || loading.contains(node);
+    // Caption writes and telemetry are owned here; other DOM can cover a real
+    // pointer target even while playback is paused. Observe those changes once,
+    // instead of asking elementFromPoint thousands of times on every frame.
+    const overlayObserver = new MutationObserver(records => {
+      if (!alive) return;
+      const changed = new Map<Element, { layout: boolean; typography: boolean }>();
+      const add = (element: Element, layout: boolean, typography = false) => {
+        const old = changed.get(element); changed.set(element, { layout: layout || Boolean(old?.layout), typography: typography || Boolean(old?.typography) });
+      };
+      const attributes = new Map<Element, Map<string, string | null>>();
+      for (const record of records) if (record.type === 'attributes' && record.target instanceof Element && record.attributeName) {
+        const first = attributes.get(record.target) ?? new Map<string, string | null>();
+        if (!first.has(record.attributeName)) first.set(record.attributeName, record.oldValue);
+        attributes.set(record.target, first);
+      }
+      for (const record of records) {
+        if (generatedDOM(record.target) || record.target === host && record.type === 'attributes' && record.attributeName?.startsWith('data-')) continue;
+        // React temporarily clears/restores controlled input type/name. A net
+        // unchanged attribute has no new hit-test geometry to invalidate.
+        if (record.type === 'attributes' && record.target instanceof Element && record.attributeName && record.target.getAttribute(record.attributeName) === attributes.get(record.target)?.get(record.attributeName)) continue;
+        if (record.type === 'childList') {
+          for (const node of [...record.addedNodes, ...record.removedNodes]) {
+            if (generatedDOM(node)) continue;
+            if (node instanceof Element) for (const element of [node, ...node.querySelectorAll('*')]) add(element, true);
+            else if (record.target instanceof Element) add(record.target, true);
+          }
+          continue;
+        }
+        const element = record.target instanceof Element ? record.target : record.target.parentElement;
+        if (element) add(element, record.type === 'attributes' && ['class', 'style', 'hidden', 'open', 'inert', 'popover'].includes(record.attributeName ?? ''), record.type === 'attributes' && (record.attributeName === 'class' || record.attributeName === 'style'));
+      }
+      if (!changed.size) return;
+      const view = host.getBoundingClientRect();
+      const overlaps = (rect: DOMRect) => rect.width > 0 && rect.height > 0 && rect.left < view.right && rect.right > view.left && rect.top < view.bottom && rect.bottom > view.top;
+      let affected = false;
+      for (const [element, change] of changed) {
+        const previous = overlayRects.get(element);
+        const rect = element.getBoundingClientRect();
+        overlayRects.set(element, rect);
+        const same = previous && rect.left === previous.left && rect.top === previous.top && rect.width === previous.width && rect.height === previous.height;
+        if (same && !change.layout) continue;
+        let inView = overlaps(rect) || Boolean(previous && overlaps(previous));
+        // Text can shrink an overlay away from an earlier rejected sample.
+        if (!inView) for (let parent = element.parentElement; parent; parent = parent.parentElement) { const old = overlayRects.get(parent); if (old && overlaps(old)) { inView = true; break; } }
+        if (inView) { affected = true; if (change.typography) measureLabels = true; }
+      }
+      if (affected) { overlayVersion++; requestRender(); }
+    });
+    overlayObserver.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeOldValue: true, characterData: true });
+    const refreshOverlayROI = (rect: DOMRect) => {
+      const top = Math.max(0, Math.min(innerHeight, rect.top)), bottom = Math.max(top, Math.min(innerHeight, rect.bottom));
+      const left = Math.max(0, Math.min(innerWidth, rect.left)), right = Math.max(left, Math.min(innerWidth, rect.right));
+      const margin = `${-top}px ${right - innerWidth}px ${bottom - innerHeight}px ${-left}px`;
+      if (margin === overlayRootMargin) return;
+      overlayRootMargin = margin; overlayIntersection?.disconnect();
+      // Native intersection tracking notices an overlay sliding into the canvas
+      // without polling a header spinner or another unrelated infinite animation.
+      overlayIntersection = new IntersectionObserver(entries => {
+        if (!alive || margin !== overlayRootMargin) return;
+        let changed = false;
+        for (const entry of entries) {
+          const shown = overlayMotions.has(entry.target) && entry.target.isConnected && entry.isIntersecting && entry.intersectionRect.width > 0 && entry.intersectionRect.height > 0;
+          if (shown === movingOverlays.has(entry.target)) continue;
+          if (shown) movingOverlays.add(entry.target); else movingOverlays.delete(entry.target);
+          changed = true;
+        }
+        if (changed) { overlayVersion++; requestRender(); }
+      }, { rootMargin: margin });
+      for (const element of overlayMotions.keys()) overlayIntersection.observe(element);
+    };
+    const overlayMotion = (event: Event) => {
+      if (!(event.target instanceof Element) || generatedDOM(event.target)) return;
+      const target = event.target, rect = target.getBoundingClientRect(), view = host.getBoundingClientRect(), previous = overlayRects.get(target);
+      const token = event.type.startsWith('transition') ? `transition:${(event as TransitionEvent).propertyName}:${(event as TransitionEvent).pseudoElement}` : `animation:${(event as AnimationEvent).animationName}:${(event as AnimationEvent).pseudoElement}`;
+      const starts = event.type === 'transitionrun' || event.type === 'animationstart';
+      const motions = overlayMotions.get(target) ?? new Set<string>();
+      if (starts) { motions.add(token); overlayMotions.set(target, motions); refreshOverlayROI(view); overlayIntersection!.observe(target); }
+      else { motions.delete(token); if (!motions.size) { overlayMotions.delete(target); overlayIntersection?.unobserve(target); } }
+      const overlaps = (value: DOMRect) => value.width > 0 && value.height > 0 && value.left < view.right && value.right > view.left && value.top < view.bottom && value.bottom > view.top;
+      const affected = movingOverlays.has(target) || overlaps(rect) || Boolean(previous && overlaps(previous));
+      if (motions.size && overlaps(rect)) movingOverlays.add(target); else if (!motions.size) movingOverlays.delete(target);
+      overlayRects.set(target, rect);
+      if (affected) { overlayVersion++; requestRender(); }
+    };
+    const viewportMoved = () => { overlayVersion++; requestRender(); };
+    const fontChanged = () => { measureLabels = true; overlayVersion++; requestRender(); };
+    for (const name of ['transitionrun', 'transitionend', 'transitioncancel', 'animationstart', 'animationend', 'animationcancel']) document.addEventListener(name, overlayMotion, true);
+    window.addEventListener('scroll', viewportMoved, true); window.addEventListener('resize', viewportMoved);
+    document.addEventListener('toggle', viewportMoved, true); document.addEventListener('beforetoggle', viewportMoved, true);
+    document.fonts.addEventListener('loadingdone', fontChanged);
     controls.addEventListener('change', requestRender);
     canvas.addEventListener('pointerdown', pointerDown); canvas.addEventListener('pointermove', pointerMove); canvas.addEventListener('pointerup', pointerUp); canvas.addEventListener('pointercancel', cancel);
     const lostCapture = () => { if (down) cancel(); }; canvas.addEventListener('lostpointercapture', lostCapture);
@@ -561,14 +661,15 @@ export function WorldScene(props: Props) {
         triangleBudget -= realCount * visual.triangles;
         syncCapacity(id, visual, count, realCount);
         if (visual.loaded) capacityDrawn.push({ id, count: visual.count, full3D: visual.triangles ? visual.copies.length : 0, sourceImpostors: visual.impostor?.mesh.count ?? 0, laneMarkers: visual.triangles ? 0 : (visual.footprint?.geometry.attributes.position.count ?? 0) / 8 });
-        visual.label.setAttribute('aria-label', m.select(node.label, stepKindLabels[node.kind])); visual.label.setAttribute('aria-pressed', String(selected.has(id)));
+        const accessibleLabel = m.select(node.label, stepKindLabels[node.kind]);
+        if (visual.label.getAttribute('aria-label') !== accessibleLabel) visual.label.setAttribute('aria-label', accessibleLabel);
+        if (visual.label.getAttribute('aria-pressed') !== String(selected.has(id))) { visual.label.setAttribute('aria-pressed', String(selected.has(id))); measureLabels = true; }
         visual.label.classList.toggle('is-selected', selected.has(id));
         const queue = current.frame.queues[id] ?? 0;
-        if (visual.name.textContent !== node.label) { visual.name.textContent = node.label; visual.label.title = node.label; }
+        if (visual.name.textContent !== node.label) { visual.name.textContent = node.label; visual.label.title = node.label; measureLabels = true; }
         const countLabel = queue ? m.waiting(queue) : node.kind === 'sink' && current.project.model.nodes.filter(item => item.kind === 'sink').length === 1 ? `${current.frame.completed} completed` : '';
-        if (visual.badge.textContent !== countLabel) visual.badge.textContent = countLabel;
-        visual.badge.hidden = !countLabel;
-        visual.label.hidden = false;
+        if (visual.badge.textContent !== countLabel) { visual.badge.textContent = countLabel; measureLabels = true; }
+        if (visual.badge.hidden !== !countLabel) { visual.badge.hidden = !countLabel; measureLabels = true; }
       }
       host.dataset.capacityCopies = JSON.stringify(capacityDrawn); host.dataset.sceneExtent = JSON.stringify(extent);
       host.dataset.detailAssets = JSON.stringify([...foreground.values()].flatMap(parts => parts.filter(part => part.detail && part.model).map(part => part.definition.file)));
@@ -639,7 +740,9 @@ export function WorldScene(props: Props) {
         return point && destination ? { ...person, nodeId: destination, position: { x: point.x, y: 0, z: point.z + 1 } } : null;
       } });
       people.update(motion.people);
-      if (resetMotion || animate) renderer.shadowMap.needsUpdate = true;
+      const peopleShadows = JSON.stringify(motion.people);
+      if (resetMotion || peopleShadows !== previousPeopleShadows) renderer.shadowMap.needsUpdate = true;
+      previousPeopleShadows = peopleShadows;
       if (!motion.moving) settleUntil = 0;
       motionInitialized = true; motionRun = current.runKey ?? ''; motionEpoch = current.seekEpoch ?? 0; motionLayout = current.project.layout; motionClock = current.frame.time; lastPlaying = Boolean(current.playing);
       if (animate && (motion.moving || current.playing && motion.working)) requestRender();
@@ -649,20 +752,35 @@ export function WorldScene(props: Props) {
         dummy.position.set(exitPoint.x + (i % 4) * .37 - .55, world === 'factory' ? .313 : 0, exitPoint.z + .6 + Math.floor(i / 4) * .42);
         dummy.rotation.set(0, 0, 0); dummy.scale.setScalar(1); dummy.updateMatrix(); matrices[world === 'factory' ? 4 : 4 + i % 2].push(dummy.matrix.clone());
       }
-      for (const { mesh, variant } of actorBatches) { const values = matrices[variant]; mesh.count = values.length; values.forEach((matrix, i) => mesh.setMatrixAt(i, matrix)); mesh.instanceMatrix.needsUpdate = true; }
+      for (const { mesh, variant } of actorBatches) {
+        const values = matrices[variant]; let changed = mesh.count !== values.length; mesh.count = values.length;
+        values.forEach((matrix, i) => {
+          if (!matrix.elements.some((value, j) => Math.fround(value) !== mesh.instanceMatrix.array[i * 16 + j])) return;
+          mesh.setMatrixAt(i, matrix); changed = true;
+        });
+        if (changed) { mesh.instanceMatrix.needsUpdate = true; renderer.shadowMap.needsUpdate = true; }
+      }
       camera.updateMatrixWorld(true); scene.updateMatrixWorld(true);
-      const occupied: LabelRect[] = [];
       const paper = current.flow || currentConnection !== null ? host.closest('.world-workspace')?.querySelector('.flow-guide-panel')?.getBoundingClientRect() : null;
       const hostRect = host.getBoundingClientRect(), paperOverlaps = paper && paper.left < hostRect.right && paper.right > hostRect.left && paper.top < hostRect.bottom && paper.bottom > hostRect.top;
+      if (overlayMotions.size) refreshOverlayROI(hostRect);
       const labelViewportHeight = paperOverlaps ? Math.min(host.clientHeight, paper.top - hostRect.top + (host.clientWidth < 500 ? 56 : 42) - 8) : host.clientHeight;
-      // Measure together before positioning; hidden labels otherwise report zero
-      // width and a fallback cannot reserve the actual long endpoint name.
-      const sizes = new Map([...visuals].map(([id, visual]) => [id, { width: visual.label.offsetWidth || 130, height: visual.label.offsetHeight || 30 }]));
+      // Read the complete batch before positioning. Offscreen captions keep
+      // their measured size until content, typography or viewport changes.
+      if (measureLabels) {
+        for (const visual of visuals.values()) visual.label.hidden = false;
+        labelSizes = new Map([...visuals].map(([id, visual]) => [id, { width: visual.label.offsetWidth || 130, height: visual.label.offsetHeight || 30 }]));
+        measureLabels = false; labelMeasureVersion++;
+      }
       const ordered = [...visuals].sort(([a], [b]) => Number(viewedIds.has(b)) - Number(viewedIds.has(a)) || Number(b === viewingFrom) - Number(a === viewingFrom) || Number(b === current.selected) - Number(a === current.selected));
+      const nextPlacementKey = JSON.stringify([camera.matrixWorld.elements, camera.projectionMatrix.elements, layout, host.clientWidth, labelViewportHeight, labelMeasureVersion, ordered.map(([id]) => id), current.selectedIds, current.selected]);
+      if (nextPlacementKey !== labelPlacementKey) {
+      labelPlacementKey = nextPlacementKey;
+      const occupied: LabelRect[] = [];
       for (const [id, visual] of ordered) {
         const p = pointFor(id); if (!p) continue;
         const projected = new THREE.Vector3(p.x, byId.get(id)?.kind === 'service' ? 3 : byId.get(id)?.kind === 'queue' ? world === 'factory' ? .9 : 2.7 : byId.get(id)?.kind === 'route' || byId.get(id)?.kind === 'delay' ? .5 : world === 'factory' ? 1.1 : 2.7, p.z).project(camera);
-        const { width, height } = sizes.get(id)!;
+        const { width, height } = labelSizes.get(id)!;
         const placed = placeLabel({ x: (projected.x * .5 + .5) * host.clientWidth - width / 2, y: (-projected.y * .5 + .5) * host.clientHeight - height, width, height }, { width: host.clientWidth, height: labelViewportHeight }, occupied, []);
         visual.label.hidden = !placed;
         visual.connector.style.display = placed ? '' : 'none'; visual.pin.style.display = placed ? '' : 'none';
@@ -675,14 +793,28 @@ export function WorldScene(props: Props) {
           visual.pin.setAttribute('cx', String(x)); visual.pin.setAttribute('cy', String(y)); visual.connector.classList.toggle('is-selected', selected.has(id)); visual.pin.classList.toggle('is-selected', selected.has(id));
         }
       }
+      }
       // Camera invariants use stable node anchors. Pointer samples below can
       // legitimately change when captions or people occlude a hit location.
       host.dataset.nodeProjections = JSON.stringify([...visuals].map(([id, visual]) => {
         const point = visual.group.getWorldPosition(new THREE.Vector3()).project(camera);
         return { id, x: (point.x * .5 + .5) * host.clientWidth, y: (-point.y * .5 + .5) * host.clientHeight };
       }));
+      let movingOverlayInView = false;
+      for (const element of movingOverlays) {
+        if (!element.isConnected) { movingOverlays.delete(element); continue; }
+        const previous = overlayRects.get(element), rect = element.getBoundingClientRect(); overlayRects.set(element, rect);
+        const overlaps = (value: DOMRect) => value.width > 0 && value.height > 0 && value.left < hostRect.right && value.right > hostRect.left && value.top < hostRect.bottom && value.bottom > hostRect.top;
+        if (overlaps(rect) || previous && overlaps(previous)) movingOverlayInView = true;
+      }
+      for (const element of overlayMotions.keys()) if (!element.isConnected) { overlayIntersection?.unobserve(element); overlayMotions.delete(element); movingOverlays.delete(element); }
       // Sample the real semantic hit test, including people and DOM overlays.
       // An occluded proxy center is not a usable pointer-drag starting point.
+      const nextPickPointsKey = JSON.stringify([camera.matrixWorld.elements, camera.projectionMatrix.elements, hostRect.left, hostRect.top, hostRect.width, hostRect.height, labelPlacementKey,
+        [...pickCenters].map(([id, proxy]) => [id, proxy.uuid, proxy.matrixWorld.elements, (proxy as THREE.InstancedMesh).count ?? 1]),
+        [...loadedVariants], motion.people.map(person => [person.id, person.nodeId, person.variant, person.position, person.heading]), loading.hidden, loading.textContent, loadErrors, detailFailures.size, overlayVersion, movingOverlayInView ? renderCount : 0]);
+      if (nextPickPointsKey !== pickPointsKey) {
+      pickPointsKey = nextPickPointsKey;
       host.dataset.pickPoints = JSON.stringify(current.project.model.nodes.map(node => {
         const proxy = pickCenters.get(node.id); if (!proxy) return null;
         proxy.geometry.computeBoundingBox();
@@ -691,7 +823,8 @@ export function WorldScene(props: Props) {
           const matrix = new THREE.Matrix4(); if (instanced.isInstancedMesh) instanced.getMatrixAt(i, matrix);
           const bounds = proxy.geometry.boundingBox!.clone().applyMatrix4(matrix).applyMatrix4(proxy.matrixWorld);
           const point = visiblePickPoint(bounds, camera, { width: host.clientWidth, height: host.clientHeight }, (x, y) => {
-            if (document.elementFromPoint(hostRect.left + x, hostRect.top + y) !== canvas) return false;
+            const element = document.elementFromPoint(hostRect.left + x, hostRect.top + y);
+            if (element !== canvas) { if (element && !generatedDOM(element)) overlayRects.set(element, element.getBoundingClientRect()); return false; }
             const hit = pickAt(x / host.clientWidth * 2 - 1, -y / host.clientHeight * 2 + 1);
             return hit?.id === node.id && !hit.person;
           });
@@ -699,6 +832,8 @@ export function WorldScene(props: Props) {
         }
         return null;
       }).filter(point => point !== null));
+      }
+      if (movingOverlays.size) requestRender();
       renderer.render(scene, camera); host.dataset.renderCount = String(++renderCount);
       host.dataset.renderMs = String(performance.now() - started); host.dataset.drawCalls = String(renderer.info.render.calls); host.dataset.renderPending = 'false';
       host.dataset.rendererResources = JSON.stringify({ geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, programs: renderer.info.programs?.length ?? 0, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles });
@@ -724,7 +859,10 @@ export function WorldScene(props: Props) {
       fitProject.current = () => {};
       retryAssets.current = () => setAttempt(value => value + 1);
       alive = false; cancelGesture.current = () => {}; invalidate.current = () => {}; cancelAnimationFrame(scheduled); cancel();
-      resize.disconnect(); controls.dispose(); document.removeEventListener('keydown', key, true); document.removeEventListener('visibilitychange', visible);
+      resize.disconnect(); overlayObserver.disconnect(); overlayIntersection?.disconnect(); controls.dispose(); document.removeEventListener('keydown', key, true); document.removeEventListener('visibilitychange', visible);
+      for (const name of ['transitionrun', 'transitionend', 'transitioncancel', 'animationstart', 'animationend', 'animationcancel']) document.removeEventListener(name, overlayMotion, true);
+      window.removeEventListener('scroll', viewportMoved, true); window.removeEventListener('resize', viewportMoved); document.fonts.removeEventListener('loadingdone', fontChanged);
+      document.removeEventListener('toggle', viewportMoved, true); document.removeEventListener('beforetoggle', viewportMoved, true);
       canvas.removeEventListener('pointerdown', pointerDown); canvas.removeEventListener('pointermove', pointerMove); canvas.removeEventListener('pointerup', pointerUp); canvas.removeEventListener('pointercancel', cancel); canvas.removeEventListener('lostpointercapture', lostCapture);
       host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focus); host.removeEventListener('queuelab:zoom', zoom); host.removeEventListener('queuelab:cancel-move', cancel); host.removeEventListener('queuelab:show-connection', connection);
       cleanups.forEach(cleanup => cleanup()); edgeOwned.forEach(resource => resource.dispose()); resources.forEach(resource => resource.dispose());
