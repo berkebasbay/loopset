@@ -675,6 +675,12 @@ export function WorldScene(props: Props) {
           visual.pin.setAttribute('cx', String(x)); visual.pin.setAttribute('cy', String(y)); visual.connector.classList.toggle('is-selected', selected.has(id)); visual.pin.classList.toggle('is-selected', selected.has(id));
         }
       }
+      // Camera invariants use stable node anchors. Pointer samples below can
+      // legitimately change when captions or people occlude a hit location.
+      host.dataset.nodeProjections = JSON.stringify([...visuals].map(([id, visual]) => {
+        const point = visual.group.getWorldPosition(new THREE.Vector3()).project(camera);
+        return { id, x: (point.x * .5 + .5) * host.clientWidth, y: (-point.y * .5 + .5) * host.clientHeight };
+      }));
       // Sample the real semantic hit test, including people and DOM overlays.
       // An occluded proxy center is not a usable pointer-drag starting point.
       host.dataset.pickPoints = JSON.stringify(current.project.model.nodes.map(node => {
