@@ -1,5 +1,7 @@
 import type { Distribution, Project, ServiceNode } from './types';
 
+export const MAX_PARALLEL_STATIONS = 1000;
+
 export function meanDuration(d: Distribution): number {
   switch (d.kind) {
     case 'constant': return d.value;
@@ -23,15 +25,18 @@ export function nextRevision(project: Pick<Project, 'revision'>): number {
 
 /** Quick capacity control also scales a dedicated pool. Shared resources stay explicit. */
 export function setCapacity(project: Project, stationId: string, capacity: number): Project {
+  if (!Number.isFinite(capacity)) throw new Error('Enter a finite station count.');
   return mutateProject(project, p => {
     const node = p.model.nodes.find(n => n.id === stationId);
     if (!node || node.kind !== 'service') return;
-    node.servers = Math.max(1, Math.min(12, Math.round(capacity)));
+    node.servers = Math.max(1, Math.min(MAX_PARALLEL_STATIONS, Math.round(capacity)));
     for (const req of node.resources) {
       const consumers = p.model.nodes.filter(n => n.kind === 'service' && n.resources.some(r => r.poolId === req.poolId));
       const pool = p.model.resources.find(r => r.id === req.poolId);
       if (pool && consumers.length === 1) {
-        pool.capacity = Math.min(pool.installedCapacity, node.servers * req.units);
+        const required = Math.min(MAX_PARALLEL_STATIONS, node.servers * req.units);
+        pool.installedCapacity = Math.max(pool.installedCapacity, required);
+        pool.capacity = required;
       }
     }
   });
