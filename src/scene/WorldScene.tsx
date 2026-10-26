@@ -14,6 +14,7 @@ import { CatalogStore } from './CatalogStore';
 import { AnimatedPeople } from './AnimatedPeople';
 import { PeopleMotion, type PersonTarget } from './peopleMotion';
 import { operatorTargets } from './operatorLayout';
+import { WorldSurroundings } from './WorldSurroundings';
 import { placeLabel, type LabelRect } from './labelLayout';
 import { stepKindLabels } from '../ui/messages/labels';
 import { worldSceneMessages as m } from '../ui/messages/WorldScene';
@@ -74,10 +75,11 @@ export function WorldScene(props: Props) {
     const operatorAssignments = new Map<string, string>();
     let motionInitialized = false, motionRun = '', motionEpoch = -1, motionLayout = props.project.layout;
     let lastPlaying = false, settleUntil = 0, motionClock = -Infinity;
+    let activitySeconds = 0, activityTick: number | null = null;
     let traceSnapshot: RunResult | null | undefined;
     const entities = new Map<string, RunResult['entities'][number]>(), completeLocations = new Map<string, string>();
     const camera = new THREE.OrthographicCamera(-16, 16, 12, -12, .1, 3000);
-    const direction = new THREE.Vector3(8, 30, 50).normalize();
+    const direction = new THREE.Vector3(9, 28, 44).normalize();
     const controls = new OrbitControls(camera, canvas);
     controls.enableDamping = false; controls.enableRotate = true; controls.screenSpacePanning = false;
     controls.minPolarAngle = .18; controls.maxPolarAngle = Math.PI / 2.15;
@@ -86,19 +88,21 @@ export function WorldScene(props: Props) {
     renderer.setPixelRatio(Math.min(devicePixelRatio, props.quality === 'low' ? 1 : 1.6));
     renderer.shadowMap.enabled = props.quality !== 'low' && props.project.model.nodes.length <= 30;
     renderer.shadowMap.needsUpdate = true;
-    const hemi = new THREE.HemisphereLight('#ffffff', '#9aa9b6', .9); scene.add(hemi);
-    const sunlight = new THREE.DirectionalLight('#fff6e6', 3.2); sunlight.position.set(-12, 25, 18);
+    renderer.setClearColor(world === 'festival' ? '#bdceae' : world === 'factory' ? '#bec8cc' : '#cdd4c7');
+    renderer.toneMappingExposure = .95;
+    const hemi = new THREE.HemisphereLight('#ffffff', '#9aa9b6', .65); scene.add(hemi);
+    const sunlight = new THREE.DirectionalLight(world === 'festival' ? '#ffe1ae' : '#fff3dc', 2.1); sunlight.position.set(-12, 25, 18);
     sunlight.castShadow = renderer.shadowMap.enabled; sunlight.shadow.mapSize.set(2048, 2048);
     sunlight.shadow.camera.left = -40; sunlight.shadow.camera.right = 40;
     sunlight.shadow.camera.top = 40; sunlight.shadow.camera.bottom = -40;
     sunlight.shadow.camera.far = 120; sunlight.shadow.normalBias = .025;
     own(sunlight.shadow); scene.add(sunlight);
-    const fill = new THREE.DirectionalLight('#d9e8ff', .7); fill.position.set(15, 12, -8); scene.add(fill);
+    const fill = new THREE.DirectionalLight('#d9e8ff', .35); fill.position.set(15, 12, -8); scene.add(fill);
     const environment = new THREE.PMREMGenerator(renderer);
     new HDRLoader().load('/assets/environment/studio-small-09.hdr', texture => {
       if (!alive) { texture.dispose(); environment.dispose(); return; }
       const target = own(environment.fromEquirectangular(texture));
-      scene.environment = target.texture; scene.environmentIntensity = .65;
+      scene.environment = target.texture; scene.environmentIntensity = .5;
       texture.dispose(); environment.dispose(); host.dataset.environment = 'Poly Haven Studio Small 09 / CC0'; requestRender();
     }, undefined, () => { environment.dispose(); if (alive) host.dataset.environment = 'analytic-lighting'; });
     const visuals = new Map<string, VisualNode>(), pickables: THREE.Mesh[] = [];
@@ -140,6 +144,7 @@ export function WorldScene(props: Props) {
       model.traverse(object => { if ((object as THREE.Mesh).isMesh) { const mesh = object as THREE.Mesh; mesh.castShadow = true; mesh.receiveShadow = true; } });
       return normalizer;
     }
+    const surroundings = own(new WorldSurroundings(scene, world, extent, load));
     function addProxy(group: THREE.Group, id: string) {
       group.updateWorldMatrix(true, true);
       const bounds = new THREE.Box3().setFromObject(group).applyMatrix4(group.matrixWorld.clone().invert());
@@ -180,12 +185,6 @@ export function WorldScene(props: Props) {
       floor = template.clone(true); floorDimensions = new THREE.Box3().setFromObject(floor).getSize(new THREE.Vector3());
       floor.traverse(object => { if ((object as THREE.Mesh).isMesh) (object as THREE.Mesh).receiveShadow = true; }); scene.add(floor);
     });
-    // Only the missing human/plant categories use a separately licensed source.
-    for (const offset of [-1, 1]) load('/assets/kenney/potted-plant.glb', template => {
-      const plant = modelCopy(template, { size: 1.3 });
-      plant.position.set(extent.x + offset * (extent.width / 2 - 1), 0, extent.minZ + 1); scene.add(plant);
-    });
-
     type ActorBatch = { mesh: THREE.InstancedMesh; variant: number };
     const actorBatches: ActorBatch[] = [], dummy = new THREE.Object3D();
     function actorTemplate(template: THREE.Group, variant: number, sizing?: { height?: number; size?: number }) {
@@ -224,7 +223,7 @@ export function WorldScene(props: Props) {
       const target = new THREE.Vector3(extent.x, .5, extent.z); controls.target.copy(target);
       camera.position.copy(target).addScaledVector(direction, 80); camera.lookAt(target); camera.updateMatrixWorld(true);
       const corners: THREE.Vector3[] = [];
-      for (const x of [extent.minX, extent.maxX]) for (const y of [-.2, 3.3]) for (const z of [extent.minZ, extent.maxZ]) corners.push(new THREE.Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse));
+      for (const x of [extent.minX - 1.5, extent.maxX + 1.5]) for (const y of [-.2, 4.8]) for (const z of [extent.minZ - 1.5, extent.maxZ]) corners.push(new THREE.Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse));
       const viewWidth = Math.max(...corners.map(p => p.x)) - Math.min(...corners.map(p => p.x));
       const viewHeight = Math.max(...corners.map(p => p.y)) - Math.min(...corners.map(p => p.y));
       const aspect = width / height, vertical = Math.max(viewHeight / .88, viewWidth / (aspect * .92));
@@ -336,6 +335,7 @@ export function WorldScene(props: Props) {
         visual.label.textContent = `${node.label}${queue ? ` · ${m.waiting(queue)}` : node.kind === 'sink' && current.project.model.nodes.filter(item => item.kind === 'sink').length === 1 ? ` · ${current.frame.completed} completed` : ''}`;
       }
       if (floor) { floor.scale.set(extent.width / floorDimensions.x, 1, extent.depth / floorDimensions.z); floor.position.set(extent.x, -floorDimensions.y, extent.z); }
+      if (surroundings.update(extent, camera)) renderer.shadowMap.needsUpdate = true;
       if (manualContext && (manualContext.selected !== current.selected || manualContext.cursor !== current.flow?.cursor || manualContext.topology !== JSON.stringify(flowTopology(current.project.model.nodes).links))) { currentConnection = null; manualContext = null; }
       const edgeKey = JSON.stringify([current.project.model.nodes.map(node => [node.id, 'next' in node ? node.next : node.kind === 'route' ? node.branches : null]), layout, [...preview], current.selected, current.flow?.cursor, current.flow?.walk.links, currentConnection]);
       if (edgeKey !== topologyKey) { topologyKey = edgeKey; edges(); }
@@ -344,6 +344,11 @@ export function WorldScene(props: Props) {
         for (const entity of current.result?.entities ?? []) entities.set(entity.id, entity);
         for (const event of current.result?.events ?? []) if (event.kind === 'complete') completeLocations.set(event.entityId, event.nodeId);
       }
+      const now = performance.now();
+      const resetLocation = !motionInitialized || current.frame.time < motionClock || motionRun !== (current.runKey ?? '') || motionEpoch !== (current.seekEpoch ?? 0) || motionLayout !== current.project.layout || preview.size > 0 || current.reducedMotion;
+      if (resetLocation) activitySeconds = current.frame.time / 15;
+      else if (current.playing && !current.reducedMotion && activityTick !== null) activitySeconds += Math.min(.05, Math.max(0, (now - activityTick) / 1000));
+      activityTick = now;
       const personTargets: PersonTarget[] = [];
       const actorLimit = Math.min(500, current.frame.actors.length), rank: Record<string, number> = Object.create(null);
       const variantFor = (id: string) => { let hash = 0; for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0; return hash & 1; };
@@ -368,9 +373,7 @@ export function WorldScene(props: Props) {
         }
       }
       const effectiveLayout = { ...layout, ...Object.fromEntries(preview) };
-      personTargets.push(...operatorTargets(current.project, current.frame, effectiveLayout, operatorAssignments));
-      const now = performance.now();
-      const resetLocation = !motionInitialized || current.frame.time < motionClock || motionRun !== (current.runKey ?? '') || motionEpoch !== (current.seekEpoch ?? 0) || motionLayout !== current.project.layout || preview.size > 0 || current.reducedMotion;
+      personTargets.push(...operatorTargets(current.project, current.frame, effectiveLayout, operatorAssignments, { seconds: activitySeconds, active: !current.reducedMotion && current.frame.time < (current.replayUntil ?? current.project.model.horizon) }));
       if (resetLocation || current.playing) settleUntil = 0;
       const endedNaturally = lastPlaying && !current.playing && !resetLocation && current.frame.time >= (current.replayUntil ?? current.project.model.horizon);
       if (endedNaturally) settleUntil = now + 10_000;
@@ -395,7 +398,7 @@ export function WorldScene(props: Props) {
       if (resetMotion || animate) renderer.shadowMap.needsUpdate = true;
       if (!motion.moving) settleUntil = 0;
       motionInitialized = true; motionRun = current.runKey ?? ''; motionEpoch = current.seekEpoch ?? 0; motionLayout = current.project.layout; motionClock = current.frame.time; lastPlaying = Boolean(current.playing);
-      if (animate && motion.moving) requestRender();
+      if (animate && (motion.moving || current.playing && motion.working)) requestRender();
       const sinks = current.project.model.nodes.filter(node => node.kind === 'sink'), exit = sinks.length === 1 ? sinks[0] : null, exitPoint = exit ? pointFor(exit.id) : null;
       const completedMarkers = exit ? Math.min(world === 'factory' ? 24 : 0, current.frame.completed) : 0;
       if (exitPoint) for (let i = 0; i < completedMarkers; i++) {
@@ -416,6 +419,7 @@ export function WorldScene(props: Props) {
       renderer.render(scene, camera); host.dataset.renderCount = String(++renderCount); host.dataset.renderPending = 'false';
       const represented = [...new Set(actorBatches.map(batch => batch.variant))].filter(variant => variant < (world === 'factory' ? 1 : 2)).reduce((count, variant) => count + matrices[variant].length, 0);
       host.dataset.operatorRepresentations = String(motion.people.filter(person => person.role === 'operator' && loadedVariants.has(person.variant)).length); host.dataset.walkingPeople = String(motion.people.filter(person => person.moving && loadedVariants.has(person.variant)).length); host.dataset.completedRepresentations = String(completedMarkers);
+      host.dataset.workingPeople = String(motion.people.filter(person => person.activity === 'work' && !person.moving && loadedVariants.has(person.variant)).length);
       host.dataset.actorCount = String(world === 'factory' ? represented : motion.people.filter(person => person.role === 'visitor' && current.frame.actors.some(actor => actor.id === person.id) && loadedVariants.has(person.variant)).length); host.dataset.retainedActorCount = String(current.frame.actors.length); host.dataset.nodeCount = String(visuals.size); host.dataset.camera = JSON.stringify({ position: camera.position.toArray(), target: controls.target.toArray(), zoom: camera.zoom });
     }
     fit(); requestRender();

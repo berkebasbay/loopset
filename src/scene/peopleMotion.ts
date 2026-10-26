@@ -10,7 +10,7 @@ export class PeopleMotion {
   step(targets: readonly PersonTarget[], options: {
     now: number; animate: boolean; reset: boolean; speed: number;
     retire: (person: PersonDraw) => PersonTarget | null;
-  }): { people: PersonDraw[]; moving: boolean } {
+  }): { people: PersonDraw[]; moving: boolean; working: boolean } {
     const elapsed = this.last === null ? 0 : Math.min(.05, Math.max(0, (options.now - this.last) / 1000));
     this.last = options.now;
     if (options.reset) this.states.clear();
@@ -23,6 +23,7 @@ export class PeopleMotion {
         this.states.set(target.id, state);
       }
       state.target = target; state.variant = target.variant; state.nodeId = target.nodeId; state.role = target.role;
+      state.activity = target.activity; state.activityPhase = target.activityPhase;
       state.retiring = false; state.retireAge = 0;
       if (options.reset) { state.position = { ...target.position }; state.heading = target.heading; }
     }
@@ -31,7 +32,7 @@ export class PeopleMotion {
       if (!state.retiring) {
         const target = options.retire(state);
         if (!target || options.reset) { this.states.delete(id); continue; }
-        state.target = target; state.nodeId = target.nodeId; state.retiring = true; state.retireAge = 0;
+        state.target = target; state.nodeId = target.nodeId; state.activity = undefined; state.activityPhase = undefined; state.retiring = true; state.retireAge = 0;
       }
       if (state.retireAge > 10_000 || this.states.size > 600) this.states.delete(id);
     }
@@ -39,7 +40,9 @@ export class PeopleMotion {
     for (const [id, state] of this.states) {
       if (state.retiring && options.animate) state.retireAge += elapsed * 1000;
       const remaining = distance(state.position, state.target.position);
-      if (remaining < .025) {
+      // A cell-local target advances only a few centimetres per display frame.
+      // Keep those short steps distance-driven instead of snapping them to Idle.
+      if (remaining < (state.activity === 'work' ? .001 : .025)) {
         state.position = { ...state.target.position }; state.heading = state.target.heading; state.moving = false;
         if (state.retiring) this.states.delete(id);
         continue;
@@ -51,7 +54,8 @@ export class PeopleMotion {
       state.position = { x: state.position.x + dx / remaining * amount, y: state.position.y + (state.target.position.y - state.position.y) / remaining * amount, z: state.position.z + dz / remaining * amount };
       state.distance += amount; state.moving = true; moving = true;
     }
-    return { people: [...this.states.values()].slice(0, 600).map(({ target: _target, retiring: _retiring, retireAge: _retireAge, ...person }) => person), moving };
+    const people = [...this.states.values()].slice(0, 600).map(({ target: _target, retiring: _retiring, retireAge: _retireAge, ...person }) => person);
+    return { people, moving, working: people.some(person => person.activity === 'work') };
   }
   clear() { this.states.clear(); this.last = null; }
 }

@@ -9,5 +9,137 @@
     "sha256": "5b760eda2766f75fda36b2c5df652a1662f82981ef64cd8fa7fe7bcd386b3a15",
     "bytes": 7576,
     "reason": "No corresponding human/plant model found in pinned NVIDIA catalogue"
+  },
+  {
+    "file": "nature-kit/tree_oak.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/nature-kit",
+    "packageSHA256": "fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d",
+    "member": "Models/GLTF format/tree_oak.glb",
+    "sha256": "d7fd8773674928c50c11b66d12c636d49bdcc15a8b1c7fbb98e6f63a3439a3f3",
+    "bytes": 14644,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "nature-kit/tree_detailed.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/nature-kit",
+    "packageSHA256": "fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d",
+    "member": "Models/GLTF format/tree_detailed.glb",
+    "sha256": "c041daf2f0fb1d49e4325227cbcd58667adbe51e9b55e8c1f0a94b74cc521b3b",
+    "bytes": 31412,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "nature-kit/ground_grass.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/nature-kit",
+    "packageSHA256": "fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d",
+    "member": "Models/GLTF format/ground_grass.glb",
+    "sha256": "da741e8ab34ca70c0c85ccda21538558a798188db2f1e265885bcdd226a5cca2",
+    "bytes": 1576,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "nature-kit/stone_largeA.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/nature-kit",
+    "packageSHA256": "fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d",
+    "member": "Models/GLTF format/stone_largeA.glb",
+    "sha256": "fe486a13775e833b1aca99413a89e013f300841de80f42ecd44ceaf43720f17b",
+    "bytes": 7124,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "racing-kit/tent.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/racing-kit",
+    "packageSHA256": "8a71ea16219315a01d00d5a90c4f6b5c090faddbc56d80ecf727e2b3b853c6c0",
+    "member": "Models/GLTF format/tent.glb",
+    "sha256": "86ad24a0e86f4d247a170157404088325615b7125b90f8e9a180c4e75939105c",
+    "bytes": 6948,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "racing-kit/tentLong.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/racing-kit",
+    "packageSHA256": "8a71ea16219315a01d00d5a90c4f6b5c090faddbc56d80ecf727e2b3b853c6c0",
+    "member": "Models/GLTF format/tentLong.glb",
+    "sha256": "aa1297953436fd8496a0ade725cb9777ed6483f3c3cc50020ed44b92f7c3d91f",
+    "bytes": 6952,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "racing-kit/lightPostModern.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/racing-kit",
+    "packageSHA256": "8a71ea16219315a01d00d5a90c4f6b5c090faddbc56d80ecf727e2b3b853c6c0",
+    "member": "Models/GLTF format/lightPostModern.glb",
+    "sha256": "8fd8fccc65f53cf54efff81546b90be23d8c32a4ea85b5bbc79c6c9d123cb925",
+    "bytes": 16584,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "furniture-kit/wallWindow.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "packageSHA256": "e67652d0932cee41683f74711c03d3e192a2af9979ef8e6b237711f5482d46b0",
+    "member": "Models/GLTF format/wallWindow.glb",
+    "sha256": "166a10fddb8a78d942bc2791186913f7015dfee8501d20efd7a7b8f196fc5c3e",
+    "bytes": 10744,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "furniture-kit/wallHalf.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "packageSHA256": "e67652d0932cee41683f74711c03d3e192a2af9979ef8e6b237711f5482d46b0",
+    "member": "Models/GLTF format/wallHalf.glb",
+    "sha256": "24db9f126891b48b443dcfa9f80d79e4321c8780aede83fb6d8f384b3d4eb35f",
+    "bytes": 3348,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "furniture-kit/bookcaseOpen.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "packageSHA256": "e67652d0932cee41683f74711c03d3e192a2af9979ef8e6b237711f5482d46b0",
+    "member": "Models/GLTF format/bookcaseOpen.glb",
+    "sha256": "750702218d68c062b15dfef6ab06a4014d1cfa8bd05f02e57c53b7e13bec157c",
+    "bytes": 18020,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "furniture-kit/bench.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "packageSHA256": "e67652d0932cee41683f74711c03d3e192a2af9979ef8e6b237711f5482d46b0",
+    "member": "Models/GLTF format/bench.glb",
+    "sha256": "ba05a6d23a5a5a44da016757632070e47ff7587ce10e2f6d6d52328b4cf5489b",
+    "bytes": 10756,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
+  },
+  {
+    "file": "furniture-kit/rugRectangle.glb",
+    "creator": "Kenney",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "packageSHA256": "e67652d0932cee41683f74711c03d3e192a2af9979ef8e6b237711f5482d46b0",
+    "member": "Models/GLTF format/rugRectangle.glb",
+    "sha256": "a989d2d59c04e3071e0c90388b113a9a8f339ce1814ef984c51cb6dcd7c8e0eb",
+    "bytes": 3188,
+    "reason": "Suitable nature/event/office architecture not present in pinned NVIDIA catalogue."
   }
 ]

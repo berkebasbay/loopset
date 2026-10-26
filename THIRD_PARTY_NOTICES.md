@@ -278,19 +278,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 # NVIDIA SimReady asset adaptations
 
-`public/assets/simready` contains adapted NVIDIA CC-BY-4.0 geometry/thumbnails from [nvidia/simready-assets](https://huggingface.co/datasets/nvidia/simready-assets): `furniture_workbench_standard_e01`, `conveyor_belt_a05`, `pallet_a01`, `environment_floor_a01`, `desk_a01`, `computer_monitor_office_a01`, `chair_office_amf_black_a01`, `box_corrugated_brown_b08`, `serviceTool_brake_lathe_a01`, `instrument_caliper_a01` and `computer_scanner_barcode_a01`.
+`public/assets/simready` contains adapted NVIDIA CC-BY-4.0 geometry/thumbnails from [nvidia/simready-assets](https://huggingface.co/datasets/nvidia/simready-assets): `furniture_workbench_standard_e01`, `conveyor_belt_a05`, `pallet_a01`, `environment_floor_a01`, `desk_a01`, `computer_monitor_office_a01`, `chair_office_amf_black_a01`, `box_corrugated_brown_b08`, `serviceTool_brake_lathe_a01`, `instrument_caliper_a01`, `computer_scanner_barcode_a01`, `structure_wall_straight_a01`, `storage_shelf_basic_a01` and `lamp_ceiling_1m_rectangle_a01`.
 
 Creator: NVIDIA. **CC-BY-4.0**, separately from QueueLab's MIT code. Full licence: `public/assets/simready/LICENSE-CC-BY-4.0.txt` (runtime `assets/simready/LICENSE-CC-BY-4.0.txt`). Pinned revision, individual licences, source/output SHA256 hashes, textures, LOD and codec modifications: `public/assets/simready/manifest.json`.
 
-Adaptations: offline OpenUSD composition, static GLB, shared material batches, local PBR palette and metric presentation scale; lathe retains original UVs and three official512px albedo atlases. Meshopt compression/vertex quantization uses gltfpack without intentional mesh simplification; repeated cartons use source-derived vertex clustering. Source physics, MDL and high-resolution texture payloads are excluded. [Preparation and bounds](docs/NVIDIA_ASSETS.md).
+Adaptations: offline OpenUSD composition, static GLB, shared material batches, local PBR palette and metric presentation scale; lathe retains original UVs and three official512px albedo atlases. Meshopt compression/vertex quantization uses gltfpack without intentional mesh simplification; repeated cartons use source-derived vertex clustering. The secondary scenery shelf is a source-derived LOD targeting25% of triangles at a0.1% error bound. Source physics, MDL and high-resolution texture payloads are excluded. [Preparation and bounds](docs/NVIDIA_ASSETS.md).
 
 # Quaternius people
 
-`public/assets/characters/*.glb`: **Quaternius**, Ultimate Modular Men / Women, **CC0-1.0**. Author: https://quaternius.com/. Original GLB or embedded glTF repacked as GLB. Source/output identity, public archive revision/path, modifications and role: `public/assets/characters/manifest.json`. The source Idle/Walk animation poses are baked locally for distance-driven instancing. Complete CC0 legal text and archived pack notice accompany the models. Archive sources are not the original authors.
+`public/assets/characters/*.glb`: **Quaternius**, Ultimate Modular Men / Women, **CC0-1.0**. Author: https://quaternius.com/. Original GLB or embedded glTF repacked as GLB. Source/output identity, public archive revision/path, modifications and role: `public/assets/characters/manifest.json`. The source Idle/Walk/Interact animation poses are baked locally for distance/phase-driven instancing. Complete CC0 legal text and archived pack notice accompany the models. Archive sources are not the original authors.
 
-# Kenney plant
+# Kenney scenery
 
-`public/assets/kenney/potted-plant.glb`: **Kenney**, [Furniture Kit](https://kenney.nl/assets/furniture-kit), **CC0-1.0**. Original GLB; manifest and pack licence included. No Mini Characters models are distributed.
+`public/assets/kenney/potted-plant.glb`: **Kenney**, [Furniture Kit](https://kenney.nl/assets/furniture-kit), **CC0-1.0**. Original GLB; manifest and pack licence included. Additional selected Nature Kit, Racing Kit and Furniture Kit models provide trees, park ground, event canopies, benches, lamps and office architecture. Each model/pack source and exact hash is in the Kenney manifest; original pack notices accompany it. Runtime scene-owned material copies adapt foliage, fabric, wood and glass colors. No Mini Characters models are distributed.
 
 # Studio lighting
 

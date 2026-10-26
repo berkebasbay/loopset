@@ -1,19 +1,23 @@
 // Offline, allowlisted asset preparation. Never clone/download the full dataset.
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, copyFile, rename } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repo = 'nvidia/simready-assets';
-const choices = ['furniture_workbench_standard_e01', 'conveyor_belt_a05', 'pallet_a01', 'environment_floor_a01', 'desk_a01', 'computer_monitor_office_a01', 'chair_office_amf_black_a01', 'box_corrugated_brown_b08', 'serviceTool_brake_lathe_a01', 'instrument_caliper_a01', 'computer_scanner_barcode_a01'];
+const allowlist = ['furniture_workbench_standard_e01', 'conveyor_belt_a05', 'pallet_a01', 'environment_floor_a01', 'desk_a01', 'computer_monitor_office_a01', 'chair_office_amf_black_a01', 'box_corrugated_brown_b08', 'serviceTool_brake_lathe_a01', 'instrument_caliper_a01', 'computer_scanner_barcode_a01', 'structure_wall_straight_a01', 'storage_shelf_basic_a01', 'lamp_ceiling_1m_rectangle_a01'];
+const choices = process.env.SIMREADY_ONLY ? [...new Set(process.env.SIMREADY_ONLY.split(','))] : allowlist;
+if (choices.some(name => !allowlist.includes(name))) throw new Error('Asset is outside the explicit allowlist');
 const source = new URL('../.private/assets/simready/', import.meta.url);
 const output = new URL('../public/assets/simready/', import.meta.url);
-const limit = 100 * 1024 * 1024;
+const limit = 160 * 1024 * 1024;
 let downloaded = 0;
 const hash = data => createHash('sha256').update(data).digest('hex');
 let revision = process.env.SIMREADY_REVISION;
+let previous;
+try { previous = JSON.parse(await readFile(new URL('manifest.json', output), 'utf8')); } catch { /* First preparation. */ }
 if (!revision) {
-  try { revision = JSON.parse(await readFile(new URL('manifest.json', output), 'utf8')).revision; } catch { /* First preparation pins main below. */ }
+  revision = previous?.revision;
 }
 if (!revision) {
   const response = await fetch(`https://huggingface.co/api/datasets/${repo}/revision/main`);
@@ -21,6 +25,7 @@ if (!revision) {
   revision = (await response.json()).sha;
 }
 if (!/^[a-f0-9]{40}$/.test(revision)) throw new Error('Missing pinned revision');
+if (process.env.SIMREADY_ONLY && previous?.revision && previous.revision !== revision) throw new Error('Cannot merge different source revisions');
 await mkdir(source, { recursive: true });
 await mkdir(output, { recursive: true });
 
@@ -78,7 +83,19 @@ for (const name of choices) {
   const conversion = spawnSync(process.env.QUEUELAB_ASSET_PYTHON || 'python3', [fileURLToPath(new URL('./simready-to-glb.py', import.meta.url)), fileURLToPath(new URL(root.path, source)), fileURLToPath(new URL(file, output))], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1', PYTHONPATH: fileURLToPath(new URL('../.private/tools/usd-core-26.11/', import.meta.url)) }, maxBuffer: 1024 * 1024 });
   if (conversion.status !== 0) throw new Error(conversion.stderr || conversion.stdout);
   const statistics = JSON.parse(conversion.stdout.trim().split('\n').at(-1));
-  const glb = await readFile(new URL(file, output));
+  let glb = await readFile(new URL(file, output)), optimization;
+  if (glb.length > 20 * 1024 * 1024) {
+    // Enforce the browser budget on the shipped codec payload, retaining the
+    // original geometry privately; never lower the runtime size guard.
+    const backup = new URL('../.private/assets/uncompressed-catalog/', import.meta.url);
+    await mkdir(backup, { recursive: true }); await copyFile(new URL(file, output), new URL(file, backup));
+    const packed = new URL(file.replace('.glb', '-packed.glb'), output);
+    const sceneryLOD = name === 'storage_shelf_basic_a01' ? ['-si', '0.25', '-se', '0.001'] : [];
+    const result = spawnSync('npm', ['exec', '--yes', '--package=gltfpack@1.3.0', '--', 'gltfpack', '-i', fileURLToPath(new URL(file, output)), '-o', fileURLToPath(packed), '-cc', '-ce', 'ext', '-vp', '16', '-vt', '16', '-vn', '12', '-kn', '-km', ...sceneryLOD], { encoding: 'utf8' });
+    if (result.status !== 0) throw new Error(result.stderr || result.stdout);
+    optimization = { tool: 'gltfpack1.3.0', sourceBytes: glb.length, sourceSHA256: hash(glb), options: '-cc -ce ext -vp16 -vt16 -vn12 -kn -km' + (sceneryLOD.length ? ' -si0.25 -se0.001' : ''), intentionalSimplification: sceneryLOD.length > 0 };
+    glb = await readFile(packed); await rename(packed, new URL(file, output));
+  }
   if (glb.length > (name === 'serviceTool_brake_lathe_a01' ? 24 : 20) * 1024 * 1024) throw new Error(`Browser asset too large: ${file}`);
   let actorLOD;
   if (name === 'box_corrugated_brown_b08') {
@@ -92,9 +109,10 @@ for (const name of choices) {
   if (!thumb || thumb.size > 2 * 1024 * 1024) throw new Error(`Missing bounded thumbnail: ${name}`);
   const thumbData = await get(thumb);
   await writeFile(new URL(`${name}.png`, output), thumbData);
-  records.push({ name, file, actorLOD, ...(textures.length ? { textures } : {}), thumbnail: `${name}.png`, thumbnailSHA256: hash(thumbData), revision, license: metadata.license, creator: 'NVIDIA', source: `https://huggingface.co/datasets/${repo}/tree/${revision}/${name}`, modifications: textures.length ? 'Composed OpenUSD geometry with retained UVs, three source-provided 512px UDIM albedo atlases and material-family PBR; no physics/MDL/4K payloads.' : 'Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.', bytes: glb.length, sha256: hash(glb), ...statistics, inputs });
+  records.push({ name, file, actorLOD, ...(optimization ? { optimization } : {}), ...(textures.length ? { textures } : {}), thumbnail: `${name}.png`, thumbnailSHA256: hash(thumbData), revision, license: metadata.license, creator: 'NVIDIA', source: `https://huggingface.co/datasets/${repo}/tree/${revision}/${name}`, modifications: textures.length ? 'Composed OpenUSD geometry with retained UVs, three source-provided 512px UDIM albedo atlases and material-family PBR; no physics/MDL/4K payloads.' : 'Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.', bytes: glb.length, sha256: hash(glb), ...statistics, inputs });
   console.log(JSON.stringify({ asset: name, ...statistics, glbBytes: glb.length, selectedSourceBytes: downloaded }));
 }
-const manifest = { dataset: repo, revision, sourceBudgetBytes: limit, selectedSourceBytes: downloaded, fullDatasetDownloaded: false, runtimeRemoteRequests: false, assets: records };
+const retained = process.env.SIMREADY_ONLY ? (previous?.assets ?? []).filter(asset => !choices.includes(asset.name)) : [];
+const manifest = { dataset: repo, revision, sourceBudgetBytes: limit, selectedSourceBytes: downloaded, selectedSourceBytesNote: 'Bytes processed in the latest bounded preparation; earlier prepared models may be retained by SIMREADY_ONLY.', fullDatasetDownloaded: false, runtimeRemoteRequests: false, assets: [...retained, ...records] };
 await writeFile(new URL('manifest.json', output), JSON.stringify(manifest, null, 2) + '\n');
 console.log(`Prepared ${records.length} assets; source bytes ${downloaded}; no full dataset, texture or duplicate-source download.`);

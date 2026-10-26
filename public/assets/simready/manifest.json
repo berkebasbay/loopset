@@ -1,8 +1,9 @@
 {
   "dataset": "nvidia/simready-assets",
   "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
-  "sourceBudgetBytes": 104857600,
-  "selectedSourceBytes": 85290864,
+  "sourceBudgetBytes": 167772160,
+  "selectedSourceBytes": 57069502,
+  "selectedSourceBytesNote": "Bytes processed in the latest bounded preparation; earlier prepared models may be retained by SIMREADY_ONLY.",
   "fullDatasetDownloaded": false,
   "runtimeRemoteRequests": false,
   "assets": [
@@ -678,8 +679,174 @@
         "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
         "intentionalSimplification": false
       }
+    },
+    {
+      "name": "structure_wall_straight_a01",
+      "file": "structure_wall_straight_a01.glb",
+      "thumbnail": "structure_wall_straight_a01.png",
+      "thumbnailSHA256": "1f177c3ce11510660c0334fef00b5f024ec30a803ffa86268c1ee202a62bbb11",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/structure_wall_straight_a01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 492552,
+      "sha256": "16ccbd763040e2a3193b3bbc2ed5aae35824027e6aea465c467f75283b188967",
+      "meshes": 1,
+      "triangles": 103006,
+      "materialBatches": 2,
+      "originalDimensions": [
+        0.7400011718273163,
+        11.100050926208496,
+        6.000004291534424
+      ],
+      "inputs": [
+        {
+          "path": "structure_wall_straight_a01/simready_usd/sm_structure_wall_straight_a01_01.usd",
+          "bytes": 22956,
+          "sha256": "4087cc6e2cfd93e802c4b2ee73eb330ab27f1068d11484a8616cf8b460202461"
+        },
+        {
+          "path": "structure_wall_straight_a01/simready_usd/payloads/base.usda",
+          "bytes": 10321,
+          "sha256": "49eb8ea17146a133ae41d68b3ca5cb7d14d044b74efcd6baeb8401a8d5e7b1d0"
+        },
+        {
+          "path": "structure_wall_straight_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 4764906,
+          "sha256": "ea9baf096e286c774529362a966c52e1b75558b36d7d2b3d8d069e3a34bdaa6d"
+        },
+        {
+          "path": "structure_wall_straight_a01/simready_usd/payloads/instances.usda",
+          "bytes": 287694,
+          "sha256": "cc683980d51d1253a8d876190f033d636f0c7208526644aae06ac83ef6df2012"
+        },
+        {
+          "path": "structure_wall_straight_a01/simready_usd/payloads/materials.usda",
+          "bytes": 52790,
+          "sha256": "9065d7b266997ba1e2539c35121388faeda2d82aa0a3442022f83d1551556045"
+        }
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 2928156,
+        "sourceSHA256": "9904f4b0904e286061f5a47990f8e9e289fa716c40370f66170423ba7d4367c6",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
+    },
+    {
+      "name": "storage_shelf_basic_a01",
+      "file": "storage_shelf_basic_a01.glb",
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 31868376,
+        "sourceSHA256": "97692dc5c8d9fb2c2ead1e7160ca2472a3945023689aa6df8ee130803afef3dd",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km -si0.25 -se0.001",
+        "intentionalSimplification": true,
+        "usage": "Secondary scenery only; source-derived LOD with0.1 percent error bound."
+      },
+      "thumbnail": "storage_shelf_basic_a01.png",
+      "thumbnailSHA256": "c8cf79d1efe3d397353c2661019b2d68143f1593affe63048c804fd80f93d026",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/storage_shelf_basic_a01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 1393260,
+      "sha256": "edbddda6696f82f516b5211af6cbcd2e9a98131922ad7edefba123735a0dc81d",
+      "meshes": 1,
+      "triangles": 1326754,
+      "materialBatches": 1,
+      "originalDimensions": [
+        1.26736181974411,
+        2.422749940538779,
+        2.4942731857299805
+      ],
+      "inputs": [
+        {
+          "path": "storage_shelf_basic_a01/simready_usd/sm_storage_shelf_basic_a01_01.usd",
+          "bytes": 22776,
+          "sha256": "e8c4fe4ff0c84d93596030d7e9f35127f4babc7d9cf6ae1232069f7d225bf2e0"
+        },
+        {
+          "path": "storage_shelf_basic_a01/simready_usd/payloads/base.usda",
+          "bytes": 9329,
+          "sha256": "71998d2cbf29a8838af4419cdc239a147e9a2b21b95f39197a05e2d61aeb6ad3"
+        },
+        {
+          "path": "storage_shelf_basic_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 49110128,
+          "sha256": "5fd53afc0631b0b9f3c37080715b5726f442fc1eeb89381f45bdadf51620522f"
+        },
+        {
+          "path": "storage_shelf_basic_a01/simready_usd/payloads/instances.usda",
+          "bytes": 7817,
+          "sha256": "59f6845520912a17c1d5b0e39bf179927d8cd21c46c751c96d9e3a123a68e9d1"
+        },
+        {
+          "path": "storage_shelf_basic_a01/simready_usd/payloads/materials.usda",
+          "bytes": 12767,
+          "sha256": "db0c5b63a3b5c43e7bde6e374544d45203ff410268c2759be0987db30f0028a7"
+        }
+      ],
+      "runtimeTriangles": 331664
+    },
+    {
+      "name": "lamp_ceiling_1m_rectangle_a01",
+      "file": "lamp_ceiling_1m_rectangle_a01.glb",
+      "thumbnail": "lamp_ceiling_1m_rectangle_a01.png",
+      "thumbnailSHA256": "e1c2c32c12b0d167b98e4fd96e30de61758e17b8f39aba82c80972880950c969",
+      "revision": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+      "license": "CC-BY-4.0",
+      "creator": "NVIDIA",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/lamp_ceiling_1m_rectangle_a01",
+      "modifications": "Composed with OpenUSD and converted to GLB; excluded physics/MDL/4K textures; original geometry with local PBR palette, metric scale and shared material batches.",
+      "bytes": 119424,
+      "sha256": "0165fc272a649cfbc737ecaa9c9cb01769977f2b546796c515105b5efe7fa956",
+      "meshes": 1,
+      "triangles": 26892,
+      "materialBatches": 2,
+      "originalDimensions": [
+        1.0000007152557373,
+        0.3000001311302185,
+        0.40000277757644653
+      ],
+      "inputs": [
+        {
+          "path": "lamp_ceiling_1m_rectangle_a01/simready_usd/sm_lamp_ceiling_1m_rectangle_a01_01.usd",
+          "bytes": 22755,
+          "sha256": "822e855935a1de9c3b54d8c07fcfbd18589707cec0781e0bd773760f9065108e"
+        },
+        {
+          "path": "lamp_ceiling_1m_rectangle_a01/simready_usd/payloads/base.usda",
+          "bytes": 7869,
+          "sha256": "8eb8dc8fb7624f6871d6e5967b1696fefb55cd97750f446786098f692e919d1c"
+        },
+        {
+          "path": "lamp_ceiling_1m_rectangle_a01/simready_usd/payloads/geometries.usd",
+          "bytes": 1154322,
+          "sha256": "fe8ef91ca570e0e4d19504f26716ad814aa5837d2d83b39c48f8c5b61be6a309"
+        },
+        {
+          "path": "lamp_ceiling_1m_rectangle_a01/simready_usd/payloads/instances.usda",
+          "bytes": 6952,
+          "sha256": "2b4d02bf5a612f82c423aa8f2020ef0708e48a3f135189a55da713b76aafbda5"
+        },
+        {
+          "path": "lamp_ceiling_1m_rectangle_a01/simready_usd/payloads/materials.usda",
+          "bytes": 21787,
+          "sha256": "ad6b8f8bb8a0ca1290a1dfdcb554e2aa88f9eba00ebd9213fd2e096202295414"
+        }
+      ],
+      "optimization": {
+        "tool": "gltfpack1.3.0",
+        "sourceBytes": 653468,
+        "sourceSHA256": "5ee57e57a4cf5bff1caf424f2f2b8bd17d96360878f0916a2accb0179810d660",
+        "options": "-cc -ce ext -vp16 -vt16 -vn12 -kn -km",
+        "intentionalSimplification": false
+      }
     }
   ],
-  "runtimeModelBytes": 8805852,
-  "selectedSourceBytesNote": "Historical bounded preparation total includes the visually rejected standalone hard hat; that model is not distributed."
+  "runtimeModelBytes": 10811088
 }

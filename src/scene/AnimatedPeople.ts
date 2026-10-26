@@ -10,15 +10,19 @@ export type PersonDraw = {
   heading: number;
   moving: boolean;
   distance: number;
+  activity?: 'work';
+  activityPhase?: number;
 };
 
 const PERSON_LIMIT = 600;
 const WALK_POSES = 16;
+const WORK_POSES = 16;
+const WORK_START = 1 + WALK_POSES;
 type ActorMaterial = THREE.Material | THREE.Material[];
 type ActorMesh = THREE.InstancedMesh<THREE.BufferGeometry, ActorMaterial>;
 type PosePart = { geometry: THREE.BufferGeometry; material: ActorMaterial };
 type Pose = { parts: PosePart[] };
-type Variant = { template: THREE.Group; height: number; poses: Pose[] };
+type Variant = { template: THREE.Group; height: number; poses: Pose[]; scale: number; workChecked: boolean };
 type Bucket = { variant: number; pose: number; capacity: number; meshes: ActorMesh[] };
 type RawPose = { parts: PosePart[]; bounds: THREE.Box3; anchor: THREE.Vector3 };
 
@@ -83,7 +87,14 @@ function groundPose(raw: RawPose, scale: number): Pose {
   return { parts: raw.parts };
 }
 
-function bakeVariant(template: THREE.Group, height: number): Pose[] {
+function releasePoseSource(root: THREE.Group, mixer: THREE.AnimationMixer) {
+  mixer.stopAllAction(); mixer.uncacheRoot(root);
+  const skeletons = new Set<THREE.Skeleton>();
+  root.traverse(object => { const skinned = object as THREE.SkinnedMesh; if (skinned.isSkinnedMesh) skeletons.add(skinned.skeleton); });
+  skeletons.forEach(skeleton => skeleton.dispose());
+}
+
+function bakeVariant(template: THREE.Group, height: number): { poses: Pose[]; scale: number } {
   const idle = template.animations.find(clip => terminalName(clip) === 'idle')
     ?? template.animations.find(clip => ['man_idle', 'woman_idle'].includes(terminalName(clip)));
   const walk = template.animations.find(clip => terminalName(clip) === 'walk')
@@ -113,16 +124,31 @@ function bakeVariant(template: THREE.Group, height: number): Pose[] {
       mixer.setTime(walk.duration * frame / WALK_POSES);
       poses.push(groundPose(samplePose(root), scale));
     }
-    return poses;
+    return { poses, scale };
   } catch (error) {
     poses.forEach(pose => pose.parts.forEach(part => part.geometry.dispose()));
     throw error;
   } finally {
-    mixer.stopAllAction(); mixer.uncacheRoot(root);
-    const skeletons = new Set<THREE.Skeleton>();
-    root.traverse(object => { const skinned = object as THREE.SkinnedMesh; if (skinned.isSkinnedMesh) skeletons.add(skinned.skeleton); });
-    skeletons.forEach(skeleton => skeleton.dispose());
+    releasePoseSource(root, mixer);
   }
+}
+
+/** Optional bank: only an exact Interact clip may illustrate work. */
+function bakeWorkPoses(template: THREE.Group, scale: number): Pose[] {
+  const clip = template.animations.find(clip => terminalName(clip) === 'interact');
+  if (!clip || !Number.isFinite(clip.duration) || clip.duration <= 0) return [];
+  const root = cloneSkeleton(template) as THREE.Group, mixer = new THREE.AnimationMixer(root), poses: Pose[] = [];
+  try {
+    mixer.clipAction(clip).reset().setLoop(THREE.LoopRepeat, Infinity).play();
+    for (let frame = 0; frame < WORK_POSES; frame++) {
+      mixer.setTime(clip.duration * frame / WORK_POSES);
+      poses.push(groundPose(samplePose(root), scale));
+    }
+    return poses;
+  } catch (error) {
+    poses.forEach(pose => pose.parts.forEach(part => part.geometry.dispose()));
+    throw error;
+  } finally { releasePoseSource(root, mixer); }
 }
 
 /** Source-posed, distance-driven instancing. The owning scene drives all updates. */
@@ -156,12 +182,12 @@ export class AnimatedPeople {
     const previous = this.variants.get(variant);
     if (previous?.template === template && previous.height === height) return;
     // Bake before replacing an existing bank, so a bad source cannot destroy it.
-    const poses = bakeVariant(template, height);
+    const bank = bakeVariant(template, height);
     if (previous) {
       for (const [key, bucket] of this.buckets) if (bucket.variant === variant) { this.disposeBucket(bucket); this.buckets.delete(key); }
       this.disposeVariant(previous);
     }
-    this.variants.set(variant, { template, height, poses });
+    this.variants.set(variant, { template, height, ...bank, workChecked: false });
     if (previous) this.update([...this.drawn]);
   }
 
@@ -201,7 +227,14 @@ export class AnimatedPeople {
       const variant = this.variants.get(person.variant);
       if (!variant || ids.has(person.id) || ![person.position.x, person.position.y, person.position.z, person.heading, person.distance].every(Number.isFinite)) continue;
       const phase = ((person.distance / (variant.height * .8)) % 1 + 1) % 1;
-      const pose = person.moving ? 1 + Math.min(WALK_POSES - 1, Math.floor(phase * WALK_POSES)) : 0;
+      let pose = person.moving ? 1 + Math.min(WALK_POSES - 1, Math.floor(phase * WALK_POSES)) : 0;
+      if (!person.moving && person.activity === 'work' && Number.isFinite(person.activityPhase)) {
+        if (!variant.workChecked) {
+          variant.poses.push(...bakeWorkPoses(variant.template, variant.scale)); variant.workChecked = true;
+        }
+        const workPhase = ((person.activityPhase! % 1) + 1) % 1;
+        if (variant.poses.length > WORK_START) pose = WORK_START + Math.floor(workPhase * WORK_POSES);
+      }
       const snapshot = { ...person, position: { ...person.position } };
       this.drawn.push(snapshot); ids.add(person.id);
       const key = `${person.variant}:${pose}`;
