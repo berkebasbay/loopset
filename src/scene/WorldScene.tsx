@@ -37,7 +37,7 @@ type Disposable = { dispose(): void };
 type Lifetime = { renderer: THREE.WebGLRenderer; store: CatalogStore; dispose(): void };
 type CapacityImpostor = { mesh: THREE.InstancedMesh; target: THREE.WebGLRenderTarget; direction: THREE.Vector3; center: THREE.Vector3; width: number; height: number; dirty: boolean; environment: THREE.Texture | null };
 type VisualNode = { group: THREE.Group; art: THREE.Group; copies: THREE.Group[]; label: HTMLButtonElement; name: HTMLSpanElement; badge: HTMLSpanElement; connector: SVGLineElement; pin: SVGCircleElement; ring: THREE.Mesh; loaded: boolean; count: number; triangles: number; impostor?: CapacityImpostor; footprint?: THREE.LineSegments };
-type SavedView = { projectId: string; position: THREE.Vector3; target: THREE.Vector3; zoom: number; left: number; right: number; top: number; bottom: number };
+type SavedView = { projectId: string; position: THREE.Vector3; target: THREE.Vector3; zoom: number; left: number; right: number; top: number; bottom: number; manual: boolean };
 
 /** Only return a screen point which the real input hit test accepts. */
 export function visiblePickPoint(bounds: THREE.Box3, camera: THREE.Camera, viewport: { width: number; height: number }, accepts: (x: number, y: number) => boolean): { x: number; y: number } | null {
@@ -72,7 +72,7 @@ export function WorldScene(props: Props) {
       renderer.domElement.dataset.testid = 'world-canvas'; renderer.domElement.tabIndex = 0;
       renderer.domElement.setAttribute('role', 'img');
       renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12;
-      renderer.setClearColor('#e8ebed'); renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.setClearColor('#dedacf'); renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.shadowMap.autoUpdate = false;
       const store = new CatalogStore(); let disposed = false;
       const instance: Lifetime = { renderer, store, dispose() {
@@ -91,6 +91,7 @@ export function WorldScene(props: Props) {
     const host = mount.current, owned = lifetime.current;
     const { renderer, store } = owned, canvas = renderer.domElement;
     let viewProjectId = props.project.id;
+    let manualView = savedView.current?.projectId === viewProjectId && savedView.current.manual;
     let alive = true, scheduled = 0, renderCount = 0, pending = 0, loadErrors = 0;
     const resources = new Set<Disposable>(), cleanups: (() => void)[] = [];
     const own = <T extends Disposable>(value: T): T => { resources.add(value); return value; };
@@ -103,7 +104,7 @@ export function WorldScene(props: Props) {
     let traceSnapshot: RunResult | null | undefined;
     const entities = new Map<string, RunResult['entities'][number]>(), completeLocations = new Map<string, string>();
     const camera = new THREE.OrthographicCamera(-16, 16, 12, -12, .1, 3000);
-    const direction = new THREE.Vector3(9, 28, 44).normalize();
+    const direction = new THREE.Vector3(16, 34, 43).normalize();
     const controls = new OrbitControls(camera, canvas);
     controls.enableDamping = false; controls.enableRotate = true; controls.screenSpacePanning = false;
     controls.minPolarAngle = .18; controls.maxPolarAngle = Math.PI / 2.15;
@@ -112,16 +113,16 @@ export function WorldScene(props: Props) {
     renderer.setPixelRatio(Math.min(devicePixelRatio, props.quality === 'low' ? 1 : 1.6));
     renderer.shadowMap.enabled = props.quality !== 'low' && props.project.model.nodes.length <= 30;
     renderer.shadowMap.needsUpdate = true;
-    renderer.setClearColor(world === 'festival' ? '#bdceae' : world === 'factory' ? '#bec8cc' : '#cdd4c7');
-    renderer.toneMappingExposure = .95;
-    const hemi = new THREE.HemisphereLight('#ffffff', '#9aa9b6', .65); scene.add(hemi);
-    const sunlight = new THREE.DirectionalLight(world === 'festival' ? '#ffe1ae' : '#fff3dc', 2.1); sunlight.position.set(-12, 25, 18);
+    renderer.setClearColor(world === 'festival' ? '#d6dfc5' : world === 'factory' ? '#dedacf' : '#dce0d3');
+    renderer.toneMappingExposure = 1;
+    const hemi = new THREE.HemisphereLight('#fff8e9', '#a3ada0', .92); scene.add(hemi);
+    const sunlight = new THREE.DirectionalLight(world === 'festival' ? '#ffdfad' : '#fff0d4', 1.8); sunlight.position.set(-12, 25, 18);
     sunlight.castShadow = renderer.shadowMap.enabled; sunlight.shadow.mapSize.set(2048, 2048);
     sunlight.shadow.camera.left = -40; sunlight.shadow.camera.right = 40;
     sunlight.shadow.camera.top = 40; sunlight.shadow.camera.bottom = -40;
-    sunlight.shadow.camera.far = 120; sunlight.shadow.normalBias = .025;
+    sunlight.shadow.camera.far = 120; sunlight.shadow.normalBias = .025; sunlight.shadow.radius = 3;
     own(sunlight.shadow); scene.add(sunlight);
-    const fill = new THREE.DirectionalLight('#d9e8ff', .35); fill.position.set(15, 12, -8); scene.add(fill);
+    const fill = new THREE.DirectionalLight('#e4eee7', .5); fill.position.set(15, 12, -8); scene.add(fill);
     const environmentURL = '/assets/environment/studio-small-09.hdr';
     let environmentState: 'idle' | 'pending' | 'ready' | 'failed' = 'idle';
     let environmentTarget: THREE.WebGLRenderTarget | null = null;
@@ -131,6 +132,7 @@ export function WorldScene(props: Props) {
     const foreground = new Map<string, PlacedAsset[]>();
     const visuals = new Map<string, VisualNode>(), pickables: THREE.Mesh[] = [], pickCenters = new Map<string, THREE.Mesh>();
     const preview = new Map<string, Point>(), pickedSources = new Set<string>();
+    let hoveredId: string | null = null;
     let presentation = capacityLayout(props.project.model.nodes, sceneLayout(props.project));
     let layout = presentation.positions, extent = presentation.extent, topologyKey = '', currentConnection: number | null = null;
     let capacityKey = JSON.stringify(props.project.model.nodes.map(node => [node.id, stationCopies(node)]));
@@ -326,12 +328,14 @@ export function WorldScene(props: Props) {
     const nodes = props.project.model.nodes, services = nodes.filter(node => node.kind === 'service');
     for (const node of nodes) {
       const group = new THREE.Group(), art = new THREE.Group(); group.add(art); scene.add(group);
-      const ring = new THREE.Mesh(own(new THREE.RingGeometry(node.kind === 'service' ? 1.7 : 1.1, node.kind === 'service' ? 1.76 : 1.16, 48)), own(new THREE.MeshBasicMaterial({ color: '#74a942', side: THREE.DoubleSide, depthWrite: false })));
-      ring.rotation.x = -Math.PI / 2; ring.position.y = .14; group.add(ring);
+      const ring = new THREE.Mesh(own(new THREE.RingGeometry(node.kind === 'service' ? 1.7 : 1.1, node.kind === 'service' ? 1.83 : 1.23, 48)), own(new THREE.MeshBasicMaterial({ color: '#658f42', transparent: true, opacity: .85, side: THREE.DoubleSide, depthWrite: false })));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = .04; group.add(ring);
       const label = document.createElement('button'); label.type = 'button'; label.className = `station-label scene-node-${node.kind}`; label.dataset.stationId = node.id;
       const name = document.createElement('span'), badge = document.createElement('span'); name.className = 'station-name'; badge.className = 'station-count'; badge.hidden = true; label.append(name, badge);
       const connector = document.createElementNS(svgNS, 'line'), pin = document.createElementNS(svgNS, 'circle'); pin.setAttribute('r', '2.5'); connectorLayer.append(connector, pin);
       label.addEventListener('click', event => latest.current.onSelect(node.id, event.shiftKey || event.ctrlKey || event.metaKey ? 'toggle' : latest.current.selectedIds?.includes(node.id) ? 'inspect' : 'single'));
+      label.addEventListener('pointerenter', () => { hoveredId = node.id; requestRender(); });
+      label.addEventListener('pointerleave', () => { hoveredId = null; requestRender(); });
       labelLayer.appendChild(label);
       const visual: VisualNode = { group, art, copies: [art], label, name, badge, connector, pin, ring, loaded: false, count: -1, triangles: 0 }; visuals.set(node.id, visual);
       const placements = nodeCatalogAssets(world, node, services.findIndex(service => service.id === node.id));
@@ -348,7 +352,19 @@ export function WorldScene(props: Props) {
     }
     load(CATALOG_ASSETS.floor.file, template => {
       floor = template.clone(true); floorDimensions = new THREE.Box3().setFromObject(floor).getSize(new THREE.Vector3());
-      floor.traverse(object => { if ((object as THREE.Mesh).isMesh) (object as THREE.Mesh).receiveShadow = true; }); scene.add(floor);
+      const materials = new Map<THREE.Material, THREE.Material>();
+      const adapt = (source: THREE.Material) => {
+        let material = materials.get(source); if (material) return material;
+        material = own(source.clone()); materials.set(source, material);
+        const surface = material as THREE.MeshStandardMaterial;
+        if (surface.isMeshStandardMaterial) { surface.color.lerp(new THREE.Color(world === 'festival' ? '#c8bb9e' : world === 'factory' ? '#ddd4bd' : '#e6dac5'), .7); surface.roughness = .96; surface.metalness = 0; }
+        return material;
+      };
+      floor.traverse(object => {
+        if (!(object as THREE.Mesh).isMesh) return;
+        const mesh = object as THREE.Mesh; mesh.receiveShadow = true;
+        mesh.material = Array.isArray(mesh.material) ? mesh.material.map(adapt) : adapt(mesh.material);
+      }); scene.add(floor);
     });
     type ActorBatch = { mesh: THREE.InstancedMesh; variant: number };
     const actorBatches: ActorBatch[] = [], dummy = new THREE.Object3D();
@@ -393,17 +409,24 @@ export function WorldScene(props: Props) {
       for (const x of [framed.minX - 1.5, framed.maxX + 1.5]) for (const y of [-.2, 4.8]) for (const z of [framed.minZ - 1.5, framed.maxZ]) corners.push(new THREE.Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse));
       const viewWidth = Math.max(...corners.map(p => p.x)) - Math.min(...corners.map(p => p.x));
       const viewHeight = Math.max(...corners.map(p => p.y)) - Math.min(...corners.map(p => p.y));
-      const aspect = width / height, vertical = Math.max(viewHeight / .88, viewWidth / (aspect * .92));
-      camera.left = -vertical * aspect / 2; camera.right = vertical * aspect / 2; camera.top = vertical / 2; camera.bottom = -vertical / 2;
+      const aspect = width / height, vertical = Math.max(viewHeight / .9, viewWidth / (aspect * .94));
+      // Center the projected diorama, including the cutaway walls. Using only
+      // the floor's world-space midpoint leaves a large empty foreground.
+      const centerX = (Math.min(...corners.map(p => p.x)) + Math.max(...corners.map(p => p.x))) / 2;
+      const centerY = (Math.min(...corners.map(p => p.y)) + Math.max(...corners.map(p => p.y))) / 2;
+      camera.left = centerX - vertical * aspect / 2; camera.right = centerX + vertical * aspect / 2; camera.top = centerY + vertical / 2; camera.bottom = centerY - vertical / 2;
       camera.zoom = 1; camera.updateProjectionMatrix(); controls.update(); requestRender();
     }
-    function fit() { frameExtent(false); }
+    function fit() { manualView = false; frameExtent(false); }
     const resize = new ResizeObserver(() => {
       if (!alive || !host.clientWidth || !host.clientHeight) return;
       const width = host.clientWidth, height = host.clientHeight, previous = renderer.getSize(new THREE.Vector2());
       if (previous.x === width && previous.y === height) return;
       measureLabels = true;
       renderer.setSize(width, height);
+      // A user-selected view survives a dock/viewport resize. In automatic
+      // Fit mode the whole diorama should use the newly available space.
+      if (!manualView) { frameExtent(true); return; }
       // Opening a dock or resizing a viewport is not a Fit command. Preserve
       // the user's view and vertical world scale; only the aspect changes.
       const vertical = camera.top - camera.bottom, center = (camera.left + camera.right) / 2;
@@ -443,6 +466,8 @@ export function WorldScene(props: Props) {
     }
     function pointerMove(event: PointerEvent) {
       const picked = hit(event); canvas.style.cursor = picked ? picked.person ? 'pointer' : latest.current.moving ? 'move' : 'pointer' : 'grab';
+      const hovered = picked && !picked.person ? picked.id : null;
+      if (hovered !== hoveredId) { hoveredId = hovered; requestRender(); }
       if (!down || down.id !== event.pointerId || !down.node || down.person || down.toggle || !latest.current.moving || latest.current.editable === false) return;
       if (!down.dragging && Math.hypot(event.clientX - down.x, event.clientY - down.y) < 5) return;
       const point = new THREE.Vector3(); if (!raycaster.ray.intersectPlane(ground, point)) return;
@@ -468,12 +493,13 @@ export function WorldScene(props: Props) {
     function key(event: KeyboardEvent) { if (event.key === 'Escape' && down?.dragging) { event.preventDefault(); event.stopPropagation(); cancel(); } }
     const focus = () => {
       const p = pointFor(latest.current.selected ?? ''); if (!p) return;
+      manualView = true;
       const horizontal = camera.right - camera.left, vertical = camera.top - camera.bottom;
       camera.left = -horizontal / 2; camera.right = horizontal / 2; camera.top = vertical / 2; camera.bottom = -vertical / 2;
       const target = new THREE.Vector3(p.x, .8, p.z), delta = target.clone().sub(controls.target);
       controls.target.copy(target); camera.position.add(delta); camera.zoom = 2 * inspectionScale(); camera.updateProjectionMatrix(); controls.update(); requestRender();
     };
-    const zoom = (event: Event) => { const factor = (event as CustomEvent).detail; if (factor !== 1.25 && factor !== .8) return; camera.zoom = Math.max(.65, Math.min(controls.maxZoom, camera.zoom * factor)); camera.updateProjectionMatrix(); controls.update(); requestRender(); };
+    const zoom = (event: Event) => { const factor = (event as CustomEvent).detail; if (factor !== 1.25 && factor !== .8) return; manualView = true; camera.zoom = Math.max(.65, Math.min(controls.maxZoom, camera.zoom * factor)); camera.updateProjectionMatrix(); controls.update(); requestRender(); };
     const connection = (event: Event) => {
       const index: unknown = (event as CustomEvent).detail, current = latest.current;
       if (!Number.isInteger(index) || current.moving || current.editable === false) return;
@@ -500,6 +526,7 @@ export function WorldScene(props: Props) {
       controls.target.copy(center); camera.position.add(delta); controls.update(); camera.updateMatrixWorld(true);
       const framing = connectionFraming(points.map(point => point.clone().applyMatrix4(camera.matrixWorldInverse)), { width, height, safeTop, safeBottom });
       if (!framing) return;
+      manualView = true;
       Object.assign(camera, framing); camera.updateProjectionMatrix(); controls.update(); camera.updateMatrixWorld(true);
       currentConnection = link.index; manualContext = { selected: current.selected, topology: JSON.stringify(topology.links), cursor: current.flow?.cursor };
       const fitted = points.map(point => point.clone().project(camera));
@@ -600,9 +627,20 @@ export function WorldScene(props: Props) {
     window.addEventListener('scroll', viewportMoved, true); window.addEventListener('resize', viewportMoved);
     document.addEventListener('toggle', viewportMoved, true); document.addEventListener('beforetoggle', viewportMoved, true);
     document.fonts.addEventListener('loadingdone', fontChanged);
-    controls.addEventListener('change', requestRender);
+    let gestureView: { position: THREE.Vector3; target: THREE.Vector3; zoom: number } | null = null;
+    const viewStarted = () => { gestureView = { position: camera.position.clone(), target: controls.target.clone(), zoom: camera.zoom }; };
+    const viewChanged = () => {
+      // OrbitControls starts on pointerdown, including an ordinary selection.
+      // Only an actual navigation change opts out of automatic framing.
+      if (gestureView && (!camera.position.equals(gestureView.position) || !controls.target.equals(gestureView.target) || camera.zoom !== gestureView.zoom)) manualView = true;
+      requestRender();
+    };
+    const viewEnded = () => { gestureView = null; };
+    controls.addEventListener('start', viewStarted); controls.addEventListener('change', viewChanged); controls.addEventListener('end', viewEnded);
     canvas.addEventListener('pointerdown', pointerDown); canvas.addEventListener('pointermove', pointerMove); canvas.addEventListener('pointerup', pointerUp); canvas.addEventListener('pointercancel', cancel);
-    const lostCapture = () => { if (down) cancel(); }; canvas.addEventListener('lostpointercapture', lostCapture);
+    const lostCapture = () => { if (down) cancel(); };
+    const pointerLeave = () => { if (hoveredId) { hoveredId = null; requestRender(); } };
+    canvas.addEventListener('lostpointercapture', lostCapture); canvas.addEventListener('pointerleave', pointerLeave);
     host.addEventListener('queuelab:fit', fit); host.addEventListener('queuelab:focus', focus); host.addEventListener('queuelab:zoom', zoom); host.addEventListener('queuelab:cancel-move', cancel); host.addEventListener('queuelab:show-connection', connection);
     document.addEventListener('keydown', key, true); document.addEventListener('visibilitychange', visible);
 
@@ -638,7 +676,7 @@ export function WorldScene(props: Props) {
       presentation = capacityLayout(current.project.model.nodes, candidateLayout); layout = presentation.positions; extent = presentation.extent;
       controls.maxZoom = 6 * inspectionScale();
       const nextCapacityKey = JSON.stringify(current.project.model.nodes.map(node => [node.id, stationCopies(node)]));
-      if (nextCapacityKey !== capacityKey) { capacityKey = nextCapacityKey; surroundings.update(extent, camera); frameExtent(true); }
+      if (nextCapacityKey !== capacityKey) { capacityKey = nextCapacityKey; surroundings.update(extent, camera); if (!manualView) frameExtent(true); }
       canvas.setAttribute('aria-label', m.interactiveWorldLabel(current.project.name));
       const byId = new Map(current.project.model.nodes.map(node => [node.id, node])), selected = new Set(current.selectedIds ?? (current.selected ? [current.selected] : []));
       camera.updateMatrixWorld(true);
@@ -654,7 +692,8 @@ export function WorldScene(props: Props) {
       for (const [id, visual] of visuals) {
         const node = byId.get(id), p = pointFor(id); if (!node || !p) continue;
         syncForeground(id, visual, detail && id === current.selected);
-        visual.group.position.set(p.x, 0, p.z); visual.ring.visible = selected.has(id);
+        visual.group.position.set(p.x, 0, p.z); visual.ring.visible = selected.has(id) || hoveredId === id;
+        (visual.ring.material as THREE.MeshBasicMaterial).opacity = selected.has(id) ? .9 : .42;
         const count = stationCopies(node), projectedPixels = 3 / Math.max(.01, camera.top - camera.bottom) * camera.zoom * host.clientHeight;
         const nearLimit = projectedPixels >= 18 ? MAX_3D_CELLS : 1;
         const realCount = Math.max(1, Math.min(count, nearLimit, Math.floor(triangleBudget / Math.max(1, visual.triangles))));
@@ -773,15 +812,31 @@ export function WorldScene(props: Props) {
         measureLabels = false; labelMeasureVersion++;
       }
       const ordered = [...visuals].sort(([a], [b]) => Number(viewedIds.has(b)) - Number(viewedIds.has(a)) || Number(b === viewingFrom) - Number(a === viewingFrom) || Number(b === current.selected) - Number(a === current.selected));
-      const nextPlacementKey = JSON.stringify([camera.matrixWorld.elements, camera.projectionMatrix.elements, layout, host.clientWidth, labelViewportHeight, labelMeasureVersion, ordered.map(([id]) => id), current.selectedIds, current.selected]);
+      const nextPlacementKey = JSON.stringify([camera.matrixWorld.elements, camera.projectionMatrix.elements, layout, host.clientWidth, labelViewportHeight, labelMeasureVersion, ordered.map(([id]) => id), current.selectedIds, current.selected, current.runKey, staffTargets.length]);
       if (nextPlacementKey !== labelPlacementKey) {
       labelPlacementKey = nextPlacementKey;
       const occupied: LabelRect[] = [];
+      // Keep captions off staff heads/bodies. Group their small bounds by step
+      // so a crowd does not turn caption placement into per-person polling.
+      const staffBounds = new Map<string, THREE.Box3>();
+      for (const person of staffTargets) {
+        const bounds = staffBounds.get(person.nodeId) ?? new THREE.Box3();
+        bounds.expandByPoint(new THREE.Vector3(person.position.x - .6, .02, person.position.z - .6));
+        bounds.expandByPoint(new THREE.Vector3(person.position.x + .6, 2.55, person.position.z + .6));
+        staffBounds.set(person.nodeId, bounds);
+      }
+      const bodies: LabelRect[] = [...staffBounds.values()].map(bounds => {
+        const points: THREE.Vector3[] = [];
+        for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) points.push(new THREE.Vector3(x, y, z).project(camera));
+        const xs = points.map(point => (point.x * .5 + .5) * host.clientWidth), ys = points.map(point => (-point.y * .5 + .5) * host.clientHeight);
+        const x = Math.min(...xs), y = Math.min(...ys);
+        return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
+      });
       for (const [id, visual] of ordered) {
         const p = pointFor(id); if (!p) continue;
         const projected = new THREE.Vector3(p.x, byId.get(id)?.kind === 'service' ? 3 : byId.get(id)?.kind === 'queue' ? world === 'factory' ? .9 : 2.7 : byId.get(id)?.kind === 'route' || byId.get(id)?.kind === 'delay' ? .5 : world === 'factory' ? 1.1 : 2.7, p.z).project(camera);
         const { width, height } = labelSizes.get(id)!;
-        const placed = placeLabel({ x: (projected.x * .5 + .5) * host.clientWidth - width / 2, y: (-projected.y * .5 + .5) * host.clientHeight - height, width, height }, { width: host.clientWidth, height: labelViewportHeight }, occupied, []);
+        const placed = placeLabel({ x: (projected.x * .5 + .5) * host.clientWidth - width / 2, y: (-projected.y * .5 + .5) * host.clientHeight - height, width, height }, { width: host.clientWidth, height: labelViewportHeight }, occupied, bodies);
         visual.label.hidden = !placed;
         visual.connector.style.display = placed ? '' : 'none'; visual.pin.style.display = placed ? '' : 'none';
         if (placed) {
@@ -855,15 +910,17 @@ export function WorldScene(props: Props) {
     fitProject.current = id => { if (id !== viewProjectId) { viewProjectId = id; fit(); } };
     requestRender();
     return () => {
-      savedView.current = { projectId: viewProjectId, position: camera.position.clone(), target: controls.target.clone(), zoom: camera.zoom, left: camera.left, right: camera.right, top: camera.top, bottom: camera.bottom };
+      savedView.current = { projectId: viewProjectId, position: camera.position.clone(), target: controls.target.clone(), zoom: camera.zoom, left: camera.left, right: camera.right, top: camera.top, bottom: camera.bottom, manual: manualView };
       fitProject.current = () => {};
       retryAssets.current = () => setAttempt(value => value + 1);
       alive = false; cancelGesture.current = () => {}; invalidate.current = () => {}; cancelAnimationFrame(scheduled); cancel();
-      resize.disconnect(); overlayObserver.disconnect(); overlayIntersection?.disconnect(); controls.dispose(); document.removeEventListener('keydown', key, true); document.removeEventListener('visibilitychange', visible);
+      resize.disconnect(); overlayObserver.disconnect(); overlayIntersection?.disconnect();
+      controls.removeEventListener('start', viewStarted); controls.removeEventListener('change', viewChanged); controls.removeEventListener('end', viewEnded); controls.dispose();
+      document.removeEventListener('keydown', key, true); document.removeEventListener('visibilitychange', visible);
       for (const name of ['transitionrun', 'transitionend', 'transitioncancel', 'animationstart', 'animationend', 'animationcancel']) document.removeEventListener(name, overlayMotion, true);
       window.removeEventListener('scroll', viewportMoved, true); window.removeEventListener('resize', viewportMoved); document.fonts.removeEventListener('loadingdone', fontChanged);
       document.removeEventListener('toggle', viewportMoved, true); document.removeEventListener('beforetoggle', viewportMoved, true);
-      canvas.removeEventListener('pointerdown', pointerDown); canvas.removeEventListener('pointermove', pointerMove); canvas.removeEventListener('pointerup', pointerUp); canvas.removeEventListener('pointercancel', cancel); canvas.removeEventListener('lostpointercapture', lostCapture);
+      canvas.removeEventListener('pointerdown', pointerDown); canvas.removeEventListener('pointermove', pointerMove); canvas.removeEventListener('pointerup', pointerUp); canvas.removeEventListener('pointercancel', cancel); canvas.removeEventListener('lostpointercapture', lostCapture); canvas.removeEventListener('pointerleave', pointerLeave);
       host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focus); host.removeEventListener('queuelab:zoom', zoom); host.removeEventListener('queuelab:cancel-move', cancel); host.removeEventListener('queuelab:show-connection', connection);
       cleanups.forEach(cleanup => cleanup()); edgeOwned.forEach(resource => resource.dispose()); resources.forEach(resource => resource.dispose());
       people.dispose(); peopleMotion.clear(); scene.clear(); renderer.renderLists.dispose(); connectorLayer.remove(); labelLayer.remove(); readout.remove(); loading.remove(); host.dataset.renderPending = 'false';

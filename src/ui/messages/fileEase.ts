@@ -1,5 +1,8 @@
 /** English file/library/import/export copy shared by Files and Run insights. */
 export const fileEaseMessages = {
+  storageUpgradeBlocked: 'Another tab of this app is blocking the database upgrade. Close it and retry; existing projects are unchanged.',
+  storageContextMissing: 'Another tab of this app may have changed this project, or its comparison copy is no longer in memory. Download your draft before reopening the saved project. It was not overwritten.',
+  storageConflict: 'Another tab of this app changed this project. Download your draft before reopening the saved project. The other tab’s revision was preserved.',
   tabs: 'File tasks', projects: 'Projects', importData: 'Import data', reports: 'Reports',
   storageScope: (origin: string) => `Saved projects belong to this browser at ${origin}. Other ports, browsers and devices have separate libraries; download JSON to move a project.`,
   repairTools: 'Repair and recovery tools',

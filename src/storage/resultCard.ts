@@ -1,4 +1,5 @@
 import type { RunResult } from '../model/types';
+import { BRAND } from '../brand';
 import { safeFilename } from './csv';
 import { exportErrorMessages as messages } from '../ui/messages/exportErrors';
 
@@ -92,7 +93,7 @@ function text(context: CanvasRenderingContext2D, value: string, x: number, y: nu
 function paintResultCard(context: CanvasRenderingContext2D, content: ResultCardContent): void {
   context.fillStyle = PAPER; context.fillRect(0, 0, WIDTH, HEIGHT);
   context.fillStyle = ACCENT; context.fillRect(56, 30, 7, 27);
-  text(context, 'QueueLab', 78, 53, 340, 28, INK, 700);
+  text(context, BRAND.name, 78, 53, 340, 28, INK, 700);
   text(context, 'RESULT SNAPSHOT · LOCAL EXPORT', 890, 49, 334, 13, MUTED, 600);
   text(context, content.name, 56, 108, 1168, 36, INK, 650, 24);
   text(context, content.status, 56, 143, 440, 16, content.incomplete ? ACCENT : INK, 750);

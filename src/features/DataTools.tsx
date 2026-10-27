@@ -37,7 +37,7 @@ export function recoveryProjectKey(project: Project): string {
 export function serializeDraftRecovery(project: Project): string {
   const text = JSON.stringify({
     format: 'queuelab-unvalidated-draft', recoveryVersion: 1,
-    instructions: 'Raw repair backup, not a portable QueueLab project. Non-finite numbers use queuelabNonFinite markers. To repair manually, replace markers with valid numbers, repair validation errors, then extract the project object and open it through strict project import. In this tab, use Restore for repair.',
+    instructions: m.repairInstructions,
     project,
   }, recoveryNumber, 2);
   if (new TextEncoder().encode(text).length > FILE_LIMIT) throw new Error(m.repairBackupLimitReached);

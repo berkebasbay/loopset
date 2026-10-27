@@ -9,7 +9,7 @@ type Part = { object: THREE.Group; place: (extent: Extent) => Placement; natural
 const nvidia = (name: string) => `/assets/simready/${name}.glb`;
 const kenney = (pack: string, name: string) => `/assets/kenney/${pack}/${name}.glb`;
 
-/** Sourced scenery only: no model nodes, pick volumes, clocks or simulation data. */
+/** Sourced scenery and floor markings only: no model nodes, pick volumes or clocks. */
 export class WorldSurroundings {
   private readonly root = new THREE.Group();
   private readonly back = new THREE.Group();
@@ -17,7 +17,8 @@ export class WorldSurroundings {
   private readonly parts: Part[] = [];
   private readonly materials = new Map<THREE.Material, THREE.Material>();
   private readonly annotations = new THREE.Group();
-  private readonly annotationMaterial = new THREE.LineBasicMaterial({ color: '#d7d7be', transparent: true, opacity: .8 });
+  private readonly annotationMaterial = new THREE.LineBasicMaterial({ color: '#ebe4cd', transparent: true, opacity: .82 });
+  private readonly zoneMaterial = new THREE.LineBasicMaterial({ color: '#718167', transparent: true, opacity: .48 });
   private readonly world: World;
   private extent: Extent;
   private extentKey = '';
@@ -41,22 +42,32 @@ export class WorldSurroundings {
             const cached = this.materials.get(source); if (cached) return cached;
             const material = source.clone() as THREE.MeshStandardMaterial;
             if (material.isMeshStandardMaterial) {
-              if (/leafs/i.test(material.name)) { material.color.set('#5f7c45'); material.metalness = 0; }
-              if (material.name === 'grass') { material.color.set('#5b7d4c'); material.metalness = 0; }
-              if (material.name === 'woodBark') { material.color.set('#80613e'); material.metalness = 0; }
-              if (material.name === 'wood') material.color.set('#b99a71');
-              if (material.name === 'red') material.color.set(world === 'festival' ? '#be674d' : '#788666');
-              if (file === nvidia('environment_floor_a01')) { material.color.set(world === 'festival' ? '#626b73' : world === 'service' ? '#b5ad9f' : '#8d979e'); material.roughness = .9; }
+              if (/leafs/i.test(material.name)) { material.color.set('#6c8650'); material.metalness = 0; }
+              if (material.name === 'grass') { material.color.set('#8c9b68'); material.metalness = 0; }
+              if (material.name === 'woodBark') { material.color.set('#80694d'); material.metalness = 0; }
+              if (material.name === 'wood') { material.color.set('#c4a47b'); material.roughness = .8; }
+              if (material.name === 'red') material.color.set(world === 'festival' ? '#ba6c4f' : '#7c8b72');
+              if (file === nvidia('environment_floor_a01')) {
+                material.color.set(world === 'festival' ? '#75847a' : world === 'service' ? '#a9b3a1' : '#919d92');
+                material.roughness = .96; material.metalness = 0;
+              }
+              if (file === nvidia('structure_wall_straight_a01')) { material.color.lerp(new THREE.Color('#c6c0aa'), .22); material.roughness = .86; material.metalness = .08; }
+              if (file === kenney('racing-kit', 'pitsGarage')) {
+                if (material.name === 'grey') { material.color.set('#b2b9a9'); material.roughness = .82; }
+                // Keep the licensed garage geometry, without its unrelated
+                // racing-team decal competing with the process workspace.
+                if (material.name === 'tankco') { material.map = null; material.color.set('#52635c'); material.roughness = .82; }
+              }
               if (file === kenney('racing-kit', 'overheadLights')) {
                 if (material.name === 'grey') { material.color.set('#57636b'); material.metalness = .45; material.roughness = .45; }
                 if (material.name === 'road') material.color.set('#262c32');
                 if (material.name === 'red') { material.color.set('#fff0c4'); material.emissive.set('#ffc86a'); material.emissiveIntensity = .65; material.roughness = .25; }
               }
               if (file === kenney('racing-kit', 'tentRoofDouble')) {
-                if (material.name === 'grass') { material.color.set('#c7b28b'); material.metalness = 0; }
+                if (material.name === 'grass') { material.color.set('#dfc496'); material.metalness = 0; }
                 if (material.name === 'grey') { material.color.set('#697579'); material.metalness = .35; }
               }
-              if (material.name === 'glass') { material.color.set('#b7cdd5'); material.opacity = .25; material.depthWrite = false; }
+              if (material.name === 'glass') { material.color.set('#afc5bd'); material.opacity = .22; material.depthWrite = false; }
             }
             this.materials.set(source, material); return material;
           };
@@ -67,9 +78,10 @@ export class WorldSurroundings {
       this.position(this.parts.at(-1)!, this.extent);
     });
 
-    // A real ground asset extends beyond the active slab; this removes the
-    // floating-video-screen impression without obscuring the process controls.
-    add(world !== 'festival' ? nvidia('environment_floor_a01') : kenney('nature-kit', 'ground_grass'), e => ({ x: e.x + 4, z: e.z, y: -.32, width: e.width + 38, depth: e.depth + 30, height: .25 }));
+    // A compact plinth keeps the miniature and its real surroundings together.
+    // It grows with the model without leaving an oversized empty ground plane.
+    const extension = world === 'festival' ? 15 : world === 'factory' ? 10.2 : 8.1;
+    add(world !== 'festival' ? nvidia('environment_floor_a01') : kenney('nature-kit', 'ground_grass'), e => ({ x: e.x + (extension - 1.6) / 2, z: e.z - .2, y: -.35, width: e.width + extension + 1.6, depth: e.depth + 5, height: .28 }));
 
     if (world === 'factory') {
       // The source is an actual steel-framed wall, viewed from its room side.
@@ -98,7 +110,9 @@ export class WorldSurroundings {
       add(nvidia('environment_floor_a01'), e => ({ x: e.maxX + 7.4, z: e.minZ - .5, y: -.05, width: 7.8, height: .45, depth: 4.8 }));
       add(kenney('racing-kit', 'tentRoofDouble'), e => ({ x: e.maxX + 7.4, z: e.minZ - .7, y: .4, width: 8.2, height: 4.1, depth: 5.2 }));
       add(kenney('racing-kit', 'overheadLights'), e => ({ x: e.maxX + 7.4, z: e.minZ + 1.3, y: .4, width: 7.2, height: 4, depth: .45 }));
+      add(nvidia('environment_floor_a01'), e => ({ x: e.maxX + 3.5, z: e.z, y: -.07, width: 7, depth: 1.9, height: .055 }));
       for (const side of [-1, 1]) add(kenney('racing-kit', 'grandStand'), e => ({ x: e.maxX + 7.4 + side * 5, z: e.z - .5, width: 4.4, height: 2.5, depth: 2.6, turn: side * Math.PI / 3 }));
+      for (const side of [-1, 1]) add(kenney('nature-kit', 'tree_oak'), e => ({ x: e.maxX + 11.9, z: e.z + side * (e.depth / 2 - .5), height: 3.7 }));
     } else {
       for (let i = 0; i < 4; i++) add(kenney('furniture-kit', 'wallWindow'), e => ({ x: e.minX + (i + .5) * (e.width + 8) / 4, z: e.minZ - .4, width: (e.width + 8) / 4, depth: .22, height: 4.1 }), this.back);
       for (let i = 0; i < 2; i++) add(kenney('furniture-kit', 'wallHalf'), e => ({ x: e.minX - .3, z: e.minZ + (i + .5) * 3, width: 3, depth: .22, height: 1.5, turn: Math.PI / 2 }), this.side);
@@ -107,6 +121,8 @@ export class WorldSurroundings {
       add(kenney('furniture-kit', 'rugRectangle'), e => ({ x: e.maxX - 2.4, z: e.minZ + 1.7, width: 4.4, depth: 2.6, height: .025, y: .02 }));
       for (const side of [-1, 1]) add('/assets/kenney/potted-plant.glb', e => ({ x: e.x + side * (e.width / 2 - .7), z: e.minZ + 1.4, height: 2.2 }));
       add(kenney('furniture-kit', 'loungeSofa'), e => ({ x: e.maxX + 4.1, z: e.minZ + 1.1, width: 3.8, height: 1.1, depth: 1.3, turn: Math.PI }));
+      add(kenney('furniture-kit', 'rugRectangle'), e => ({ x: e.maxX + 4.1, z: e.z + .2, width: 5.5, depth: 5.4, height: .025, y: -.04 }));
+      add(kenney('furniture-kit', 'wallHalf'), e => ({ x: e.maxX + 4.1, z: e.maxZ - .25, width: 6.2, depth: .2, height: .7, y: -.04 }));
       add(kenney('furniture-kit', 'table'), e => ({ x: e.maxX + 4.1, z: e.z + .2, width: 3.3, height: .9, depth: 2 }));
       for (const side of [-1, 1]) add(nvidia('chair_office_amf_black_a01'), e => ({ x: e.maxX + 4.1, z: e.z + .2 + side * 1.6, height: 1.3, turn: side > 0 ? Math.PI : 0 }));
     }
@@ -116,7 +132,7 @@ export class WorldSurroundings {
 
   viewExtent() {
     const e = this.extent, extra = this.world === 'festival' ? 14 : this.world === 'factory' ? 10 : 8;
-    const minX = e.minX, maxX = e.maxX + extra, minZ = e.minZ - (this.world === 'festival' ? 4 : 1), maxZ = e.maxZ + 2;
+    const minX = e.minX - .4, maxX = e.maxX + extra, minZ = e.minZ - (this.world === 'festival' ? 3.4 : .7), maxZ = e.maxZ + 1;
     return { minX, maxX, minZ, maxZ, width: maxX - minX, depth: maxZ - minZ, x: (minX + maxX) / 2, z: (minZ + maxZ) / 2 };
   }
 
@@ -132,15 +148,28 @@ export class WorldSurroundings {
 
   private markPaths() {
     for (const child of [...this.annotations.children]) { (child as THREE.LineSegments).geometry.dispose(); child.removeFromParent(); }
-    const e = this.extent, points: THREE.Vector3[] = [];
-    const line = (x1: number, z1: number, x2: number, z2: number) => points.push(new THREE.Vector3(x1, -.055, z1), new THREE.Vector3(x2, -.055, z2));
+    const e = this.extent, points: THREE.Vector3[] = [], zones: THREE.Vector3[] = [];
+    const line = (x1: number, z1: number, x2: number, z2: number, y = -.055, target = points) => target.push(new THREE.Vector3(x1, y, z1), new THREE.Vector3(x2, y, z2));
+    const outline = (minX: number, maxX: number, minZ: number, maxZ: number) => {
+      line(minX, minZ, maxX, minZ, .018, zones); line(maxX, minZ, maxX, maxZ, .018, zones);
+      line(maxX, maxZ, minX, maxZ, .018, zones); line(minX, maxZ, minX, minZ, .018, zones);
+    };
     if (this.world === 'factory') {
+      // Painted working/loading boundaries are illustrative floor markings,
+      // not graph routes or extra travel-time assumptions.
+      outline(e.minX + .55, e.maxX - .55, e.minZ + .5, e.maxZ - .55);
       for (let i = 0; i < 5; i++) line(e.maxX + 1.5, e.z + i * 1.5, e.maxX + 8.5, e.z + i * 1.5);
       line(e.maxX + 1.5, e.z, e.maxX + 1.5, e.z + 6); line(e.maxX + 8.5, e.z, e.maxX + 8.5, e.z + 6);
+      for (let i = 0; i < 9; i++) line(e.maxX - .8, e.z - 2.5 + i * .45, e.maxX - .3, e.z - 2.2 + i * .45, .022, zones);
     } else if (this.world === 'festival') {
-      for (const side of [-1, 1]) { line(e.maxX - 1, e.z + side * .75, e.maxX + 4.2, e.z + side * .75); line(e.maxX + 4.2, e.z + side * .75, e.maxX + 7.4, e.z - 2.6 + side * .75); }
+      outline(e.minX + .55, e.maxX - .55, e.minZ + .5, e.maxZ - .55);
+      for (const side of [-1, 1]) { line(e.maxX + .1, e.z + side * .8, e.maxX + 6.8, e.z + side * .8, .012); }
+    } else {
+      outline(e.minX + .55, e.maxX - .55, e.minZ + .5, e.maxZ - .55);
+      outline(e.maxX + 1, e.maxX + 7.1, e.minZ + .5, e.maxZ - .7);
     }
     if (points.length) this.annotations.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(points), this.annotationMaterial));
+    if (zones.length) this.annotations.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(zones), this.zoneMaterial));
   }
 
   private position(part: Part, extent: Extent) {
@@ -162,5 +191,5 @@ export class WorldSurroundings {
     return changed || visibilityChanged;
   }
 
-  dispose() { this.root.removeFromParent(); this.annotations.children.forEach(child => (child as THREE.LineSegments).geometry.dispose()); this.annotationMaterial.dispose(); this.root.clear(); this.parts.length = 0; this.materials.forEach(material => material.dispose()); this.materials.clear(); }
+  dispose() { this.root.removeFromParent(); this.annotations.children.forEach(child => (child as THREE.LineSegments).geometry.dispose()); this.annotationMaterial.dispose(); this.zoneMaterial.dispose(); this.root.clear(); this.parts.length = 0; this.materials.forEach(material => material.dispose()); this.materials.clear(); }
 }

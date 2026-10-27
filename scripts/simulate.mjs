@@ -87,6 +87,6 @@ try {
   }
 } catch (error) {
   // OS paths and imported values are deliberately excluded from diagnostics.
-  process.stderr.write(`QueueLab: ${error instanceof Error ? error.message : 'Simulation could not be completed.'}\n`);
+  process.stderr.write(`Simulation: ${error instanceof Error ? error.message : 'Simulation could not be completed.'}\n`);
   process.exitCode = 1;
 }

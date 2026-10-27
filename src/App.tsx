@@ -38,6 +38,7 @@ import { easeMessages as ease } from './ui/messages/ease';
 import { BuildTray, type BuildPrefab } from './features/BuildTray';
 import './features/workspace.css';
 import './features/shellEase.css';
+import './features/quality.css';
 import { DataTools, recoveryProjectKey, serializeDraftRecovery, type RetainedDraft, type FileTab } from './features/DataTools';
 import { CouplingDetails } from './features/CouplingDetails';
 import { CalculationBudget } from './features/CalculationBudget';
@@ -65,6 +66,11 @@ const wait = (s: number) => !Number.isFinite(s) ? '—' : s >= 60 ? m.minutes((s
 const money = (n: number, currency: string) => new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n);
 const number = (n: number) => new Intl.NumberFormat('en', { maximumFractionDigits: 0 }).format(n);
 type Panel = 'worlds' | 'model' | 'compare' | 'data' | 'experiments' | 'insights' | 'budget' | 'history' | 'help' | 'scenario' | 'view' | 'rename' | 'search' | 'guide' | null;
+
+function focusChangedSince(origin: Element | null): boolean {
+  const chosen = document.activeElement;
+  return chosen instanceof HTMLElement && chosen !== origin && chosen !== document.body && chosen !== document.documentElement && chosen.isConnected && !chosen.matches(':disabled') && !chosen.closest('[hidden],[inert],[role=dialog]') && chosen.checkVisibility({ visibilityProperty: true });
+}
 
 export default function App() {
   const [pendingEdits, setPendingEdits] = useState(false);
@@ -510,8 +516,9 @@ export default function App() {
   }
   function revealNarrowSection(selector: string, focusSelector: string) {
     if (!matchMedia('(max-width:740px)').matches) return;
+    const origin = document.activeElement;
     requestAnimationFrame(() => {
-      if (currentPanel.current) return;
+      if (currentPanel.current || focusChangedSince(origin)) return;
       const section = document.querySelector<HTMLElement>(selector);
       if (!section) return;
       section.scrollIntoView({ block: 'start' });
@@ -524,7 +531,13 @@ export default function App() {
     objectDetailsOrigin.current = active instanceof HTMLElement && active !== document.body ? active : null;
     setInspectorTab('object');
     setObjectDetailsOpen(true);
-    requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-object-details-close]')?.focus({ preventScroll: true }));
+    if (!matchMedia('(max-width:740px)').matches) requestAnimationFrame(() => {
+      if (currentPanel.current || selectionRef.current.primary !== id) return;
+      // A fast click/keystroke may already have selected an input after the
+      // inspector opened. Never redirect that choice to its Close button.
+      if (focusChangedSince(active)) return;
+      document.querySelector<HTMLElement>('[data-object-details-close]')?.focus({ preventScroll: true });
+    });
     revealNarrowSection('#object-properties', '[data-object-details-close]');
   }
   function closeObjectDetails() {
@@ -603,7 +616,7 @@ export default function App() {
       let text: string; let repair = false;
       try { text = serializeProject({ ...snapshot, savedAt: new Date().toISOString() }); }
       catch { repair = true; text = serializeDraftRecovery(snapshot); }
-      downloadText(text, safeFilename(`${snapshot.name}-queuelab${repair ? '-unvalidated-repair' : ''}`, 'json'), 'application/json;charset=utf-8');
+      downloadText(text, safeFilename(`${snapshot.name}-${m.brandSlug}${repair ? '-unvalidated-repair' : ''}`, 'json'), 'application/json;charset=utf-8');
       setBackupRequestedRevision(snapshot.revision); setToast(m.backupDownloadRequested(repair));
     } catch (e) { setToast(e instanceof Error ? e.message : m.couldNotPrepareABackupKeepThisDraftOpen); }
   }
@@ -637,8 +650,8 @@ export default function App() {
   const draftSummary = normalBudget ? sx.quickSummary(ease.duration(project.model.horizon), number(normalBudget.groups[0].arrivalsPerRun), normalBudget.groups[0].stochastic, project.model.resources.length) : sx.reviewInputs;
   return <NumericDraftProvider onPendingChange={setPendingEdits}><div className="app-shell studio-shell">
     <header className="studio-header" inert={Boolean(panel)}>
-      <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>QueueLab<span className="studio-brand-dot">.</span></span></a>
-      <div className="studio-project"><h1><button className="studio-project-name" data-panel-opener="rename" aria-label={sx.renameProject} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{m.syntheticExample}</span></div>
+      <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>{m.queueLab}<span className="studio-brand-dot">.</span></span></a>
+      <div className="studio-project"><h1><button className="studio-project-name" data-panel-opener="rename" aria-label={sx.renameProject} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{sx.localProject}</span></div>
       <label className="studio-world-picker"><span>{m.chooseWorld}</span><select aria-label={m.chooseWorld} value={project.world} onChange={event => chooseWorld(event.currentTarget.value as World)}><option value="factory">{m.factory}</option><option value="festival">{m.festival}</option><option value="service">{m.service}</option></select></label>
       <div className="studio-command-actions">
         <button className="studio-icon-button" title={m.openProject} aria-label={m.openProject} onClick={event => openFiles('projects', event.currentTarget)}><FileUp size={17} /></button>
@@ -680,8 +693,10 @@ export default function App() {
           {selection.ids.length > 1 && <div className="studio-selection-summary"><span>{m.selectionSummary(selection.ids.length, selectedStep?.label ?? m.step)}</span><button onClick={event => setPanel('model', event.currentTarget)}>{m.moveOrEditSelection}</button><button onClick={() => setSelected(null)}>{m.clearSelection}</button></div>}
           {linkFrom && selectedStep && <div className="ease-connect-review"><ConnectionPicker project={project} node={project.model.nodes.find(node => node.id === linkFrom) ?? selectedStep} onChange={(next,label) => { edit(next,label); setLinkFrom(null); setConnectionPreview(null); }} onPreview={to => setConnectionPreview(previous => to ? { owner: 'tool', from: linkFrom, to } : previous?.owner === 'tool' ? null : previous)} /></div>}
           <div className="scene-area studio-canvas">
+            <div className="quality-world-brief"><p>{project.model.id === `${project.world}-model` ? sx.worldQuestions[project.world] : sx.workspaceQuestion}</p><button type="button" data-panel-opener="guide" onClick={event => { setGuideIndex(0); setPanel('guide', event.currentTarget); }}><CircleHelp size={14} />{sx.firstSteps}</button></div>
             <Suspense fallback={<div className="scene-fallback" role="status"><p>{m.buildingYourLittleWorld}</p></div>}><WorldScene playing={playing} playbackSpeed={speed} replayUntil={replayUntil} runKey={shownResult?.id} seekEpoch={visualSeekEpoch} result={shownResult} onMoveStart={() => setPlaying(false)} project={visualProject} quality={quality} frame={frame} selected={selected} selectedIds={selection.ids} reducedMotion={reducedMotion} moving={moving && !hasErrors && !revisionExhausted} editable={!hasErrors && !revisionExhausted} flow={sceneFlow} onSelect={selectFromWorld} onMove={moveSelected} onCapacityChange={changeCapacity} onEditNode={editSceneNode} /></Suspense>
           </div>
+          <div className="quality-mobile-selection"><span>{selectedStep?.label ?? m.selectionEmpty}</span><button type="button" disabled={!selectedStep} onClick={() => { if (selectedStep) editSceneNode(selectedStep.id); }}>{m.editSelectedStep}<ArrowRight size={14} /></button></div>
           <div className="studio-control-deck">
             <div className="studio-replay-row"><span className="studio-replay-label">{m.replayLabel}</span><div className="playback-bar"><button className="icon-button" aria-label={m.restartReplay} onClick={() => { setVisualSeekEpoch(value => value + 1); setTime(0); }} disabled={!canReplay}><SkipBack size={16} /></button><button className="play-toggle" aria-label={playing ? m.pauseReplay : m.playReplay} aria-keyshortcuts="Space" title={rx.replayShortcut} disabled={!canReplay} onClick={() => { manualClock.current = false; if (time >= replayUntil) setTime(0); setPlaying(!playing); }}>{playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}</button><kbd className="ease-replay-shortcut">{rx.replayShortcut}</kbd><span className="playback-time">{clock(shownResult ? frame.time : 0)}</span><input aria-label={m.replayTime} type="range" min="0" max={shownResult ? replayUntil : Number.isFinite(project.model.horizon) ? project.model.horizon : 1} step="any" value={shownResult ? frame.time : 0} disabled={!canReplay} onChange={e => { setVisualSeekEpoch(value => value + 1); setPlaying(false); setTime(replayTimeFromRange(e.currentTarget, replayUntil)); }} /><span className="playback-end">{clock(shownResult ? replayUntil : project.model.horizon)}</span><select aria-label={m.replaySpeed} value={speed} onChange={e => setSpeed(+e.target.value)}><option value="15">15×</option><option value="30">30×</option><option value="60">60×</option><option value="120">120×</option></select>{canReplay && <ReplayJump until={replayUntil} runKey={shownResult?.id} onSeek={value => { setVisualSeekEpoch(epoch => epoch + 1); setPlaying(false); setTime(value); }} />}{canReplay && <details className="studio-replay-details" onToggle={event => { const current = event.currentTarget; if (current.open) current.closest('.studio-replay-row')?.querySelectorAll<HTMLDetailsElement>('details[open]').forEach(details => { if (details !== current) details.open = false; }); }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}><summary aria-label={m.replayCounts}>{m.replayDetails}</summary><div><strong>{m.replayObservationTime(clock(frame.time))}</strong><dl><div><dt>{m.arrivedInReplay}</dt><dd>{number(frame.arrivals)}</dd></div><div><dt>{m.completed}</dt><dd>{number(frame.completed)}</dd></div><div><dt>{m.inProgress}</dt><dd>{number(frame.inSystem)}</dd></div><div><dt>{m.leftInReplay}</dt><dd>{number(frame.abandoned)}</dd></div></dl><p>{m.replayCountsScope}</p></div></details>}</div></div>
             <div className="metrics-strip"><div><span className="metric-label"><span className="tiny-square green" />{m.completedByEnd}</span><strong>{shownResult ? number(shownResult.summary.completed) : '—'}<small>{worldInfo.unit}</small></strong><span className="metric-foot">{shownResult ? m.fullRunDuration(wait(shownResult.model.horizon)) : m.runToSeeResults}</span></div><div><span className="metric-label"><span className="tiny-square amber" />{m.unfinishedByEnd}</span><strong>{shownResult ? number(shownResult.summary.inSystem) : '—'}<small>{worldInfo.unit}</small></strong><span className="metric-foot">{m.waitingOrWorkingAtEnd}</span></div><div><span className="metric-label"><span className="tiny-square orange" />{m.averageWait}</span><strong>{shownResult?.summary.waitSampleSize ? wait(shownResult.summary.meanWait) : '—'}</strong><span className="metric-foot">{m.completedJobsFullRun}</span></div><div><span className="metric-label"><span className="tiny-square grey" />{m.resourceCost}</span><strong>{shownResult ? money(shownResult.summary.cost, shownResult.model.currency) : '—'}</strong><span className="metric-foot">{m.runCurrency(project.model.currency)}</span></div></div>
@@ -706,7 +721,7 @@ export default function App() {
     {panel && <div className="modal-backdrop" onClick={() => setPanel(null)}><section className={`modal ${panel === 'model' || panel === 'data' || panel === 'experiments' || panel === 'insights' ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">{m.modalEyebrow(m.modalSection(panel))}</span><h2 id="modal-title">{panelTitle(panel)}</h2></div><button className="icon-button" aria-label={m.closeDialog} onClick={() => setPanel(null)}><X size={20} /></button></div>
       <div key={panel} className="modal-body">
       <CalculationStatus announcement={calculationStatus.announcement} active={calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />{sim.error && <p role="alert" className="ease-error">{sim.error}</p>}
-      {panel === 'scenario' && <ScenarioSettings project={project} onChange={edit} onBudget={() => setPanel('budget')} />}
+      {panel === 'scenario' && <ScenarioSettings project={project} onChange={edit} onBudget={() => setPanel('budget')} onInspect={id => { setPanel(null); editSceneNode(id); }} />}
       {panel === 'rename' && <ProjectRename key={project.id} project={project} onChange={edit} onDone={() => setPanel(null)} />}
       {panel === 'search' && <CommandSearch onCommand={navigateCommand} />}
       {panel === 'guide' && <QuickGuide index={guideIndex} onIndexChange={setGuideIndex} onTarget={guideTarget} onClose={() => setPanel(null)} />}

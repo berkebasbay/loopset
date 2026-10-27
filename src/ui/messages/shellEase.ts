@@ -19,12 +19,12 @@ export const shellEaseMessages = {
   newModel: 'New model', newModelScope: 'Start a small editable process; your current project is preserved before switching.',
   guide: 'Quick guide', guideClose: 'Close guide', guideNext: 'Next step', guidePrevious: 'Previous step', guideDone: 'Finish guide',
   guideSteps: [
-    { title: 'Choose a process step', text: 'Select a machine or open Steps. Properties shows only that step’s controls.', target: 'steps' },
-    { title: 'Set the scenario', text: 'Set run length beside Run. Select an arrival source for demand; select a station for processing time and its team.', target: 'scenario' },
-    { title: 'Calculate the plan', text: 'Run calculates a reproducible result. Replay only animates the recorded run.', target: 'run' },
-    { title: 'Compare and keep a plan', text: 'Compare shows input and outcome differences. Name a scenario to keep an alternative in the project.', target: 'compare' },
-    { title: 'Keep a portable copy', text: 'Download project JSON and reopen it from Open. Browser storage is local to this address.', target: 'download' },
+    { title: 'Change one thing', text: 'Select an object or find it in Steps. Change arrivals, processing time, stations or its team in Properties. Scenario settings controls the run length. An extra station does not add a worker.', target: 'steps', action: 'Find a process step' },
+    { title: 'Run the changed plan', text: 'Choose Run & compare to calculate. Your original result stays available. Replay shows the recorded run; changing its speed never changes the answer.', target: 'run', action: 'Go to Run' },
+    { title: 'Compare and keep it', text: 'Compare shows which inputs changed and what happened to completed work, waiting and cost. Save an alternative here. Download project JSON in the header for a portable copy; Open restores it later.', target: 'compare', action: 'Open comparison' },
   ],
+  localProject: 'ON THIS DEVICE', firstSteps: 'How it works', workspaceQuestion: 'What changes when demand or capacity changes?',
+  worldQuestions: { factory: 'What is holding up the packing line?', festival: 'How can you keep the entrance moving?', service: 'Where does the shared team need more capacity?' },
   startFlow: 'Arrival → waiting → processing → completion',
   commandScope: 'Typing searches the available actions. Calculations, downloads and new models start only when you select their action.',
   noCommands: 'No matching action or setting.', commands: {

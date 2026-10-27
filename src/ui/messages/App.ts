@@ -1,4 +1,5 @@
 /** English product messages for App. Keep model data and canonical identifiers at the call site. */
+import { BRAND } from '../../brand';
 export const appMessages = {
   revisionLimitReached: 'Revision limit reached. Duplicate this project to continue editing.',
   duplicateToEdit: 'Duplicate to edit',
@@ -120,8 +121,9 @@ export const appMessages = {
   restoreRetainedDraftForRepair: "Restore retained draft for repair",
   retainedDraftRestoredForRepairItsRetainedCopyStays: "Retained draft restored for repair. Its retained copy stays available until saved or explicitly removed.",
   changeProcessingTime: (label: string) => `Change ${label} processing time`,
-  queueLabPlayground: "QueueLab playground",
-  queueLab: "QueueLab",
+  queueLabPlayground: `${BRAND.name} playground`,
+  queueLab: BRAND.name,
+  brandSlug: BRAND.slug,
   yourLittleLab: "YOUR LITTLE LAB",
   mainNavigation: "Main navigation",
   playground: "Playground",
@@ -136,11 +138,11 @@ export const appMessages = {
   yourWorldStaysOnYourDevice: "Your world stays on your device",
   aLittleGuidance: "A little guidance",
   freeOpenSource: "FREE & OPEN SOURCE ",
-  earlyBuild: "RC2",
+  earlyBuild: "RC9",
   syntheticExample: "SYNTHETIC EXAMPLE",
   openProject: "Open project",
   saveProject: "Download project JSON",
-  buildBadge: "V1 / RC2",
+  buildBadge: "V1 / RC9",
   aPlaygroundForBetterDecisions: "A PLAYGROUND FOR BETTER DECISIONS",
   calculationWorkLimits: "Calculation work & limits",
   calculationProgress: (percent: number) => `${percent}% calculating`,
@@ -301,6 +303,6 @@ export const appMessages = {
   worldQuestion: (subtitle: string) => `${subtitle}. What would you change?`,
   runCurrency: (currency: string) => `Full run · ${currency}`,
   processingUnit: (unit: string) => `sec / ${unit}`,
-  modalEyebrow: (section: string) => `QUEUELAB / ${section}`,
+  modalEyebrow: (section: string) => `${BRAND.name.toUpperCase()} / ${section}`,
   qualitySetting: (quality: string) => `3D quality: ${quality}`,
 } as const;

@@ -11,7 +11,7 @@ describe('unvalidated draft repair artifacts', () => {
     expect(backup.project.model.horizon).toEqual({ queuelabNonFinite: 'NaN' });
     expect(backup.project.model.warmup).toEqual({ queuelabNonFinite: 'Infinity' });
     expect(backup.project.model.slaSeconds).toEqual({ queuelabNonFinite: '-Infinity' });
-    expect(backup.instructions).toContain('not a portable QueueLab project');
+    expect(backup.instructions).toContain('not a portable Loopset project');
     expect(() => openProjectJSON(text)).toThrow();
     expect(Number.isNaN(project.model.horizon)).toBe(true);
   });

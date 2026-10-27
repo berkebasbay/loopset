@@ -85,7 +85,6 @@ export async function openReviewedProject(page, file) {
 }
 
 export async function showSavedScenarios(page) {
-  const disclosure = page.locator('details.comparison-disclosure').filter({ has: page.locator('summary').filter({ hasText: /^Save and compare more plans$/ }) });
-  if (!await disclosure.evaluate(element => element.open)) await disclosure.locator('summary').click();
+  await page.getByRole('dialog', { name: panelNames.compare, exact: true }).waitFor();
   await page.getByRole('textbox', { name: 'Scenario name', exact: true }).waitFor();
 }

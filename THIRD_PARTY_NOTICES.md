@@ -1,12 +1,12 @@
 # Third-party notices
 
-Inventory checked against the installed packages and `package-lock.json` on 20 October 2026. Versions below describe this checkout; platform-specific optional packages differ on other operating systems. QueueLab's original code is MIT licensed under [LICENSE](LICENSE). Dependencies and the font retain their own licenses.
+Inventory checked against the installed packages and `package-lock.json` on 20 October 2026. Versions below describe this checkout; platform-specific optional packages differ on other operating systems. Loopset's original code is MIT licensed under [LICENSE](LICENSE). Dependencies and the font retain their own licenses.
 
 ## Product assets and browser runtime
 
-The current miniature worlds use the sourced model adaptations listed below. Lines, selection rings and move guides are original editor annotations. No shapez GPL code or assets are copied into QueueLab. DM Sans is served locally from `public/fonts/DMSans.ttf`; its complete SIL Open Font License 1.1 is retained at [`public/fonts/OFL.txt`](public/fonts/OFL.txt). Font copyright: 2014 The DM Sans Project Authors, https://github.com/googlefonts/dm-fonts.
+The current miniature worlds use the sourced model adaptations listed below. Lines, selection rings and move guides are original editor annotations. No shapez GPL code or assets are copied into Loopset. DM Sans is served locally from `public/fonts/DMSans.ttf`; its complete SIL Open Font License 1.1 is retained at [`public/fonts/OFL.txt`](public/fonts/OFL.txt). Font copyright: 2014 The DM Sans Project Authors, https://github.com/googlefonts/dm-fonts.
 
-React, React DOM, scheduler and Three.js use the MIT license. Lucide uses ISC and retains MIT notices for icons derived from Feather. Their installed license texts are reproduced below. The headless engine bundle contains QueueLab code and no third-party runtime dependency.
+React, React DOM, scheduler and Three.js use the MIT license. Lucide uses ISC and retains MIT notices for icons derived from Feather. Their installed license texts are reproduced below. The headless engine bundle contains Loopset code and no third-party runtime dependency.
 
 ## Installed npm package inventory
 
@@ -73,7 +73,7 @@ React, React DOM, scheduler and Three.js use the MIT license. Lucide uses ISC an
 | `vitest` | 5.0.5 | MIT | Development | `LICENSE.md` |
 | `why-is-node-running` | 3.2.1 | MIT | Development | `LICENSE` |
 
-License files in the last column are relative to each installed package directory under `node_modules`. Vite and Rolldown include bundled third-party notices in their license files; Playwright and Playwright Core include `NOTICE` and `ThirdPartyNotices.txt`; TypeScript includes `NOTICE.txt`. Preserve those upstream notices when redistributing development tooling. Lightning CSS and its native binding are MPL-2.0; their installed package metadata points to https://github.com/parcel-bundler/lightningcss for source. They are build tools, not source copied into QueueLab's engine. This inventory records the inspected materials and does not certify every possible redistribution arrangement.
+License files in the last column are relative to each installed package directory under `node_modules`. Vite and Rolldown include bundled third-party notices in their license files; Playwright and Playwright Core include `NOTICE` and `ThirdPartyNotices.txt`; TypeScript includes `NOTICE.txt`. Preserve those upstream notices when redistributing development tooling. Lightning CSS and its native binding are MPL-2.0; their installed package metadata points to https://github.com/parcel-bundler/lightningcss for source. They are build tools, not source copied into Loopset's engine. This inventory records the inspected materials and does not certify every possible redistribution arrangement.
 
 Regenerate the inventory when dependencies or bundled assets change, and inspect the actual license texts rather than inferring permission from a package name.
 
@@ -280,7 +280,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 `public/assets/simready` contains adapted NVIDIA CC-BY-4.0 geometry/thumbnails from [nvidia/simready-assets](https://huggingface.co/datasets/nvidia/simready-assets): `furniture_workbench_standard_e01`, `conveyor_belt_a05`, `pallet_a01`, `environment_floor_a01`, `desk_a01`, `computer_monitor_office_a01`, `chair_office_amf_black_a01`, `box_corrugated_brown_b08`, `serviceTool_brake_lathe_a01`, `instrument_caliper_a01`, `computer_scanner_barcode_a01`, `structure_wall_straight_a01`, `storage_shelf_basic_a01` and `lamp_ceiling_1m_rectangle_a01`.
 
-Creator: NVIDIA. **CC-BY-4.0**, separately from QueueLab's MIT code. Full licence: `public/assets/simready/LICENSE-CC-BY-4.0.txt` (runtime `assets/simready/LICENSE-CC-BY-4.0.txt`). Pinned revision, individual licences, source/output SHA256 hashes, textures, LOD and codec modifications: `public/assets/simready/manifest.json`.
+Creator: NVIDIA. **CC-BY-4.0**, separately from Loopset's MIT code. Full licence: `public/assets/simready/LICENSE-CC-BY-4.0.txt` (runtime `assets/simready/LICENSE-CC-BY-4.0.txt`). Pinned revision, individual licences, source/output SHA256 hashes, textures, LOD and codec modifications: `public/assets/simready/manifest.json`.
 
 Adaptations: offline OpenUSD composition, static GLB, shared material batches, local PBR palette and metric presentation scale; lathe retains original UVs and three official512px albedo atlases. Meshopt compression/vertex quantization uses gltfpack without intentional mesh simplification; repeated cartons use source-derived vertex clustering. The secondary scenery shelf is a source-derived LOD targeting25% of triangles at a0.1% error bound. Source physics, MDL and high-resolution texture payloads are excluded. [Preparation and bounds](docs/NVIDIA_ASSETS.md).
 
