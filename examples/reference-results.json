@@ -1,0 +1,66 @@
+{
+  "engineVersion": "0.1.1",
+  "rngVersion": "keyed-murmur32-v1",
+  "examples": {
+    "factory": {
+      "seed": 4207,
+      "modelHash": "c1fff310ea636f67",
+      "demandHash": "3bcc448067ffcf11",
+      "provenance": {
+        "rngVersion": "keyed-murmur32-v1",
+        "limits": {
+          "maxEvents": 1000000,
+          "maxEntities": 100000,
+          "maxMicrosteps": 10000,
+          "maxTraceEntities": 4000,
+          "maxTraceEvents": 100000
+        }
+      },
+      "arrivals": 80,
+      "completed": 40,
+      "inSystem": 40,
+      "meanWait": 869.0816085934679,
+      "cost": 74
+    },
+    "festival": {
+      "seed": 4207,
+      "modelHash": "517fa4f077f3cfdf",
+      "demandHash": "fe9a841bb8a6692a",
+      "provenance": {
+        "rngVersion": "keyed-murmur32-v1",
+        "limits": {
+          "maxEvents": 1000000,
+          "maxEntities": 100000,
+          "maxMicrosteps": 10000,
+          "maxTraceEntities": 4000,
+          "maxTraceEvents": 100000
+        }
+      },
+      "arrivals": 99,
+      "completed": 47,
+      "inSystem": 21,
+      "meanWait": 642.0786566324147,
+      "cost": 74
+    },
+    "service": {
+      "seed": 4207,
+      "modelHash": "d30c0f3214b4ffcb",
+      "demandHash": "af24c2789f673dc9",
+      "provenance": {
+        "rngVersion": "keyed-murmur32-v1",
+        "limits": {
+          "maxEvents": 1000000,
+          "maxEntities": 100000,
+          "maxMicrosteps": 10000,
+          "maxTraceEntities": 4000,
+          "maxTraceEvents": 100000
+        }
+      },
+      "arrivals": 106,
+      "completed": 66,
+      "inSystem": 39,
+      "meanWait": 568.4801244956659,
+      "cost": 85.41977759492272
+    }
+  }
+}

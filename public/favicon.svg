@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>QueueLab</title>
+  <rect width="64" height="64" rx="14" fill="#f4f3ee"/>
+  <g fill="none" stroke="#bc502b" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M32 10 51 21v22L32 54 13 43V21Z"/>
+    <path d="m13 21 19 11 19-11M32 32v22"/>
+  </g>
+</svg>

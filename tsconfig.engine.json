@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": [
+      "ES2022"
+    ],
+    "types": [
+      "node"
+    ],
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": false,
+    "outDir": ".cache/engine-types",
+    "rootDir": "src"
+  },
+  "include": [
+    "src/public-api.ts"
+  ],
+  "exclude": [
+    "tests",
+    "src/App.tsx",
+    "src/scene",
+    "src/features",
+    "src/worker",
+    "src/storage",
+    "src/lab"
+  ]
+}

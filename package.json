@@ -1,0 +1,51 @@
+{
+  "name": "queuelab",
+  "version": "1.0.0-rc.6",
+  "private": true,
+  "type": "module",
+  "description": "A playable process and capacity simulation laboratory",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:engine": "tsc -p tsconfig.engine.json && vite build --config vite.engine.config.ts",
+    "simulate": "node scripts/simulate.mjs",
+    "examples:export": "npm run build:engine && node scripts/export-examples.mjs",
+    "test:headless": "npm run build:engine && node examples/verify.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "1.60.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "playwright": "1.64.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist-engine/types/public-api.d.ts",
+      "import": "./dist-engine/queuelab.js"
+    },
+    "./engine": {
+      "types": "./dist-engine/types/public-api.d.ts",
+      "import": "./dist-engine/queuelab.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "license": "MIT"
+}

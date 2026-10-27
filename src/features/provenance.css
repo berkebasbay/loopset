@@ -1,0 +1,31 @@
+.ql-provenance { margin: 22px 0; border-top: 1px solid #dce3dc; padding-top: 8px; color: #283b32; font-size: 14px; line-height: 1.6; min-width: 0; overflow-wrap: anywhere; text-align: left; }
+.ql-provenance > summary, .ql-provenance-body summary { min-height: 40px; padding: 8px 0; cursor: pointer; color: #446d49; font-size: 14px; line-height: 1.6; }
+.ql-provenance > summary { font-weight: 600; }
+.ql-provenance summary:focus-visible, .ql-provenance-json:focus-visible { outline: 2px solid #446d49; outline-offset: 3px; border-radius: 2px; }
+.ql-provenance-body { padding: 4px 0 0; min-width: 0; }
+.ql-provenance-body p { margin: 10px 0 14px; color: #617069; font-size: 12px; line-height: 1.7; }
+.ql-provenance-body h4 { font-size: 18px; line-height: 1.4; margin: 24px 0 10px; color: #283b32; font-weight: 600; letter-spacing: -.2px; }
+.ql-provenance-body h5 { font-size: 14px; line-height: 1.5; margin: 18px 0 8px; color: #283b32; font-weight: 600; }
+.ql-provenance-body details { margin: 12px 0; }
+.ql-provenance-values { margin: 14px 0 20px; font-size: 12px; }
+.ql-provenance-values > div { display: grid; grid-template-columns: minmax(135px, .85fr) minmax(0, 1.3fr); gap: 14px; border-bottom: 1px solid #dce3dc; padding: 11px 0; }
+.ql-provenance-values dt { color: #617069; font-weight: 400; }
+.ql-provenance-values dd { margin: 0; color: #283b32; min-width: 0; font-variant-numeric: tabular-nums; }
+.ql-provenance code { font-family: ui-monospace, monospace; font-size: 12px; color: #425e48; white-space: normal; overflow-wrap: anywhere; }
+.ql-provenance-values dt code { display: block; }
+.ql-provenance-components { list-style: none; margin: 8px 0 22px; padding: 0; }
+.ql-provenance-components > li { border-bottom: 1px solid #dce3dc; padding: 10px 0 16px; }
+.ql-provenance-components strong { font-weight: 600; color: #283b32; }
+.ql-provenance-components p { margin: 8px 0; }
+.ql-provenance-json { margin: 10px 0 18px; padding: 15px; background: #f0f4ec; border: 1px solid #dce3dc; border-radius: 6px; max-width: 100%; max-height: 340px; overflow: auto; overscroll-behavior: contain; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.7 ui-monospace, monospace; color: #283b32; text-align: left; }
+.ql-provenance-caveats { padding-left: 20px; margin: 14px 0 20px; font-size: 12px; color: #617069; }
+.ql-provenance-caveats li { padding: 5px 0; }
+.ql-provenance-change { border-left: 2px solid #dce3dc; padding-left: 14px; min-width: 0; }
+.ql-provenance-change p { margin: 4px 0; }
+.ql-provenance-snapshots, .ql-provenance-snapshots > div { min-width: 0; }
+.ql-provenance-unavailable { font-size: 12px; line-height: 1.7; color: #617069; margin: 22px 0; }
+@media (max-width: 540px) {
+  .ql-provenance-values > div { grid-template-columns: 1fr; gap: 4px; }
+  .ql-provenance-values dt code { display: inline; margin-left: 5px; }
+  .ql-provenance-json { padding: 12px; }
+}

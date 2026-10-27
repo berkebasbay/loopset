@@ -1,0 +1,66 @@
+.lab-panel { font-size: 14px; line-height: 1.6; color: #283b32; min-width: 0; overflow-wrap: anywhere; }
+.lab-intro { line-height: 1.6; color: #617069; margin: 0 0 22px; }
+.lab-tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid #dce3dc; gap: 4px 24px; margin-bottom: 24px; }
+.lab-tabs button { font-size: 14px; line-height: 1.45; min-height: 42px; max-width: 100%; padding: 10px 2px 12px; color: #617069; border-bottom: 2px solid transparent; text-align: left; }
+.lab-tabs button:hover:not(:disabled) { color: #283b32; }
+.lab-tabs button[aria-selected=true] { color: #446d49; border-color: #446d49; font-weight: 600; }
+.lab-settings { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 20px; margin: 22px 0; }
+.lab-settings label { display: flex; flex-direction: column; gap: 7px; font-size: 12px; font-weight: 600; line-height: 1.5; color: #283b32; min-width: 0; }
+.lab-settings input, .lab-settings select { width: 100%; min-width: 0; min-height: 40px; border: 1px solid #c4d0c5; border-radius: 6px; padding: 9px 11px; color: #283b32; background: #fff; font-size: 14px; line-height: 1.45; font-weight: 400; }
+.lab-settings :is(input, select):focus, .scenario-save-row input:focus { border-color: #446d49; outline: 2px solid #446d49; outline-offset: 2px; }
+.lab-panel :is(button, summary):focus-visible, .saved-scenarios button:focus-visible { outline: 2px solid #446d49; outline-offset: 3px; }
+.lab-settings :is(input, select):disabled { background: #f1f4ee; color: #617069; }
+.lab-seed-note { font-size: 12px; color: #617069; line-height: 1.7; align-self: end; padding-bottom: 4px; min-width: 0; }
+.lab-note { display: flex; gap: 10px; align-items: flex-start; background: #edf2e9; padding: 14px 16px; border-radius: 6px; color: #617069; font-size: 12px; line-height: 1.7; }
+.lab-note svg { flex-shrink: 0; margin-top: 2px; color: #446d49; }
+.lab-small { font-size: 12px; line-height: 1.7; color: #617069; }
+.lab-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 24px 0; }
+.lab-actions :is(.primary-button, .secondary-button) { font-size: 14px; line-height: 1.45; min-height: 40px; height: auto; width: auto; max-width: 100%; padding: 10px 16px; white-space: normal; text-align: center; }
+.lab-actions .primary-button { min-width: min(180px, 100%); }
+.lab-progress { width: 100%; height: 8px; accent-color: #446d49; border-radius: 4px; }
+.lab-error { background: #fcf0ed; border: 1px solid #e1c3ba; border-left: 3px solid #ae5d4c; padding: 14px 16px; line-height: 1.7; font-size: 14px; color: #8b3f34; border-radius: 0 6px 6px 0; }
+.lab-results { margin-top: 28px; border-top: 1px solid #dce3dc; padding-top: 20px; overflow-x: auto; max-width: 100%; min-width: 0; overscroll-behavior-x: contain; }
+.lab-results h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.3px; font-weight: 600; color: #283b32; margin: 0 0 14px; }
+.lab-table { width: 100%; min-width: 540px; border-collapse: collapse; font-size: 14px; margin: 20px 0; }
+.lab-table th, .lab-table td { text-align: left; border-bottom: 1px solid #dce3dc; padding: 12px 14px 12px 0; line-height: 1.6; font-variant-numeric: tabular-nums; vertical-align: top; }
+.lab-table th:last-child, .lab-table td:last-child { padding-right: 0; }
+.lab-table thead th { font-size: 12px; color: #617069; font-weight: 500; }
+.lab-table tbody th { font-size: 14px; color: #283b32; font-weight: 500; }
+.lab-table td { color: #283b32; }
+.lab-table tbody tr:hover { background: #f7f8f4; }
+.lab-results details { margin-top: 20px; }
+.lab-results summary { cursor: pointer; font-size: 14px; line-height: 1.5; color: #446d49; min-height: 40px; padding: 8px 0; }
+.lab-success { background: #e8f0df; color: #365b3b; font-size: 14px; line-height: 1.7; padding: 14px 16px; border-radius: 6px; }
+.lab-limit { font-size: 12px; line-height: 1.7; color: #617069; padding-top: 20px; margin-top: 24px; border-top: 1px solid #dce3dc; }
+.saved-scenarios { margin-top: 28px; padding-top: 22px; border-top: 1px solid #dce3dc; min-width: 0; overflow-wrap: anywhere; }
+.saved-scenarios-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 20px; }
+.saved-scenarios-heading > div { min-width: 0; flex: 1 1 220px; }
+.saved-scenarios-heading h3 { font-size: 18px; line-height: 1.4; font-weight: 600; letter-spacing: -.3px; margin: 0 0 8px; color: #283b32; }
+.saved-scenarios-heading p, .scenario-empty { font-size: 12px; line-height: 1.7; color: #617069; }
+.saved-scenarios-heading > span { font-size: 12px; color: #617069; }
+.scenario-save-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 22px 0; }
+.scenario-save-row label { display: flex; gap: 7px; flex-direction: column; font-size: 12px; font-weight: 600; color: #283b32; flex: 1 1 240px; min-width: 0; }
+.scenario-save-row input { min-width: 0; width: 100%; min-height: 40px; padding: 9px 11px; border: 1px solid #c4d0c5; background: #fff; border-radius: 6px; color: #283b32; font-size: 14px; font-weight: 400; line-height: 1.45; }
+.scenario-save-row button { min-height: 40px; height: auto; max-width: 100%; font-size: 14px; line-height: 1.45; white-space: normal; }
+.scenario-list { list-style: none; margin: 16px 0; padding: 0; }
+.scenario-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding: 18px 0; border-bottom: 1px solid #dce3dc; }
+.scenario-list li > div:first-child { display: flex; flex-direction: column; flex: 1 1 220px; min-width: 0; gap: 5px; }
+.scenario-list strong { font-size: 14px; font-weight: 600; color: #283b32; }
+.scenario-list span { font-size: 12px; line-height: 1.6; color: #617069; }
+.scenario-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.scenario-actions button { font-size: 12px; line-height: 1.5; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 10px; min-height: 38px; max-width: 100%; border: 1px solid #dce3dc; border-radius: 6px; color: #446d49; background: #fff; white-space: normal; }
+.scenario-actions button:hover:not(:disabled) { background: #edf2e9; border-color: #9eb39e; }
+@media (max-width: 740px) {
+  .lab-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .lab-seed-note { grid-column: 1 / -1; }
+  .lab-tabs { gap: 4px 18px; }
+  .scenario-save-row label { flex-basis: 100%; }
+  .scenario-list li { align-items: stretch; }
+  .scenario-actions { width: 100%; }
+}
+@media (max-width: 480px) {
+  .lab-settings { grid-template-columns: 1fr; }
+  .lab-seed-note { grid-column: auto; }
+  .lab-actions > button { flex: 1 1 180px; }
+  .scenario-actions button { flex: 1 1 110px; }
+}

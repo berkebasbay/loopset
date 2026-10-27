@@ -1,0 +1,1233 @@
+{
+  "tool": "gltfpack@1.3.0 (project-cached, npm --offline)",
+  "reproduction": "node scripts/prepare-browser-lods.mjs; promote hash-verified candidates from .private/audits/browser-lod-candidates to public/assets/lod.",
+  "staticPolicy": "Source-derived target 0.04 triangle ratio, maximum relative simplification error 0.001; permissive simplification across attribute discontinuities, no aggressive error override; 16-bit positions/UVs and 12-bit normals.",
+  "characterPolicy": "Exact terminal Idle/Walk/Interact source animations selected by JSON-only repack, source BIN unchanged before packing, no geometry simplification, no animation resampling.",
+  "originalAssetsRetained": true,
+  "geometryIsSourceDerived": true,
+  "embeddedTexturePolicy": "Original source PNG bytes unchanged; each GLB is self-contained. No generated raster substitutes.",
+  "limitations": "The 4% triangle target is quality bounded and is not achieved for most models; actual ratios are recorded per file. Candidate generation is not browser, visual or cold-load acceptance.",
+  "licenceFiles": [
+    "LICENSE-CC-BY-4.0.txt",
+    "CC0-1.0.txt"
+  ],
+  "assets": [
+    {
+      "file": "simready/box_corrugated_brown_b08.glb",
+      "bytes": 33912,
+      "sha256": "b02f6551816d623a26d63b63d0f2c62c4e399a4fe98d77dedf511c110e985b89",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/box_corrugated_brown_b08",
+      "original": {
+        "file": "/assets/simready/box_corrugated_brown_b08.glb",
+        "sha256": "d74c2be29802966d7205ef52b3e9f4438df4dead300055e110fcc8aa9550d7ea",
+        "bytes": 81484,
+        "triangles": 15999
+      },
+      "triangles": 5439,
+      "triangleRatio": 0.33995874742171384,
+      "bounds": {
+        "min": [
+          -0.148638755,
+          0,
+          -0.151886135
+        ],
+        "max": [
+          0.14863488379601997,
+          0.30366103801733996,
+          0.1518861494479
+        ],
+        "size": [
+          0.29727363879602,
+          0.30366103801733996,
+          0.3037722844479
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0.0000046352679399785934,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/box_corrugated_brown_b08.glb.gz",
+      "gzipBytes": 27450,
+      "gzipSHA256": "875d839db701d28c7fb5d1b89d0ea0b259998b479a75e6ed5f1366f98c843a13"
+    },
+    {
+      "file": "simready/chair_office_amf_black_a01.glb",
+      "bytes": 46796,
+      "sha256": "487cfb2ed9e95007a0274d94863888e4b6c7615b363088ee1901ee0c545ac0b7",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/chair_office_amf_black_a01",
+      "original": {
+        "file": "/assets/simready/chair_office_amf_black_a01.glb",
+        "sha256": "2ea4784764afb8e9225188afce52cf04918aff7e468f4628754291e775fd148c",
+        "bytes": 153668,
+        "triangles": 32253
+      },
+      "triangles": 8527,
+      "triangleRatio": 0.2643785074256658,
+      "bounds": {
+        "min": [
+          -0.2697728375764,
+          0,
+          -0.286141694
+        ],
+        "max": [
+          0.2697659230388,
+          0.809604631518,
+          0.28614692361000005
+        ],
+        "size": [
+          0.5395387606152,
+          0.809604631518,
+          0.57228861761
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0.00009883019840001284,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/chair_office_amf_black_a01.glb.gz",
+      "gzipBytes": 39832,
+      "gzipSHA256": "9b26988e4b31aeecaa7830b54f6dbb83305946ed8b41316fa516269320c4836f"
+    },
+    {
+      "file": "simready/computer_monitor_office_a01.glb",
+      "bytes": 25552,
+      "sha256": "a5b2d62d3fd09018cfe2fc8781e429fad36f472ac8bb5ff4ebef3952bae44e24",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/computer_monitor_office_a01",
+      "original": {
+        "file": "/assets/simready/computer_monitor_office_a01.glb",
+        "sha256": "eeda1c54cce9cdaa74da2330e4b0ed40f7cbd6c661cbaef6c3a833e90cb1b94d",
+        "bytes": 61608,
+        "triangles": 10867
+      },
+      "triangles": 3784,
+      "triangleRatio": 0.34821017760191403,
+      "bounds": {
+        "min": [
+          -0.270999998,
+          0,
+          -0.0861104131
+        ],
+        "max": [
+          0.27100001261604995,
+          0.39419987038992,
+          0.08611218888472
+        ],
+        "size": [
+          0.54200001061605,
+          0.39419987038992,
+          0.17222260198472
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/computer_monitor_office_a01.glb.gz",
+      "gzipBytes": 19280,
+      "gzipSHA256": "b3e1036fd0e2ffd1c4b0c7bfc9f90a9f0296b58214cec565d6dd03cfcb45ba81"
+    },
+    {
+      "file": "simready/computer_scanner_barcode_a01.glb",
+      "bytes": 161284,
+      "sha256": "7ac492e6fd1831ba42a1e678e12272ea2ac3d1495d1fdd88ad6ab385460296cb",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/computer_scanner_barcode_a01",
+      "original": {
+        "file": "/assets/simready/computer_scanner_barcode_a01.glb",
+        "sha256": "0d556435e1a0791095ec9aec78037bb22741dfc902030ac0f3f6effc46e9a7fc",
+        "bytes": 361848,
+        "triangles": 72947
+      },
+      "triangles": 30250,
+      "triangleRatio": 0.41468463404937833,
+      "bounds": {
+        "min": [
+          -0.141639397,
+          0,
+          -0.268503219
+        ],
+        "max": [
+          0.14164203399176,
+          0.30284916282504004,
+          0.26850319041959997
+        ],
+        "size": [
+          0.28328143099176,
+          0.30284916282504004,
+          0.5370064094196
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0.00006555354047999007,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/computer_scanner_barcode_a01.glb.gz",
+      "gzipBytes": 136417,
+      "gzipSHA256": "9e2004050d06058d83c774c47cb530555971222a5ba325cc6fd8e803346893e0"
+    },
+    {
+      "file": "simready/conveyor_belt_a05.glb",
+      "bytes": 221908,
+      "sha256": "69c9c5544d5ab3df8eed69844c835b3d5631d7886c15ccb453e4522549f12da1",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/conveyor_belt_a05",
+      "original": {
+        "file": "/assets/simready/conveyor_belt_a05.glb",
+        "sha256": "9540bfa4d02604d381d9d237b5d1fdcb410fad54d452d28365e0a77c6a9ba7a0",
+        "bytes": 1001956,
+        "triangles": 228964
+      },
+      "triangles": 44856,
+      "triangleRatio": 0.1959085271046977,
+      "bounds": {
+        "min": [
+          -0.57547605,
+          0,
+          -1.00004184
+        ],
+        "max": [
+          0.5754685722384001,
+          1.1663263598712,
+          1.0000418420745
+        ],
+        "size": [
+          1.1509446222384,
+          1.1663263598712,
+          2.0000836820745
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/conveyor_belt_a05.glb.gz",
+      "gzipBytes": 173934,
+      "gzipSHA256": "fdfb64c48807d7fb39a52f5ad82d5809e2ea1dc0cbd62f729b0776f35890fadc"
+    },
+    {
+      "file": "simready/desk_a01.glb",
+      "bytes": 76756,
+      "sha256": "28bcd9b0cac5f049c470b007d2139c7b83902067f4ca616ff6afb59832f904b9",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/desk_a01",
+      "original": {
+        "file": "/assets/simready/desk_a01.glb",
+        "sha256": "79f9248f4823b751094bcc15145a7b148f57de47318711a831de38be44d383ce",
+        "bytes": 1023520,
+        "triangles": 277118
+      },
+      "triangles": 14671,
+      "triangleRatio": 0.05294134628569779,
+      "bounds": {
+        "min": [
+          -0.400999784,
+          0,
+          -0.900999904
+        ],
+        "max": [
+          0.4009980720016999,
+          0.7591579115559,
+          0.9009999414785
+        ],
+        "size": [
+          0.8019978560016999,
+          0.7591579115559,
+          1.8019998454785
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/desk_a01.glb.gz",
+      "gzipBytes": 63274,
+      "gzipSHA256": "554e686b2876d3f0c5201c6c2a6aed4bb970077b7905c1862af1eb2b90f6b2da"
+    },
+    {
+      "file": "simready/furniture_workbench_standard_e01.glb",
+      "bytes": 376572,
+      "sha256": "b6e8fce31f8c21d6d1adef693d1fc95bbcd469e716d7f346fd5077ff6635fe96",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/furniture_workbench_standard_e01",
+      "original": {
+        "file": "/assets/simready/furniture_workbench_standard_e01.glb",
+        "sha256": "1dfaaba6807a59df8d143976ce68b0071d5738f9c438d5029e0a96ffbf3d0142",
+        "bytes": 2043572,
+        "triangles": 505434
+      },
+      "triangles": 80278,
+      "triangleRatio": 0.15882983732792016,
+      "bounds": {
+        "min": [
+          -0.266545504,
+          0,
+          -0.765680134
+        ],
+        "max": [
+          0.26655059827719996,
+          1.3841010531334,
+          0.765680129993
+        ],
+        "size": [
+          0.5330961022772,
+          1.3841010531334,
+          1.531360263993
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/furniture_workbench_standard_e01.glb.gz",
+      "gzipBytes": 267919,
+      "gzipSHA256": "29e9fdde15ac57def9aa462bfadb50b671bc5e5d91b6833bf1c29047d33b3e8e"
+    },
+    {
+      "file": "simready/instrument_caliper_a01.glb",
+      "bytes": 25712,
+      "sha256": "b242012651a9e127f4946475bf3ea99b66145f411a13a42b94856150d140ba2e",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/instrument_caliper_a01",
+      "original": {
+        "file": "/assets/simready/instrument_caliper_a01.glb",
+        "sha256": "5c3af06a4d1769028dc5c61ea6d72a66bf543ef0b29feeccbcdae88822edd0fd",
+        "bytes": 158020,
+        "triangles": 36457
+      },
+      "triangles": 4574,
+      "triangleRatio": 0.12546287407082315,
+      "bounds": {
+        "min": [
+          -0.119156152,
+          0,
+          -0.03921399054936
+        ],
+        "max": [
+          0.1191561516731,
+          0.007560101920139999,
+          0.03921252128886
+        ],
+        "size": [
+          0.2383123036731,
+          0.007560101920139999,
+          0.07842651183822
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0.000014545650639997965,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/instrument_caliper_a01.glb.gz",
+      "gzipBytes": 19036,
+      "gzipSHA256": "f538b439333f9f8ef76cbcc7056ebc4b6d8cae7a6765c68c9ff112e2b73223a2"
+    },
+    {
+      "file": "simready/lamp_ceiling_1m_rectangle_a01.glb",
+      "bytes": 25444,
+      "sha256": "a292924cda7f5de39bdbcd658a85e96a871033801e6a35c8149b2c3a28e83359",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/lamp_ceiling_1m_rectangle_a01",
+      "original": {
+        "file": "/assets/simready/lamp_ceiling_1m_rectangle_a01.glb",
+        "sha256": "0165fc272a649cfbc737ecaa9c9cb01769977f2b546796c515105b5efe7fa956",
+        "bytes": 119424,
+        "triangles": 26892
+      },
+      "triangles": 4922,
+      "triangleRatio": 0.18302840993604047,
+      "bounds": {
+        "min": [
+          -0.500000358,
+          0,
+          -0.200001389
+        ],
+        "max": [
+          0.5000003565480001,
+          0.299992584848,
+          0.19999889681920005
+        ],
+        "size": [
+          1.000000714548,
+          0.299992584848,
+          0.40000028581920005
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/lamp_ceiling_1m_rectangle_a01.glb.gz",
+      "gzipBytes": 19810,
+      "gzipSHA256": "f9ca4862f899acd757bcc80144d0dfb00cc5608f22b4fece0c4afef7edc93f38"
+    },
+    {
+      "file": "simready/serviceTool_brake_lathe_a01.glb",
+      "bytes": 1585916,
+      "sha256": "81d45200e858fd469d427f93e0cc71a87fc15abfd6e370cbda90a79d4f9ffb52",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/serviceTool_brake_lathe_a01",
+      "original": {
+        "file": "/assets/simready/serviceTool_brake_lathe_a01.glb",
+        "sha256": "d4687ab7c1335b4b218502092855a9ba4f0dd8f909b99c5c5cf24c0070557297",
+        "bytes": 3863268,
+        "triangles": 451042
+      },
+      "triangles": 95846,
+      "triangleRatio": 0.21249905773741692,
+      "bounds": {
+        "min": [
+          -0.515600383,
+          0,
+          -0.639530778
+        ],
+        "max": [
+          0.5155924006479999,
+          1.20860439344,
+          0.6395308114079999
+        ],
+        "size": [
+          1.031192783648,
+          1.20860439344,
+          1.279061589408
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0,
+      "retainedMaterialNames": [
+        "NVIDIA bare metal · UDIM 1002",
+        "NVIDIA bare metal · UDIM 1001",
+        "NVIDIA bare metal · UDIM 1003",
+        "NVIDIA painted metal · UDIM 1002",
+        "NVIDIA painted metal · UDIM 1003",
+        "NVIDIA painted metal · UDIM 1001",
+        "NVIDIA plastic · UDIM 1002",
+        "NVIDIA plastic · UDIM 1003",
+        "NVIDIA plastic · UDIM 1001",
+        "NVIDIA rubber · UDIM 1001",
+        "NVIDIA rubber · UDIM 1002",
+        "NVIDIA rubber · UDIM 1003"
+      ],
+      "images": [
+        {
+          "mimeType": "image/png",
+          "bytes": 198974,
+          "sha256": "6468083d6f9d2d54c4be40b3e5002c8b814f28d89bd4b5db3bf301b990ae7b6b"
+        },
+        {
+          "mimeType": "image/png",
+          "bytes": 286935,
+          "sha256": "ea44277493b0e93eec45ff7be28d2790f40948bd54f0a58ac1b742b4fb1b15a5"
+        },
+        {
+          "mimeType": "image/png",
+          "bytes": 274499,
+          "sha256": "a401eecbccf103cc6396aff240476167d1bb6136d85461eceadcc4d8a4a4a790"
+        }
+      ],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/serviceTool_brake_lathe_a01.glb.gz",
+      "gzipBytes": 1328158,
+      "gzipSHA256": "2324606c21c79f81db6e57a0f363d32a3ffc62aade472bff1d95b1e2815597e8"
+    },
+    {
+      "file": "simready/storage_shelf_basic_a01.glb",
+      "bytes": 186360,
+      "sha256": "9e9c706d532905e1a25ed5c58c97fbff5f172098ca7a33a701c6dc5ee3550517",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/storage_shelf_basic_a01",
+      "original": {
+        "file": "/assets/simready/storage_shelf_basic_a01.glb",
+        "sha256": "edbddda6696f82f516b5211af6cbcd2e9a98131922ad7edefba123735a0dc81d",
+        "bytes": 1393260,
+        "triangles": 331664
+      },
+      "triangles": 38706,
+      "triangleRatio": 0.11670244584881084,
+      "bounds": {
+        "min": [
+          -0.63368094,
+          0,
+          -1.24713659
+        ],
+        "max": [
+          0.6336846774795001,
+          2.422758213348,
+          1.2471366837175
+        ],
+        "size": [
+          1.2673656174795,
+          2.422758213348,
+          2.4942732737175
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/storage_shelf_basic_a01.glb.gz",
+      "gzipBytes": 154782,
+      "gzipSHA256": "0096686eec72933e8255099617e25ce142eb71ef6b5e380a2700543baea9ba28"
+    },
+    {
+      "file": "simready/structure_wall_straight_a01.glb",
+      "bytes": 80504,
+      "sha256": "4da891789dfe5b755bcf31acf01869a46877e6f44aea1fffe1a37eb61969508c",
+      "creator": "NVIDIA",
+      "license": "CC-BY-4.0",
+      "source": "https://huggingface.co/datasets/nvidia/simready-assets/tree/524747d9b5e1f21b5b18b56041788c01d745f1a1/structure_wall_straight_a01",
+      "original": {
+        "file": "/assets/simready/structure_wall_straight_a01.glb",
+        "sha256": "16ccbd763040e2a3193b3bbc2ed5aae35824027e6aea465c467f75283b188967",
+        "bytes": 492552,
+        "triangles": 103006
+      },
+      "triangles": 14420,
+      "triangleRatio": 0.13999184513523483,
+      "bounds": {
+        "min": [
+          -0.370000601,
+          0,
+          -3.00000215
+        ],
+        "max": [
+          0.37000281969399995,
+          11.10005131041,
+          2.999970652624
+        ],
+        "size": [
+          0.7400034206939999,
+          11.10005131041,
+          5.999972802624
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0,
+      "retainedMaterialNames": [
+        "Adapted NVIDIA PBR",
+        "Adapted NVIDIA PBR"
+      ],
+      "images": [],
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-si",
+        "0.04",
+        "-se",
+        "0.001",
+        "-sp"
+      ],
+      "gzipFile": "simready/structure_wall_straight_a01.glb.gz",
+      "gzipBytes": 60683,
+      "gzipSHA256": "2c2f7e32dbf37a9efbba010617d246f350f2c79c3093cd9d1e240e881e85828a"
+    },
+    {
+      "file": "characters/worker.glb",
+      "bytes": 179528,
+      "sha256": "ff22548c68e9b20e0cd6dee5f952faac52abf411ae1d1c1bea5d528b07aafcc2",
+      "creator": "Quaternius",
+      "license": "CC0-1.0",
+      "source": "https://github.com/euuuuuuan/fatal-funnel-public/blob/29a6bdfd01ad175c389cbd0bac80c30f926ff96b/packages/renderer/assets/models/quaternius-men/worker.glb",
+      "original": {
+        "file": "/assets/characters/worker.glb",
+        "sha256": "9c28614f465b7dc105f908c20c22fc045f4b07caf8c5ef0e9f8049eceb6dd38d",
+        "bytes": 1344928,
+        "triangles": 5240
+      },
+      "triangles": 5240,
+      "triangleRatio": 1,
+      "bounds": {
+        "min": [
+          -0.837733503,
+          -0.0036725940636745226,
+          -0.1025752313931827
+        ],
+        "max": [
+          0.8377396846620001,
+          1.8627583656673823,
+          0.28668843661487264
+        ],
+        "size": [
+          1.6754731876620002,
+          1.8664309597310569,
+          0.38926366800805534
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0.000013877720272517657,
+      "retainedMaterialNames": [
+        "Black",
+        "Grey",
+        "Brown2",
+        "Brown",
+        "Worker_Yellow",
+        "Worker_Vest",
+        "LightBrown",
+        "Skin",
+        "Eyebrows",
+        "Eye",
+        "Moustache"
+      ],
+      "images": [],
+      "animations": [
+        {
+          "name": "CharacterArmature|Idle",
+          "channels": 21,
+          "duration": 1.66666663
+        },
+        {
+          "name": "CharacterArmature|Interact",
+          "channels": 23,
+          "duration": 1.25
+        },
+        {
+          "name": "CharacterArmature|Walk",
+          "channels": 37,
+          "duration": 1.33333337
+        }
+      ],
+      "retainedSourceClips": [
+        "CharacterArmature|Idle",
+        "CharacterArmature|Interact",
+        "CharacterArmature|Walk"
+      ],
+      "sourceBINUnchangedBeforePacking": true,
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-af",
+        "0",
+        "-ac",
+        "-at",
+        "24",
+        "-ar",
+        "16",
+        "-as",
+        "24"
+      ],
+      "gzipFile": "characters/worker.glb.gz",
+      "gzipBytes": 114704,
+      "gzipSHA256": "5675cc44cb3818040996542873eda957302bf394aed279bf41dcd1171fcde7ac"
+    },
+    {
+      "file": "characters/worker-female.glb",
+      "bytes": 218836,
+      "sha256": "0118e8a8a7adc4b00c7cd4c04df552a8b534d31313b4668ff3fdf78798519706",
+      "creator": "Quaternius",
+      "license": "CC0-1.0",
+      "source": "https://github.com/agentkaerf/FreeModels/blob/db3df04d1e4714298a09510b26fb6de6645138a2/Ultimate%20Modular%20Women%20-%20April%202022/Individual%20Characters/glTF/Worker.gltf",
+      "original": {
+        "file": "/assets/characters/worker-female.glb",
+        "sha256": "555f8ac66c19ea1a06474481e47dcaa2a6f30cc83f7748fde894558467fc46d6",
+        "bytes": 1638356,
+        "triangles": 6112
+      },
+      "triangles": 6112,
+      "triangleRatio": 1,
+      "bounds": {
+        "min": [
+          -0.824622691,
+          -0.00186918338,
+          -0.0919011608
+        ],
+        "max": [
+          0.8246196915830001,
+          1.858777402765,
+          0.271455137506
+        ],
+        "size": [
+          1.649242382583,
+          1.860646586145,
+          0.36335629830599997
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0.000013472065456932025,
+      "retainedMaterialNames": [
+        "Skin",
+        "Worker_Vest",
+        "White",
+        "Worker_Yellow",
+        "Black",
+        "DarkBrown",
+        "Brown",
+        "Brown_02",
+        "Brown2"
+      ],
+      "images": [],
+      "animations": [
+        {
+          "name": "Idle",
+          "channels": 108,
+          "duration": 2.08333325
+        },
+        {
+          "name": "Interact",
+          "channels": 108,
+          "duration": 1.58333337
+        },
+        {
+          "name": "Walk",
+          "channels": 116,
+          "duration": 1.66666663
+        }
+      ],
+      "retainedSourceClips": [
+        "Idle",
+        "Interact",
+        "Walk"
+      ],
+      "sourceBINUnchangedBeforePacking": true,
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-af",
+        "0",
+        "-ac",
+        "-at",
+        "24",
+        "-ar",
+        "16",
+        "-as",
+        "24"
+      ],
+      "gzipFile": "characters/worker-female.glb.gz",
+      "gzipBytes": 122663,
+      "gzipSHA256": "6e8c51c3d86ebb387c1cc71e86fd5196560ab4333d6ac60dc87736526b8e33fb"
+    },
+    {
+      "file": "characters/casual-character.glb",
+      "bytes": 184276,
+      "sha256": "7663b0c0ad952e8442a99701931583812b63b5793dcf114714d9e6c70b7a5b28",
+      "creator": "Quaternius",
+      "license": "CC0-1.0",
+      "source": "https://github.com/euuuuuuan/fatal-funnel-public/blob/29a6bdfd01ad175c389cbd0bac80c30f926ff96b/packages/renderer/assets/models/quaternius-men/casual-character.glb",
+      "original": {
+        "file": "/assets/characters/casual-character.glb",
+        "sha256": "fea7e71271203e7073f1a073fa1208de7402df276f87f80e149bf7589b5d46b4",
+        "bytes": 1430660,
+        "triangles": 5776
+      },
+      "triangles": 5776,
+      "triangleRatio": 1,
+      "bounds": {
+        "min": [
+          -0.837733503,
+          -0.0013974867786314736,
+          -0.16800361848847667
+        ],
+        "max": [
+          0.8377199475140998,
+          1.8565790493897427,
+          0.28668843630719404
+        ],
+        "size": [
+          1.6754534505140999,
+          1.8579765361683742,
+          0.4546920547956707
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0.000013555916982155303,
+      "retainedMaterialNames": [
+        "White",
+        "Red_Dark",
+        "LightBrown",
+        "Skin",
+        "Skin_Darker",
+        "Eyebrows",
+        "Eye",
+        "Hair",
+        "LightBlue"
+      ],
+      "images": [],
+      "animations": [
+        {
+          "name": "CharacterArmature|Idle",
+          "channels": 21,
+          "duration": 1.66666663
+        },
+        {
+          "name": "CharacterArmature|Interact",
+          "channels": 23,
+          "duration": 1.25
+        },
+        {
+          "name": "CharacterArmature|Walk",
+          "channels": 37,
+          "duration": 1.33333337
+        }
+      ],
+      "retainedSourceClips": [
+        "CharacterArmature|Idle",
+        "CharacterArmature|Interact",
+        "CharacterArmature|Walk"
+      ],
+      "sourceBINUnchangedBeforePacking": true,
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-af",
+        "0",
+        "-ac",
+        "-at",
+        "24",
+        "-ar",
+        "16",
+        "-as",
+        "24"
+      ],
+      "gzipFile": "characters/casual-character.glb.gz",
+      "gzipBytes": 120194,
+      "gzipSHA256": "5b7c71292c19ff939c7f8b9caecc760fc502c2aa5b5e6e3a9d3c91eac7f1ba8a"
+    },
+    {
+      "file": "characters/visitor-female.glb",
+      "bytes": 221068,
+      "sha256": "e7f7a902616394dee4568cc0a38b8322dbdbd856cd254d708f9ea5c8f5df08b3",
+      "creator": "Quaternius",
+      "license": "CC0-1.0",
+      "source": "https://github.com/agentkaerf/FreeModels/blob/db3df04d1e4714298a09510b26fb6de6645138a2/Ultimate%20Modular%20Women%20-%20April%202022/Individual%20Characters/glTF/Casual.gltf",
+      "original": {
+        "file": "/assets/characters/visitor-female.glb",
+        "sha256": "5ca77eac451a73665616455a75e6d9a4980b9f839ba3d049f877d8855aef45d2",
+        "bytes": 1668348,
+        "triangles": 6424
+      },
+      "triangles": 6424,
+      "triangleRatio": 1,
+      "bounds": {
+        "min": [
+          -0.825057447,
+          -0.00856693462,
+          -0.0994629711
+        ],
+        "max": [
+          0.8250637822439999,
+          1.8434744210660001,
+          0.2708039983392
+        ],
+        "size": [
+          1.650121229244,
+          1.852041355686,
+          0.3702669694392
+        ],
+        "note": "Default-scene accessor bounds transformed to metric coordinates; unposed bind bounds for characters."
+      },
+      "maxBoundDelta": 0.000008781325793294492,
+      "retainedMaterialNames": [
+        "Skin",
+        "White",
+        "Grey",
+        "Hair_Brown",
+        "Brown",
+        "Hair_Blond",
+        "Orange"
+      ],
+      "images": [],
+      "animations": [
+        {
+          "name": "Idle",
+          "channels": 108,
+          "duration": 2.08333325
+        },
+        {
+          "name": "Interact",
+          "channels": 108,
+          "duration": 1.58333337
+        },
+        {
+          "name": "Walk",
+          "channels": 116,
+          "duration": 1.66666663
+        }
+      ],
+      "retainedSourceClips": [
+        "Idle",
+        "Interact",
+        "Walk"
+      ],
+      "sourceBINUnchangedBeforePacking": true,
+      "options": [
+        "-cc",
+        "-ce",
+        "ext",
+        "-vp",
+        "16",
+        "-vt",
+        "16",
+        "-vn",
+        "12",
+        "-kn",
+        "-km",
+        "-ke",
+        "-af",
+        "0",
+        "-ac",
+        "-at",
+        "24",
+        "-ar",
+        "16",
+        "-as",
+        "24"
+      ],
+      "gzipFile": "characters/visitor-female.glb.gz",
+      "gzipBytes": 124953,
+      "gzipSHA256": "7dd940f7149daa67d83f249cbe63825bcf3ad7f76ee0174a30ede4a18bfb7615"
+    }
+  ],
+  "gzipTransport": {
+    "format": "gzip",
+    "tool": "node:zlib gzipSync",
+    "level": 9,
+    "deterministic": true,
+    "decodedBytesIdentical": true,
+    "sourceBytes": 3822028,
+    "gzipBytes": 2862473,
+    "additionalAssets": [
+      {
+        "file": "/assets/simready/environment_floor_a01.glb",
+        "bytes": 44684,
+        "sha256": "9cd4ca4cdc339dee984c99bb8c41737bee2b521a6eecbf8f44a120d1319e43e7",
+        "gzipFile": "/assets/simready/environment_floor_a01.glb.gz",
+        "gzipBytes": 31687,
+        "gzipSHA256": "e63d5280b54271c1a047d051d5f695eef5909b9db1679ce631d5b26e0daddce1"
+      },
+      {
+        "file": "/assets/simready/pallet_a01.glb",
+        "bytes": 12224,
+        "sha256": "457f491d146734b0817afc9209ce81643158f14754ef6c0fb3ea61b981e3f0af",
+        "gzipFile": "/assets/simready/pallet_a01.glb.gz",
+        "gzipBytes": 4062,
+        "gzipSHA256": "23e0a2c080e7d98ac3803e392beac079047848d4b2563747ab40c81de978e98a"
+      },
+      {
+        "file": "/assets/simready/box_corrugated_brown_b08-actor.glb",
+        "bytes": 61064,
+        "sha256": "833d5e764e18c9dc2bb6d119e7f7a8fca1811e045ebbd8ab20aa3ea2f6b537a1",
+        "gzipFile": "/assets/simready/box_corrugated_brown_b08-actor.glb.gz",
+        "gzipBytes": 14552,
+        "gzipSHA256": "9eef395b9ae2a41afd8eb607c4553552742ae690950540f10187767ec7699709"
+      },
+      {
+        "file": "/assets/kenney/nature-kit/tree_oak.glb",
+        "bytes": 14644,
+        "sha256": "d7fd8773674928c50c11b66d12c636d49bdcc15a8b1c7fbb98e6f63a3439a3f3",
+        "gzipFile": "/assets/kenney/nature-kit/tree_oak.glb.gz",
+        "gzipBytes": 5133,
+        "gzipSHA256": "811b8fcd3ff1fdeb4b6ec0e3d280837a4573dd83595b7584b09fe6f5367b28eb"
+      },
+      {
+        "file": "/assets/kenney/nature-kit/tree_detailed.glb",
+        "bytes": 31412,
+        "sha256": "c041daf2f0fb1d49e4325227cbcd58667adbe51e9b55e8c1f0a94b74cc521b3b",
+        "gzipFile": "/assets/kenney/nature-kit/tree_detailed.glb.gz",
+        "gzipBytes": 11629,
+        "gzipSHA256": "03367842493ac1742bd63fadffa4a211abf811d22c1ee9fb5ede56828a07db7e"
+      },
+      {
+        "file": "/assets/kenney/potted-plant.glb",
+        "bytes": 7576,
+        "sha256": "5b760eda2766f75fda36b2c5df652a1662f82981ef64cd8fa7fe7bcd386b3a15",
+        "gzipFile": "/assets/kenney/potted-plant.glb.gz",
+        "gzipBytes": 2321,
+        "gzipSHA256": "3806a918abcae468be1b21b3b75ac93fe67ac9afca241b7b75fdc8dacc7b9ff7"
+      }
+    ],
+    "reproduction": "node scripts/prepare-browser-lods.mjs --gzip-public"
+  }
+}

@@ -1,0 +1,438 @@
+{
+  "schemaVersion": 1,
+  "id": "service-example",
+  "name": "Service Studio",
+  "world": "service",
+  "model": {
+    "id": "service-model",
+    "name": "Service Studio",
+    "horizon": 3600,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 180,
+    "currency": "USD",
+    "resources": [
+      {
+        "id": "team-a",
+        "label": "Reception team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      },
+      {
+        "id": "specialists",
+        "label": "Shared specialists",
+        "capacity": 2,
+        "installedCapacity": 12,
+        "calendar": [
+          {
+            "start": 1800,
+            "end": 2100,
+            "capacity": 1
+          }
+        ],
+        "costPerHour": 32,
+        "overtimeCostPerHour": 48
+      }
+    ],
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "service-arrivals",
+        "label": "New requests",
+        "kind": "source",
+        "next": "queue-a",
+        "arrival": {
+          "kind": "poisson",
+          "segments": [
+            {
+              "start": 0,
+              "end": 900,
+              "perHour": 80
+            },
+            {
+              "start": 900,
+              "end": 2400,
+              "perHour": 125
+            },
+            {
+              "start": 2400,
+              "end": 3600,
+              "perHour": 85
+            }
+          ]
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 0.85
+          },
+          {
+            "id": "priority",
+            "label": "Priority",
+            "priority": -1,
+            "probability": 0.15
+          }
+        ]
+      },
+      {
+        "id": "queue-a",
+        "samplingId": "service-queue-a",
+        "label": "Before reception",
+        "kind": "queue",
+        "next": "station-a",
+        "capacity": null,
+        "discipline": "priority",
+        "patience": null
+      },
+      {
+        "id": "station-a",
+        "samplingId": "service-station-a",
+        "label": "Reception",
+        "kind": "service",
+        "next": "queue-b",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 18,
+          "mode": 22,
+          "max": 40
+        },
+        "resources": [
+          {
+            "poolId": "team-a",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-b",
+        "samplingId": "service-queue-b",
+        "label": "Before specialists",
+        "kind": "queue",
+        "next": "station-b",
+        "capacity": null,
+        "discipline": "priority",
+        "patience": null
+      },
+      {
+        "id": "station-b",
+        "samplingId": "service-station-b",
+        "label": "Specialists",
+        "kind": "service",
+        "next": "queue-c",
+        "servers": 2,
+        "duration": {
+          "kind": "triangular",
+          "min": 12,
+          "mode": 18,
+          "max": 28
+        },
+        "resources": [
+          {
+            "poolId": "specialists",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-c",
+        "samplingId": "service-queue-c",
+        "label": "Before resolution",
+        "kind": "queue",
+        "next": "station-c",
+        "capacity": null,
+        "discipline": "priority",
+        "patience": {
+          "kind": "constant",
+          "value": 900
+        }
+      },
+      {
+        "id": "station-c",
+        "samplingId": "service-station-c",
+        "label": "Resolution",
+        "kind": "service",
+        "next": "exit",
+        "servers": 2,
+        "duration": {
+          "kind": "triangular",
+          "min": 50,
+          "mode": 75,
+          "max": 100
+        },
+        "resources": [
+          {
+            "poolId": "specialists",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "service-exit",
+        "label": "Resolved",
+        "kind": "sink"
+      }
+    ]
+  },
+  "revision": 0,
+  "description": "Standard and priority requests share a specialist team. A five-minute team break changes capacity halfway through the hour.",
+  "layout": {
+    "arrivals": {
+      "x": -8,
+      "z": -2
+    },
+    "queue-a": {
+      "x": -6,
+      "z": -2
+    },
+    "station-a": {
+      "x": -4,
+      "z": -2
+    },
+    "queue-b": {
+      "x": -2,
+      "z": 0
+    },
+    "station-b": {
+      "x": 0,
+      "z": 0
+    },
+    "queue-c": {
+      "x": 2,
+      "z": 2
+    },
+    "station-c": {
+      "x": 4,
+      "z": 2
+    },
+    "exit": {
+      "x": 8,
+      "z": 2
+    }
+  },
+  "scenarios": [
+    {
+      "id": "service-baseline",
+      "name": "Baseline",
+      "createdAt": "2026-10-20T00:00:00.000Z",
+      "world": "service",
+      "model": {
+        "id": "service-model",
+        "name": "Service Studio",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 180,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Reception team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "specialists",
+            "label": "Shared specialists",
+            "capacity": 2,
+            "installedCapacity": 12,
+            "calendar": [
+              {
+                "start": 1800,
+                "end": 2100,
+                "capacity": 1
+              }
+            ],
+            "costPerHour": 32,
+            "overtimeCostPerHour": 48
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "service-arrivals",
+            "label": "New requests",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 80
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 125
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 85
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 0.85
+              },
+              {
+                "id": "priority",
+                "label": "Priority",
+                "priority": -1,
+                "probability": 0.15
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "service-queue-a",
+            "label": "Before reception",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "priority",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "service-station-a",
+            "label": "Reception",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 22,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "service-queue-b",
+            "label": "Before specialists",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "priority",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "service-station-b",
+            "label": "Specialists",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "specialists",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "service-queue-c",
+            "label": "Before resolution",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "priority",
+            "patience": {
+              "kind": "constant",
+              "value": 900
+            }
+          },
+          {
+            "id": "station-c",
+            "samplingId": "service-station-c",
+            "label": "Resolution",
+            "kind": "service",
+            "next": "exit",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 50,
+              "mode": 75,
+              "max": 100
+            },
+            "resources": [
+              {
+                "poolId": "specialists",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "service-exit",
+            "label": "Resolved",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -8,
+          "z": -2
+        },
+        "queue-a": {
+          "x": -6,
+          "z": -2
+        },
+        "station-a": {
+          "x": -4,
+          "z": -2
+        },
+        "queue-b": {
+          "x": -2,
+          "z": 0
+        },
+        "station-b": {
+          "x": 0,
+          "z": 0
+        },
+        "queue-c": {
+          "x": 2,
+          "z": 2
+        },
+        "station-c": {
+          "x": 4,
+          "z": 2
+        },
+        "exit": {
+          "x": 8,
+          "z": 2
+        }
+      }
+    }
+  ]
+}

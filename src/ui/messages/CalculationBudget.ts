@@ -1,0 +1,21 @@
+/** English product messages for CalculationBudget. Keep model data and canonical identifiers at the call site. */
+export const calculationBudgetMessages = {
+  calculationWorkAndLimits: "Calculation work and limits",
+  heldOutRunsHappenOnlyIfATrainingCandidate: "Held-out runs happen only if a training candidate is selected.",
+  arrivalWorkloadBeforeExecutionLimits: "Arrival workload before execution limits",
+  plan: "Plan",
+  runs: "Runs",
+  arrivalsPerRun: "Arrivals per run",
+  arrivalWorkload: (arrivals: string, stochastic: boolean) => stochastic ? `≈ ${arrivals} expected` : `${arrivals} scheduled`,
+  includesWarmUpArrivalsRandomArrivalsCanDifferPaths: "Includes warm-up arrivals. Random arrivals can differ; paths, queues and repeated visits determine event work. A limit or cancellation can stop a run earlier.",
+  limitsForEachModelRun: "Limits for each model run",
+  workUnitsEventsAndTransitions: "Work units · events and transitions",
+  externalArrivals: "External arrivals",
+  transitionsAtOneTimestamp: "Transitions at one timestamp",
+  retainedReplayEntities: "Retained replay entities",
+  retainedReplayEvents: "Retained replay events",
+  theseCountsDoNotPredictDurationOrGuaranteeTotal: "These counts do not predict duration or guarantee total memory use. Calculations can be cancelled.",
+  ifARunReachesALimitInspectItsIncomplete: "If a run reaches a limit, inspect its incomplete attempt, reduce arrivals or the horizon, or simplify looping routes, then run again. Fewer repetitions reduce total work; they do not raise a per-run limit.",
+  plannedRuns: (minimum: string, maximum: string, maximumRuns: number) => `${minimum === maximum ? maximum : `${minimum}–${maximum}`} model ${maximumRuns === 1 ? 'run' : 'runs'}`,
+  maximumWork: (count: string) => `At most ${count} work units across the largest plan. Zero is a literal limit. Replay retention is separate from numerical results.`,
+} as const;

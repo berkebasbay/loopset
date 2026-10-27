@@ -10,3 +10,7 @@ test-results/
 .private/
 .cache/
 *.log
+
+*.tsbuildinfo
+
+dist-engine/
