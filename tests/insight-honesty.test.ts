@@ -1,0 +1,4 @@
+import {expect,it} from 'vitest';import{createElement}from'react';import{renderToStaticMarkup}from'react-dom/server';import{createExample}from'../src/examples';import{simulate}from'../src/engine';import{RunInsights}from'../src/lab/RunInsights';
+it('does not describe zero completed-stage wait samples as an average of zero',()=>{
+ const model=createExample('factory').model;model.horizon=10;model.resources.forEach(p=>{p.calendar=[];});const input=model.nodes.find(n=>n.kind==='source')!;input.arrival={kind:'fixed',perHour:3600};const first=model.nodes.find(n=>n.kind==='service')!;first.duration={kind:'constant',value:30};const result=simulate(model);expect(result.summary.completed).toBe(0);const html=renderToStaticMarkup(createElement(RunInsights,{result,draft:model,onReport:()=>{},onExperiments:()=>{}}));expect(html).toContain('no completed-stage wait sample');expect(html).not.toContain('completed stage visits waited 0');
+});

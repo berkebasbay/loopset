@@ -12,6 +12,7 @@ export const runInsightsMessages = {
   incompleteHeading: (status: string) => `INCOMPLETE · ${status}`,
   warmUp: (duration: string) => `${duration} warm-up`,
   noWarmUp: "No warm-up",
+  allFileTools: "All project and file tools",
   exportReport: "Export report",
   thisIsAPreviousModelSnapshotTheseMeasurementsDescribe: "This is a previous model snapshot. These measurements describe that run, not the current draft.",
   partialObservationScope: (reason?: string) => `${reason ?? ''} Observations cover only the processed part of the run. Do not treat these as full-run estimates.`,
