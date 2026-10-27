@@ -15,7 +15,7 @@ npm run test:headless
 npm run preview
 ```
 
-`dist/` is the complete static application. Simulations run in the browser; no account, paid API, application backend or database server is required. The bundled loopback server can also serve an extracted runtime package:
+`dist/` is the complete static application. Simulations run in the browser; no account, paid API, application backend or database server is required. To serve the built files on loopback:
 
 ```sh
 node scripts/serve-local.mjs dist 4173
@@ -46,6 +46,6 @@ The Pages workflow reads the configured site URL automatically. To add a custom 
 
 ## Promotion and rollback
 
-Keep an exact build archive and SHA-256 manifest. Promote atomically, retain older content-hashed assets for open tabs, and verify the HTML entry, workers, three worlds, a change/run/compare, project-file roundtrip and reports in a fresh session.
+Identify releases by their source commit and retain the previous build for rollback. Check the deployed entry, workers, three worlds, project files and reports after changing hosting or build settings. Custom hosts should retain earlier content-hashed assets while existing tabs use them.
 
-Browser storage is origin-specific. Changing host, port or browser does not move existing projects; use portable JSON. Rollback must preserve IndexedDB and downloaded files rather than deleting data or forcing an unsupported schema to load. Source checks and local browser tests do not establish live-host readiness.
+Browser storage is origin-specific. Changing host, port or browser does not move existing projects; use portable JSON. Rollback must preserve IndexedDB and downloaded files rather than deleting data or forcing an unsupported schema to load. Check the served `build-info.json` when diagnosing a hosted revision.

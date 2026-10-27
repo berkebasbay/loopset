@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,8 +27,8 @@ test('allows public code, documentation, example environment and binary art', t 
 });
 
 test('blocks force-staged private data even when ignored', t => {
-  const f = fixture(t); f.write('.gitignore', '.private/'); f.write('.private/project.json', '{}'); f.git('add', '-f', '.');
-  const result = f.run(['--staged']); assert.equal(result.status, 1); assert.match(result.stderr, /private\/project.json/);
+  const f = fixture(t); f.write('.gitignore', '.private/'); f.write('.private/project.json', '{}'); f.write('AGENTS.override.md', 'Synthetic local instructions'); f.git('add', '-f', '.');
+  const result = f.run(['--staged']); assert.equal(result.status, 1); assert.match(result.stderr, /private\/project.json/); assert.match(result.stderr, /AGENTS\.override\.md/);
 });
 
 test('blocks a private file committed then deleted before an outgoing push', t => {
@@ -72,4 +72,56 @@ test('blocks device-local author/committer metadata before staging or pushing', 
   assert.match(f.run(['--staged']).stderr, /device-local Git identity/);
   f.commit('Public code with unwanted metadata');
   const result = f.run(); assert.equal(result.status, 1); assert.match(result.stderr, /device-local Git identity/);
+});
+
+test('checks outgoing annotations and nested tags even when their commit is already public', t => {
+  const f = fixture(t); f.write('README.md', '# Public'); const head = f.commit('Initial public source');
+  f.git('update-ref', 'refs/remotes/origin/main', head);
+  const pushTag = name => f.run(['--pre-push', 'origin'], `refs/tags/${name} ${f.git('rev-parse', `refs/tags/${name}`)} refs/tags/${name} ${'0'.repeat(40)}\n`);
+  f.git('tag', '-a', 'public-release', '-m', 'Public release', head);
+  assert.equal(pushTag('public-release').status, 0);
+
+  const fake = 'gh' + 'p_' + 'A'.repeat(36);
+  f.git('tag', '-a', 'private-annotation', '-m', fake, head);
+  const direct = pushTag('private-annotation');
+  assert.equal(direct.status, 1); assert.match(direct.stderr, /tag .*GitHub credential/); assert(!direct.stderr.includes(fake));
+  f.git('tag', '-a', 'public-wrapper', '-m', 'Public wrapper', 'private-annotation');
+  const nested = pushTag('public-wrapper');
+  assert.equal(nested.status, 1); assert.match(nested.stderr, /tag .*GitHub credential/); assert(!nested.stderr.includes(fake));
+});
+
+test('checks the tagger identity without requiring a new outgoing commit', t => {
+  const f = fixture(t); f.write('README.md', '# Public'); const head = f.commit('Initial public source');
+  f.git('update-ref', 'refs/remotes/origin/main', head);
+  f.git('config', 'user.email', ['synthetic-user', 'synthetic-device.local'].join('@'));
+  f.git('tag', '-a', 'release', '-m', 'Public release', head);
+  const result = f.run(['--pre-push', 'origin'], `refs/tags/release ${f.git('rev-parse', 'refs/tags/release')} refs/tags/release ${'0'.repeat(40)}\n`);
+  assert.equal(result.status, 1); assert.match(result.stderr, /tag .*device-local Git identity/);
+  assert(!result.stderr.includes('synthetic-device.local'));
+});
+
+test('hook setup preserves executable hooks in the default Git hook directory', t => {
+  const f = fixture(t), cwd = f.git('rev-parse', '--show-toplevel');
+  const setup = fileURLToPath(new URL('../scripts/setup-hooks.mjs', import.meta.url));
+  f.git('config', '--unset', 'core.hooksPath');
+  f.write('.githooks/pre-commit', '#!/bin/sh\n'); f.write('.githooks/pre-push', '#!/bin/sh\n');
+  const directory = f.git('rev-parse', '--git-path', 'hooks'), hook = path.join(directory, 'pre-push');
+  const body = '#!/bin/sh\nprintf existing-check\n'; f.write(hook, body); chmodSync(path.join(cwd, hook), 0o755);
+  const result = spawnSync(process.execPath, [setup], { cwd, encoding: 'utf8' });
+  assert.equal(result.status, 1); assert.match(result.stderr, /executable default Git hooks were preserved/);
+  assert.equal(spawnSync('git', ['config', '--local', '--get', 'core.hooksPath'], { cwd }).status, 1);
+  assert.equal(readFileSync(path.join(cwd, hook), 'utf8'), body);
+});
+
+test('hook setup ignores executable sample hooks and inactive normal hooks', t => {
+  const f = fixture(t), cwd = f.git('rev-parse', '--show-toplevel');
+  const setup = fileURLToPath(new URL('../scripts/setup-hooks.mjs', import.meta.url));
+  f.git('config', '--unset', 'core.hooksPath');
+  f.write('.githooks/pre-commit', '#!/bin/sh\n'); f.write('.githooks/pre-push', '#!/bin/sh\n');
+  const directory = f.git('rev-parse', '--git-path', 'hooks');
+  for (const [name, mode] of [['pre-push.sample', 0o755], ['pre-push', 0o644]]) {
+    const file = path.join(directory, name); f.write(file, '#!/bin/sh\n'); chmodSync(path.join(cwd, file), mode);
+  }
+  const result = spawnSync(process.execPath, [setup], { cwd, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr); assert.equal(f.git('config', '--get', 'core.hooksPath'), '.githooks');
 });

@@ -20,3 +20,6 @@ dist-engine/
 
 # Private development notes and local automation state
 progress.md
+
+# Machine-local agent instructions
+/AGENTS.override.md
