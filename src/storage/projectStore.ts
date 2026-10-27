@@ -2,6 +2,7 @@ import type { Project } from '../model/types';
 import { canonical } from '../model/identity';
 import { openProjectJSON, serializeProject } from './projectFile';
 import { BoundedCache } from './boundedCache';
+import { fileEaseMessages as fileEase } from '../ui/messages/fileEase';
 
 const DATABASE = 'queuelab-projects';
 const VERSION = 2;
@@ -210,4 +211,47 @@ export async function listProjectPage(after: ProjectPageCursor | null = null, li
       tx.onabort = tx.onerror = () => reject(storageError(failure ?? tx.error));
     });
   } catch (error) { throw storageError(error); } finally { db.close(); }
+}
+
+export type ProjectLibrarySort = 'recent' | 'oldest' | 'name';
+export interface ProjectLibraryQuery { query: string; sort: ProjectLibrarySort; after?: ProjectMetadata | null }
+export interface ProjectLibraryScan {
+  request: ProjectLibraryQuery; items: ProjectMetadata[]; next: ProjectPageCursor | null;
+  scanned: number; matched: number; unlistedRecords: number; complete: boolean; hasMoreResults: boolean;
+}
+type MetadataPageReader = (after: ProjectPageCursor | null, limit?: number) => Promise<ProjectPage>;
+/** A total metadata order. Name ordering never requires decoding stored payloads. */
+export function compareProjectMetadata(a: ProjectMetadata, b: ProjectMetadata, sort: ProjectLibrarySort): number {
+  const compare = (x: string, y: string) => x < y ? -1 : x > y ? 1 : 0;
+  const byTime = Date.parse(b.savedAt) - Date.parse(a.savedAt) || compare(b.id, a.id);
+  if (sort === 'recent') return byTime;
+  if (sort === 'oldest') return -byTime;
+  return compare((a.name ?? a.id).toLocaleLowerCase('en'), (b.name ?? b.id).toLocaleLowerCase('en')) || byTime;
+}
+/** Scans at most25 bounded indexed pages per call, retaining only the best20 matches.
+ * Continue until complete for a global result; partial scope is explicit.
+ * Subsequent result pages rescan keys/summaries after the semantic sort cursor,
+ * so the library is never decoded or retained as a payload-sized array. */
+export async function scanProjectLibrary(request: ProjectLibraryQuery, previous?: ProjectLibraryScan | null, readPage: MetadataPageReader = listProjectPage, pageBudget = 25): Promise<ProjectLibraryScan> {
+  const messages = fileEase;
+  if (typeof request.query !== 'string' || request.query.length > 160 || !['recent', 'oldest', 'name'].includes(request.sort)) throw new Error(messages.libraryInvalidRequest);
+  if (!Number.isSafeInteger(pageBudget) || pageBudget < 1 || pageBudget > 25) throw new Error(messages.libraryScanBudget);
+  if (request.after) orderKey([request.after.savedAt, request.after.id]);
+  const normalized: ProjectLibraryQuery = { query: request.query.trim(), sort: request.sort, after: request.after ? { ...request.after } : null };
+  if (previous && canonical(previous.request) !== canonical(normalized)) throw new Error(messages.libraryInvalidContinuation);
+  if (previous?.complete) return previous;
+  const items = previous?.items.map(item => ({ ...item })) ?? [];
+  let next = previous?.next ?? null, scanned = previous?.scanned ?? 0, matched = previous?.matched ?? 0, unlistedRecords = previous?.unlistedRecords ?? 0, complete = false;
+  const query = normalized.query.toLocaleLowerCase('en'); const compare = (a: ProjectMetadata, b: ProjectMetadata) => compareProjectMetadata(a, b, normalized.sort);
+  for (let page = 0; page < pageBudget; page++) {
+    const result = await readPage(next, 20);
+    for (const item of result.items) {
+      scanned++;
+      if (!`${item.name ?? ''} ${item.id}`.toLocaleLowerCase('en').includes(query) || normalized.after && compare(item, normalized.after) <= 0) continue;
+      matched++; items.push({ ...item }); items.sort(compare); if (items.length > 20) items.length = 20;
+    }
+    unlistedRecords = Math.max(unlistedRecords, result.unlistedRecords); next = result.next;
+    if (!next) { complete = true; break; }
+  }
+  return { request: normalized, items, next, scanned, matched, unlistedRecords, complete, hasMoreResults: complete && matched > items.length };
 }
