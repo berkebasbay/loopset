@@ -18,7 +18,7 @@ assert.equal(summary.summary.arrivals, 80);
 assert.equal(summary.summary.completed, 40);
 assert.equal(summary.summary.cost, 74);
 assert.deepEqual(summary.provenance, { rngVersion: summary.rngVersion, limits: {
-  maxEvents: 1_000_000, maxEntities: 100_000, maxMicrosteps: 10_000, maxTraceEntities: 4_000, maxTraceEvents: 100_000,
+  maxEvents: 1_000_000_000, maxEntities: 10_000_000, maxMicrosteps: 1_000_000, maxTraceEntities: 4_000, maxTraceEvents: 100_000,
 } });
 
 const references = JSON.parse(await readFile(new URL('reference-results.json', import.meta.url), 'utf8'));
@@ -75,14 +75,26 @@ assert.equal(run([folder]).status, 1);
 const bom = resolve(folder, 'bom.json');
 await writeFile(bom, '\ufeff' + JSON.stringify(project));
 assert.equal(run([bom]).status, 0);
+// This formerly hit the small timestamp cap. It must now complete.
+const burst = structuredClone(project);
+burst.model.nodes.find(node => node.kind === 'source').arrival = { kind: 'schedule', times: Array(10_001).fill(0) };
+const burstPath = resolve(folder, 'burst.json');
+await writeFile(burstPath, JSON.stringify(burst));
+const burstRun = run([burstPath]);
+assert.equal(burstRun.status, 0);
+assert.equal(JSON.parse(burstRun.stdout).summary.arrivals, 10_001);
+// A deliberately unrepresentable positive finish tests exit2 and partial-report
+// provenance without computing millions of events just to exhaust a safety cap.
 const partialProject = structuredClone(project);
-partialProject.model.nodes.find(node => node.kind === 'source').arrival = { kind: 'schedule', times: Array(10_001).fill(0) };
+partialProject.model.nodes.find(node => node.kind === 'source').arrival = { kind: 'schedule', times: [1] };
+partialProject.model.nodes.find(node => node.kind === 'service').duration = { kind: 'constant', value: Number.MIN_VALUE };
 const partialPath = resolve(folder, 'partial.json');
 await writeFile(partialPath, JSON.stringify(partialProject));
 const partial = run([partialPath]);
 assert.equal(partial.status, 2);
-assert.equal(JSON.parse(partial.stdout).status, 'limited');
-assert.deepEqual(JSON.parse(partial.stdout).provenance, summary.provenance, 'A limited CLI report retains its actual RNG and default caps.');
+assert.equal(JSON.parse(partial.stdout).status, 'failed');
+assert.match(JSON.parse(partial.stdout).reason, /numeric-precision/);
+assert.deepEqual(JSON.parse(partial.stdout).provenance, summary.provenance, 'An incomplete CLI report retains its actual RNG and default caps.');
 assert.equal(parsePortableProject(JSON.stringify(project)).schemaVersion, 1);
 assert.throws(() => parsePortableProject('{"name":"\\ud800"}'), /Unicode/);
 assert.equal(simulate(project.model, { maxEvents: 1 }).status, 'limited');

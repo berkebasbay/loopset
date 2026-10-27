@@ -3,6 +3,7 @@ import type { EntityRecord, ModelNode, PoolMetrics, QueueNode, RunOptions, RunRe
 import { assertModel } from '../model/validate';
 import { demandHash, fingerprint, modelHash } from '../model/identity';
 import { EventHeap } from './heap';
+import { RequestQueue } from './requestQueue';
 import { RNG_VERSION, sample, uniform } from './random';
 import { normalizeRunLimits } from './provenance';
 
@@ -21,7 +22,7 @@ interface Request {
   serviceOrdinal?: number; startedAt?: number;
 }
 interface StationState {
-  node: ServiceNode; requests: Request[]; waiting: number; busy: number; area: number; busyArea: number;
+  node: ServiceNode; requests: RequestQueue<Request>; waiting: number; busy: number; area: number; busyArea: number;
   arrived: number; started: number; finished: number; balked: number; reneged: number; waits: number[];
 }
 interface PoolState { busy: number; scheduled: number; scheduledArea: number; busyArea: number; overtimeArea: number }
@@ -44,7 +45,7 @@ function* execute(input: SimulationModel, options: RunOptions): Generator<void, 
   const nodes = new Map(model.nodes.map(n => [n.id, n]));
   const sources = model.nodes.filter((n): n is SourceNode => n.kind === 'source').sort((a, b) => idCompare(a.samplingId, b.samplingId));
   const stations = new Map<string, StationState>(); const pools = new Map<string, PoolState>();
-  for (const n of model.nodes) if (n.kind === 'service') stations.set(n.id, { node: n, requests: [], waiting: 0, busy: 0, area: 0, busyArea: 0, arrived: 0, started: 0, finished: 0, balked: 0, reneged: 0, waits: [] });
+  for (const n of model.nodes) if (n.kind === 'service') stations.set(n.id, { node: n, requests: new RequestQueue(requestCompare), waiting: 0, busy: 0, area: 0, busyArea: 0, arrived: 0, started: 0, finished: 0, balked: 0, reneged: 0, waits: [] });
   for (const p of model.resources) pools.set(p.id, { busy: 0, scheduled: p.capacity, scheduledArea: 0, busyArea: 0, overtimeArea: 0 });
   const heap = new EventHeap<Event>(); const active = new Map<string, Entity>();
   const classStats = new Map<string, { arrivals: number; completed: number; balked: number; reneged: number; waitSum: number }>();
@@ -136,6 +137,7 @@ function* execute(input: SimulationModel, options: RunOptions): Generator<void, 
     for (const pool of model.resources) for (const period of pool.calendar) for (const t of [period.start, period.end]) schedule({ time: t, kind: 'calendar', nodeId: pool.id });
     while (heap.size && heap.peek()!.time <= model.horizon) {
       tick(); integrate(heap.peek()!.time); microsteps = 0;
+      const newRequests: Request[] = [];
       // Complete/release, then calendar, then all arrivals/transfers at this exact Number timestamp.
       while (heap.peek()?.time === time && heap.peek()!.phase <= 2 || hasPending()) {
         tick(); yield;
@@ -166,7 +168,7 @@ function* execute(input: SimulationModel, options: RunOptions): Generator<void, 
             const queue = node.kind === 'queue' ? node : undefined; const service = queue ? nodes.get(queue.next) as ServiceNode : node as ServiceNode;
             const serviceVisit = queue ? undefined : v.record;
             const req: Request = { id: requestId++, entity, service, queue, arrival: time, priority: queue?.discipline === 'priority' ? entity.priority : 0, accepted: false, queued: true, queueVisit: queue ? v.record : undefined, serviceVisit, serviceOrdinal: queue ? undefined : v.ordinal };
-            entity.request = req; stations.get(service.id)!.requests.push(req);
+            entity.request = req; stations.get(service.id)!.requests.push(req); newRequests.push(req);
             if (entity.cohort) stations.get(service.id)!.arrived++;
             if (queue?.patience) {
               const until = future(sample(queue.patience, draw(entity, queue, 'patience', v.ordinal)), false);
@@ -208,35 +210,48 @@ function* execute(input: SimulationModel, options: RunOptions): Generator<void, 
           }
         }
       }
-      // One global feasible-first transaction across both old and same-time new requests.
-      const requests = [...stations.values()].flatMap(s => s.requests).sort(requestCompare);
-      let pendingBypasses = 0;
-      for (const req of requests) {
+      // Each station's requests have the same server/resource feasibility. Merge only
+      // feasible heads; a blocked station cannot become feasible as this transaction
+      // allocates more resources. Never rescan its potentially very large backlog.
+      const feasible = (station: StationState) => time !== model.horizon && station.busy < station.node.servers
+        && station.node.resources.every(r => pools.get(r.poolId)!.scheduled - pools.get(r.poolId)!.busy >= r.units);
+      const heads = new RequestQueue(requestCompare);
+      for (const station of stations.values()) if (station.requests.size && feasible(station)) heads.push(station.requests.peek()!);
+      let countedBypasses = 0;
+      while (heads.size) {
         tick(); yield;
+        const req = heads.peek()!; heads.remove(req);
         const station = stations.get(req.service.id)!;
-        if (time === model.horizon || station.busy >= req.service.servers || !req.service.resources.every(r => pools.get(r.poolId)!.scheduled - pools.get(r.poolId)!.busy >= r.units)) { pendingBypasses++; continue; }
+        if (!feasible(station)) continue;
         const v = req.serviceOrdinal !== undefined ? { ordinal: req.serviceOrdinal, record: req.serviceVisit } : visit(req.entity, req.service);
         const duration = sample(req.service.duration, draw(req.entity, req.service, 'service', v.ordinal)); const until = future(duration, true);
         req.serviceVisit = v.record;
         // wait is needed for full metrics even when no entity/visit trace is retained.
         req.startedAt = time;
-        bypassedRequests += pendingBypasses; pendingBypasses = 0;
+        // All live requests before this head are blocked. Count each at most once
+        // in this timestamp, just as the former globally sorted scan did.
+        let before = 0;
+        for (const other of stations.values()) before += other.requests.countBefore(req);
+        bypassedRequests += before - countedBypasses; countedBypasses = before;
         req.entity.wait += time - req.arrival;
         if (req.serviceVisit) req.serviceVisit.start = time;
         if (req.queueVisit) { req.queueVisit.start = time; req.queueVisit.end = time; req.queueVisit.outcome = 'served'; }
-        req.queued = false; if (req.accepted) station.waiting--; station.busy++;
+        req.queued = false; station.requests.remove(req); if (req.accepted) station.waiting--; station.busy++;
         if (req.entity.cohort) station.started++;
         for (const r of req.service.resources) pools.get(r.poolId)!.busy += r.units;
         if (req.queue?.patience) stalePatience++;
         emit('start', req.entity, req.service.id); schedule({ time: until, kind: 'finish', nodeId: req.service.id, entityId: req.entity.id });
+        if (station.requests.size && feasible(station)) heads.push(station.requests.peek()!);
       }
-      for (const req of requests) {
+      // Only same-time new requests need admission; accepted queues are untouched.
+      newRequests.sort(requestCompare);
+      for (const req of newRequests) {
         if (!req.queued || req.accepted) continue;
         tick(); yield;
         const station = stations.get(req.service.id)!;
         if (req.queue && (req.queue.capacity === null || station.waiting < req.queue.capacity)) { req.accepted = true; station.waiting++; emit('queue', req.entity, req.queue.id); }
         else {
-          req.queued = false; if (req.entity.cohort) station.balked++;
+          req.queued = false; station.requests.remove(req); if (req.entity.cohort) station.balked++;
           if (req.queueVisit) { req.queueVisit.end = time; req.queueVisit.outcome = 'balked'; }
           if (req.serviceVisit) { req.serviceVisit.end = time; req.serviceVisit.outcome = 'balked'; }
           end(req.entity, 'balked', req.queue?.id ?? req.service.id);
@@ -249,11 +264,10 @@ function* execute(input: SimulationModel, options: RunOptions): Generator<void, 
         if (!req || !req.accepted || req.id !== event.requestId) continue;
         const station = stations.get(req.service.id)!;
         if (!req.queued) continue;
-        req.queued = false; station.waiting--; if (entity!.cohort) station.reneged++;
+        req.queued = false; station.requests.remove(req); station.waiting--; if (entity!.cohort) station.reneged++;
         if (req.queueVisit) { req.queueVisit.end = time; req.queueVisit.outcome = 'reneged'; }
         end(entity!, 'reneged', req.queue!.id);
       }
-      for (const station of stations.values()) station.requests = station.requests.filter(req => req.queued);
       committedTime = time;
       if (traceFull) traceUntil = time;
       if (stalePatience > 2048 && heap.size > 2048) { heap.compact(isLiveEvent); stalePatience = 0; }
@@ -310,14 +324,20 @@ export async function simulateAsync(model: SimulationModel, options: RunOptions 
   const yieldTask = () => new Promise<void>(resolve => {
     // Periodically use the timer queue too: continuously posted port tasks can
     // otherwise starve timers in Node (including a caller's cancel callback).
-    if (channel && ++yields % 8 !== 0) { channel.port1.addEventListener('message', () => resolve(), { once: true }); channel.port2.postMessage(null); }
+    const useMessage = yields++ % 8 !== 0;
+    if (channel && useMessage) { channel.port1.addEventListener('message', () => resolve(), { once: true }); channel.port2.postMessage(null); }
     else setTimeout(resolve, 0);
   });
   try {
     channel?.port1.start();
-    let result = iterator.next(); let chunk = 0;
+    let result = iterator.next(); let chunk = 0; let deadline = performance.now() + 8;
     while (!result.done) {
-      if (++chunk === 256) { chunk = 0; await yieldTask(); }
+      if (++chunk === 256) {
+        chunk = 0;
+        // Yield once promptly for a new cancel request, then use short time slices
+        // instead of adding a browser task to every 256 cheap operations.
+        if (yields === 0 || performance.now() >= deadline) { await yieldTask(); deadline = performance.now() + 8; }
+      }
       result = iterator.next();
     }
     return result.value;

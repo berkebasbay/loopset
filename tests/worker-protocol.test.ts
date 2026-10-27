@@ -44,7 +44,7 @@ describe('versioned requests and narrow boundary values', () => {
   it('uses actual model/limit rules, accepts zero caps and rejects callbacks or unknown options', () => {
     const request = { ...simulation(), options: { maxEvents: 0, maxEntities: 0, maxMicrosteps: 0, maxTraceEvents: 0, maxTraceEntities: 0, seed: -1 } };
     expect(readSimulationRequest(request)).toBe(request);
-    for (const options of [[], null, { maxEvents: -1 }, { maxEntities: 1_000_001 }, { maxEvents: .5 }, { seed: NaN }, { onProgress: () => {} }, { shouldCancel: () => true }, { unexpected: true }, { maxTraceEvents: () => 0 }]) expect(() => readSimulationRequest({ ...request, options })).toThrow();
+    for (const options of [[], null, { maxEvents: -1 }, { maxEntities: 10_000_001 }, { maxEvents: .5 }, { seed: NaN }, { onProgress: () => {} }, { shouldCancel: () => true }, { unexpected: true }, { maxTraceEvents: () => 0 }]) expect(() => readSimulationRequest({ ...request, options })).toThrow();
     expect(() => readSimulationRequest({ ...request, model: { ...model(), horizon: 0 } })).toThrow('Run length');
   });
   it('rejects cyclic, functional and accessor model extras without hashing them', () => {

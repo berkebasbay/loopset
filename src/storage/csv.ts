@@ -1,4 +1,5 @@
 /** Strict RFC-4180-style CSV. No delimiter or decimal-locale guessing. */
+import { MAX_RUN_SECONDS } from '../model/limits';
 import { fileErrorMessages as messages } from '../ui/messages/fileErrors';
 export const FILE_LIMIT = 5_000_000;
 export const CSV_CELL_LIMIT = 65_536;
@@ -27,11 +28,11 @@ export function parseCSV(input: string, maxRows = 100_001): string[][] {
 }
 
 /** Accepts plain decimal seconds only; grouping, decimal commas, units and exponents are rejected. */
-export function parseSeconds(value: string, row: number, allowZero: boolean): number {
+export function parseSeconds(value: string, row: number, allowZero: boolean, maximum = 604800): number {
   const trimmed = value.trim();
   if (!/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(trimmed)) throw new Error(messages.plainSecondsRequired(row));
   const number = Number(trimmed);
-  if (!Number.isFinite(number) || (allowZero ? number < 0 : number <= 0) || number > 604800) throw new Error(messages.secondsRange(row, allowZero));
+  if (!Number.isFinite(number) || (allowZero ? number < 0 : number <= 0) || number > maximum) throw new Error(messages.secondsRange(row, allowZero, maximum));
   return number;
 }
 
@@ -43,7 +44,7 @@ export function parseSampleCSV(text: string, kind: 'arrival' | 'service', horizo
   if (rows.length < 2) throw new Error(messages.missingSampleRows);
   const values = rows.slice(1).map((row, i) => {
     if (row.length !== 1) throw new Error(messages.expectedSingleColumn(i + 2));
-    return parseSeconds(row[0], i + 2, kind === 'arrival');
+    return parseSeconds(row[0], i + 2, kind === 'arrival', kind === 'arrival' ? MAX_RUN_SECONDS : 604800);
   });
   if (kind === 'arrival') values.forEach((value, i) => {
     if (horizon !== undefined && value >= horizon) throw new Error(messages.arrivalOutsideHorizon(i + 2, horizon));

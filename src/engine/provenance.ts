@@ -11,9 +11,9 @@ const limit = (value: number | undefined, fallback: number, ceiling: number) => 
 /** The engine and pre-run displays share this one normalization boundary. */
 export function normalizeRunLimits(options: RunOptions = {}): RunLimits {
   return Object.freeze({
-    maxEvents: limit(options.maxEvents, 1_000_000, 10_000_000),
-    maxEntities: limit(options.maxEntities, 100_000, 1_000_000),
-    maxMicrosteps: limit(options.maxMicrosteps, 10_000, 1_000_000),
+    maxEvents: limit(options.maxEvents, 1_000_000_000, 1_000_000_000),
+    maxEntities: limit(options.maxEntities, 10_000_000, 10_000_000),
+    maxMicrosteps: limit(options.maxMicrosteps, 1_000_000, 1_000_000),
     maxTraceEntities: limit(options.maxTraceEntities, 4_000, 100_000),
     maxTraceEvents: limit(options.maxTraceEvents, 100_000, 1_000_000),
   });
