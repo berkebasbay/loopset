@@ -23,6 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
@@ -30,6 +31,17 @@ jobs:
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+      - name: Check public content
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -n "$BASE_SHA" ] && ! echo "$BASE_SHA" | grep -Eq '^0+$'; then
+            node scripts/check-publication.mjs --range "$BASE_SHA..$HEAD_SHA"
+          else
+            node scripts/check-publication.mjs --range "$HEAD_SHA"
+          fi
+      - run: npm run test:publication
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
