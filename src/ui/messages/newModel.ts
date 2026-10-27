@@ -1,0 +1,1 @@
+export const newModelMessages={project:'Untitled process',model:'New process',description:'A small synthetic process. Set its demand, processing time and team, then compare alternatives.',source:'Incoming work',queue:'Waiting area',service:'Processing',sink:'Completed work',team:'Processing team',class:'Standard work'}as const;
