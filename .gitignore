@@ -14,3 +14,9 @@ test-results/
 *.tsbuildinfo
 
 dist-engine/
+
+# Local planning and delivery evidence are not part of the distributable source.
+.omx/
+
+# Private development notes and local automation state
+progress.md
