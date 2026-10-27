@@ -1,4 +1,5 @@
 /** English product messages for WorldScene. Keep model data and canonical identifiers at the call site. */
+import { BRAND } from '../../brand';
 export const worldSceneMessages = {
   contextUnavailable: '3D graphics could not start. Retry the world, or use Tools to edit the model.',
   assetsUnavailable: 'Some equipment could not load. Model editing remains available.',
@@ -22,7 +23,7 @@ export const worldSceneMessages = {
   supplies: "SUPPLIES",
   maintenance: "MAINTENANCE",
   waitingLounge: "WAITING LOUNGE",
-  queueLab: "QUEUE / LAB",
+  queueLab: BRAND.name.toUpperCase(),
   syntheticWorld: "SYNTHETIC WORLD",
   tickets: "TICKETS",
   wristbands: "WRISTBANDS",

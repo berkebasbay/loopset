@@ -75,7 +75,7 @@ function openDatabase(): Promise<IDBDatabase> {
       settled = true; resolve(db);
     };
     request.onerror = () => { if (!settled) { settled = true; reject(upgradeFailure ?? storageError(request.error)); } };
-    request.onblocked = () => { if (!settled) { settled = true; reject(new ProjectStorageError('unavailable', 'Another QueueLab tab is blocking the database upgrade. Close it and retry; existing projects are unchanged.')); } };
+    request.onblocked = () => { if (!settled) { settled = true; reject(new ProjectStorageError('unavailable', fileEase.storageUpgradeBlocked)); } };
   });
 }
 function payloadOf(project: Project): string { const copy = structuredClone(project); delete copy.savedAt; return canonical(copy); }
@@ -85,8 +85,8 @@ export function assertSaveAllowed(incoming: ComparisonBase, current?: Comparison
   if (!current) return;
   if (incoming.revision < current.revision || (incoming.revision === current.revision && incoming.payload !== current.payload)) throw new ProjectStorageError('conflict', 'A saved revision is newer or has different content at this revision. Reopen the saved project or download your draft; it was not overwritten.');
   if (incoming.payload === current.payload) return;
-  if (!base) throw new ProjectStorageError('conflict', 'Another QueueLab tab may have changed this project, or its comparison copy is no longer in memory. Download your draft before reopening the saved project. It was not overwritten.');
-  if (base.revision !== current.revision || base.payload !== current.payload) throw new ProjectStorageError('conflict', 'Another QueueLab tab changed this project. Download your draft before reopening the saved project. The other tab’s revision was preserved.');
+  if (!base) throw new ProjectStorageError('conflict', fileEase.storageContextMissing);
+  if (base.revision !== current.revision || base.payload !== current.payload) throw new ProjectStorageError('conflict', fileEase.storageConflict);
 }
 function decode(record: StoredProject): Project {
   try {

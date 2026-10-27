@@ -1,5 +1,7 @@
 /** English product messages for DataTools. Keep model data and canonical identifiers at the call site. */
+import { BRAND } from '../../brand';
 export const dataToolsMessages = {
+  repairInstructions: `Raw repair backup, not a portable ${BRAND.name} project. Non-finite numbers use queuelabNonFinite markers. To repair manually, replace markers with valid numbers, repair validation errors, then extract the project object and open it through strict project import. In this tab, use Restore for repair.`,
   repairBackupLimitReached: "This repair backup exceeds 5 MB. Keep this tab open and reduce sample data before replacing the project.",
   projectReplacementWasPausedTheCurrentDraftIsStill: "Project replacement was paused. The current draft is still open; review retained drafts before trying again.",
   theFileOperationFailedYourCurrentProjectHasNot: "The file operation failed. Your current project has not been replaced.",

@@ -28,4 +28,4 @@ createServer(async (request, response) => {
     } else bytes = await readFile(file);
     headers['Content-Length'] = String(bytes.length); response.writeHead(200, headers); response.end(request.method === 'HEAD' ? undefined : bytes);
   } catch { response.writeHead(404); response.end(); }
-}).listen(port, '127.0.0.1', () => console.log(`QueueLab: http://localhost:${port}/ (Ctrl+C to stop)`));
+}).listen(port, '127.0.0.1', () => console.log(`Open your simulator: http://localhost:${port}/ (Ctrl+C to stop)`));

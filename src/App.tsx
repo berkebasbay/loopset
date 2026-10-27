@@ -67,6 +67,11 @@ const money = (n: number, currency: string) => new Intl.NumberFormat('en', { sty
 const number = (n: number) => new Intl.NumberFormat('en', { maximumFractionDigits: 0 }).format(n);
 type Panel = 'worlds' | 'model' | 'compare' | 'data' | 'experiments' | 'insights' | 'budget' | 'history' | 'help' | 'scenario' | 'view' | 'rename' | 'search' | 'guide' | null;
 
+function focusChangedSince(origin: Element | null): boolean {
+  const chosen = document.activeElement;
+  return chosen instanceof HTMLElement && chosen !== origin && chosen !== document.body && chosen !== document.documentElement && chosen.isConnected && !chosen.matches(':disabled') && !chosen.closest('[hidden],[inert],[role=dialog]') && chosen.checkVisibility({ visibilityProperty: true });
+}
+
 export default function App() {
   const [pendingEdits, setPendingEdits] = useState(false);
   const [guideIndex, setGuideIndex] = useState(0);
@@ -511,8 +516,9 @@ export default function App() {
   }
   function revealNarrowSection(selector: string, focusSelector: string) {
     if (!matchMedia('(max-width:740px)').matches) return;
+    const origin = document.activeElement;
     requestAnimationFrame(() => {
-      if (currentPanel.current) return;
+      if (currentPanel.current || focusChangedSince(origin)) return;
       const section = document.querySelector<HTMLElement>(selector);
       if (!section) return;
       section.scrollIntoView({ block: 'start' });
@@ -525,12 +531,11 @@ export default function App() {
     objectDetailsOrigin.current = active instanceof HTMLElement && active !== document.body ? active : null;
     setInspectorTab('object');
     setObjectDetailsOpen(true);
-    requestAnimationFrame(() => {
+    if (!matchMedia('(max-width:740px)').matches) requestAnimationFrame(() => {
       if (currentPanel.current || selectionRef.current.primary !== id) return;
-      const chosen = document.activeElement;
       // A fast click/keystroke may already have selected an input after the
       // inspector opened. Never redirect that choice to its Close button.
-      if (chosen instanceof HTMLElement && chosen !== active && chosen !== document.body && chosen !== document.documentElement && chosen.isConnected && !chosen.matches(':disabled') && !chosen.closest('[hidden],[inert],[role=dialog]') && chosen.checkVisibility({ visibilityProperty: true })) return;
+      if (focusChangedSince(active)) return;
       document.querySelector<HTMLElement>('[data-object-details-close]')?.focus({ preventScroll: true });
     });
     revealNarrowSection('#object-properties', '[data-object-details-close]');
@@ -611,7 +616,7 @@ export default function App() {
       let text: string; let repair = false;
       try { text = serializeProject({ ...snapshot, savedAt: new Date().toISOString() }); }
       catch { repair = true; text = serializeDraftRecovery(snapshot); }
-      downloadText(text, safeFilename(`${snapshot.name}-queuelab${repair ? '-unvalidated-repair' : ''}`, 'json'), 'application/json;charset=utf-8');
+      downloadText(text, safeFilename(`${snapshot.name}-${m.brandSlug}${repair ? '-unvalidated-repair' : ''}`, 'json'), 'application/json;charset=utf-8');
       setBackupRequestedRevision(snapshot.revision); setToast(m.backupDownloadRequested(repair));
     } catch (e) { setToast(e instanceof Error ? e.message : m.couldNotPrepareABackupKeepThisDraftOpen); }
   }
@@ -645,7 +650,7 @@ export default function App() {
   const draftSummary = normalBudget ? sx.quickSummary(ease.duration(project.model.horizon), number(normalBudget.groups[0].arrivalsPerRun), normalBudget.groups[0].stochastic, project.model.resources.length) : sx.reviewInputs;
   return <NumericDraftProvider onPendingChange={setPendingEdits}><div className="app-shell studio-shell">
     <header className="studio-header" inert={Boolean(panel)}>
-      <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>QueueLab<span className="studio-brand-dot">.</span></span></a>
+      <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>{m.queueLab}<span className="studio-brand-dot">.</span></span></a>
       <div className="studio-project"><h1><button className="studio-project-name" data-panel-opener="rename" aria-label={sx.renameProject} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{sx.localProject}</span></div>
       <label className="studio-world-picker"><span>{m.chooseWorld}</span><select aria-label={m.chooseWorld} value={project.world} onChange={event => chooseWorld(event.currentTarget.value as World)}><option value="factory">{m.factory}</option><option value="festival">{m.festival}</option><option value="service">{m.service}</option></select></label>
       <div className="studio-command-actions">

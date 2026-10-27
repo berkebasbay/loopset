@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { readFileSync } from 'node:fs';
 import { isIP } from 'node:net';
 import type { HtmlTagDescriptor } from 'vite';
+import { BRAND } from './src/brand.ts';
 
 function socialMetadata(value: string | undefined): HtmlTagDescriptor[] {
   if (!value?.trim()) return [];
@@ -11,12 +12,12 @@ function socialMetadata(value: string | undefined): HtmlTagDescriptor[] {
   try { url = new URL(value.trim()); } catch { throw new Error(message); }
   const host = url.hostname.toLowerCase();
   if (url.protocol !== 'https:' || url.username || url.password || url.port || url.href !== `${url.origin}/` || !host.includes('.') || host.endsWith('.') || host.endsWith('.localhost') || host.endsWith('.local') || isIP(host.replace(/^\[|\]$/g, ''))) throw new Error(message);
-  const title = 'QueueLab — Little worlds. Better decisions.';
+  const title = `${BRAND.name} — ${BRAND.tagline}`;
   const description = 'A free process and capacity simulator. Build a little world, find its bottleneck and compare plans.';
   const image = new URL('social-card.png', url).href;
-  const alt = 'QueueLab with an actual miniature Factory scene and the words Little worlds. Better decisions.';
+  const alt = `${BRAND.name} with an actual miniature Factory scene and the words ${BRAND.tagline}`;
   const properties = {
-    'og:type': 'website', 'og:site_name': 'QueueLab', 'og:title': title,
+    'og:type': 'website', 'og:site_name': BRAND.name, 'og:title': title,
     'og:description': description, 'og:url': url.href, 'og:image': image,
     'og:image:type': 'image/png', 'og:image:width': '1280', 'og:image:height': '640', 'og:image:alt': alt,
   };

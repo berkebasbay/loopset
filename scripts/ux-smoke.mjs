@@ -47,7 +47,10 @@ async function core() {
    if (viewportWidth <= 740) {
     const before = await state(page);
     await page.getByRole('button', { name: 'Edit selected step', exact: true }).click();
-    await page.getByRole('spinbutton', { name: 'Parallel stations', exact: true }).waitFor();
+    const target = page.getByRole('spinbutton', { name: 'Parallel stations', exact: true });
+    await target.focus();
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert(await target.evaluate(node => node === document.activeElement), 'Opening the mobile inspector must preserve a subsequent field focus.');
     assert.equal((await state(page)).revision, before.revision);
     assert.equal((await state(page)).result.hash, before.result.hash);
    }
