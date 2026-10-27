@@ -81,11 +81,17 @@ export function changeHorizon(project: Project, seconds: number, policy: 'keep' 
   if (policy === 'repeat' && seconds < oldHorizon) throw new Error(m.repeatShorter);
   const repeatCount = Math.ceil(seconds / oldHorizon);
   // Check lengths before allocating repeated inputs, even on very long runs.
+  const repeatedSize = (starts: readonly number[]) => {
+    if (!starts.length) return 0;
+    if (!Number.isSafeInteger(repeatCount)) return Infinity;
+    const complete = repeatCount - 1, offset = complete * oldHorizon;
+    return complete * starts.length + starts.filter(start => start + offset < seconds).length;
+  };
   if (policy === 'repeat') {
     for (const node of project.model.nodes) if (node.kind === 'source') {
-      if (node.arrival.kind === 'schedule' && node.arrival.times.length * repeatCount > 100000 || node.arrival.kind === 'poisson' && node.arrival.segments.length * repeatCount > 200) throw new Error(m.repeatLimit);
+      if (node.arrival.kind === 'schedule' && repeatedSize(node.arrival.times) > 100000 || node.arrival.kind === 'poisson' && repeatedSize(node.arrival.segments.map(segment => segment.start)) > 200) throw new Error(m.repeatLimit);
     }
-    if (project.model.resources.some(pool => pool.calendar.length * repeatCount > 200)) throw new Error(m.repeatLimit);
+    if (project.model.resources.some(pool => repeatedSize(pool.calendar.map(period => period.start)) > 200)) throw new Error(m.repeatLimit);
   }
   return checked(mutateProject(project, copy => {
     copy.model.horizon = seconds;
@@ -97,12 +103,12 @@ export function changeHorizon(project: Project, seconds: number, policy: 'keep' 
         node.arrival.times = !times.length ? [] : policy === 'crop' ? times.filter(time => time < seconds) : Array.from({ length: repeatCount }, (_, i) => times.map(time => time + i * oldHorizon)).flat().filter(time => time < seconds);
       } else if (node.arrival.kind === 'poisson') {
         const segments = node.arrival.segments;
-        node.arrival.segments = (policy === 'crop' || !segments.length ? segments : Array.from({ length: repeatCount }, (_, i) => segments.map(segment => ({ ...segment, start: segment.start + i * oldHorizon, end: segment.end + i * oldHorizon }))).flat()).filter(segment => segment.start < seconds).map(segment => ({ ...segment, end: Math.min(seconds, segment.end) }));
+        node.arrival.segments = (policy === 'crop' || !segments.length ? segments : Array.from({ length: repeatCount }, (_, i) => segments.map(segment => ({ ...segment, start: segment.start + i * oldHorizon, end: segment.end === oldHorizon ? (i + 1) * oldHorizon : segment.end + i * oldHorizon }))).flat()).filter(segment => segment.start < seconds).map(segment => ({ ...segment, end: Math.min(seconds, segment.end) }));
       }
     }
     for (const pool of copy.model.resources) {
       const periods = pool.calendar;
-      pool.calendar = (policy === 'crop' || !periods.length ? periods : Array.from({ length: repeatCount }, (_, i) => periods.map(period => ({ ...period, start: period.start + i * oldHorizon, end: period.end + i * oldHorizon }))).flat()).filter(period => period.start < seconds).map(period => ({ ...period, end: Math.min(seconds, period.end) }));
+      pool.calendar = (policy === 'crop' || !periods.length ? periods : Array.from({ length: repeatCount }, (_, i) => periods.map(period => ({ ...period, start: period.start + i * oldHorizon, end: period.end === oldHorizon ? (i + 1) * oldHorizon : period.end + i * oldHorizon }))).flat()).filter(period => period.start < seconds).map(period => ({ ...period, end: Math.min(seconds, period.end) }));
     }
   }));
 }

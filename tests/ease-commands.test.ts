@@ -83,6 +83,8 @@ describe('horizon changes require explicit time-plan choices', () => {
     expect(changeHorizon(p, 7200, 'repeat').model.nodes.find(n => n.kind === 'source')!.arrival).toEqual({ kind: 'schedule', times: [0, 0, 3599, 3600, 3600, 7199] });
     expect(horizonImpact(p, 3000).removedArrivals).toBe(1);
     expect(changeHorizon(p, 3000, 'crop').model.nodes.find(n => n.kind === 'source')!.arrival).toEqual({ kind: 'schedule', times: [0, 0] });
+    source.arrival.times = Array(60000).fill(3599);
+    expect(changeHorizon(p, 3600.5, 'repeat').model.nodes.find(n => n.kind === 'source')!.arrival).toEqual(source.arrival);
     source.arrival.times = Array(60000).fill(0);
     expect(() => changeHorizon(p, 7200, 'repeat')).toThrow('limit');
   });
