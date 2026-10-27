@@ -1,11 +1,12 @@
-import { MAX_ARRIVALS_PER_HOUR, MAX_WAITING_PLACES } from './model/limits';
-import { stepKindLabels } from './ui/messages/labels';
 import { appMessages as m } from './ui/messages/App';
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Activity, ArrowDownToLine, ArrowRight, ArrowUpRight, Box, Check, ChevronRight, CircleHelp, Copy, FileUp, FlaskConical, Focus, GitCompareArrows, Globe2, History, Layers3, Link2, List, LoaderCircle, Minus, MousePointer2, Move, Pause, Play, Plus, Redo2, ShieldCheck, SkipBack, Undo2, X } from 'lucide-react';
+import { Activity, ArrowDownToLine, ArrowRight, ArrowUpRight, Box, Check, ChevronRight, CircleHelp, Copy, FileUp, FlaskConical, Focus, GitCompareArrows, Globe2, History, Layers3, Link2, List, LoaderCircle, MousePointer2, Move, Pause, Play, Plus, Redo2, Search, ShieldCheck, SkipBack, Undo2, X } from 'lucide-react';
 import { WORLD_INFO } from './examples';
 import { createStudioExample as createExample } from './examples/studio';
-import { duplicateProject, MAX_PARALLEL_STATIONS, meanDuration, mutateProject, serviceNodes, setCapacity } from './model/commands';
+import { duplicateProject, MAX_PARALLEL_STATIONS, mutateProject, serviceNodes } from './model/commands';
+import { InputDifferences } from './features/InputDifferences';
+import { createNewProject } from './model/newProject';
+import { modelDifferences } from './model/modelDiff';
 import { modelHash } from './model/identity';
 import { validateProject } from './model/validate';
 import type { ModelNode, Point, Project, RunResult, ServiceNode, World } from './model/types';
@@ -22,9 +23,22 @@ import { commitEdit, emptyHistory, redoEdit, undoEdit } from './features/editorH
 import { emptySelection, pruneSelection, reconcileSelection, selectStep, type EditorSelection, type SelectionIntent } from './features/editorSelection';
 import { translateSelection } from './features/layoutCommands';
 import { addNode, connectNext } from './features/modelEdits';
+import { ScenarioSettings } from './features/ScenarioSettings';
+import { QuickProperties } from './features/QuickProperties';
+import { ProcessList } from './features/ProcessList';
+import { NumericDraftProvider } from './features/EditFields';
+import { ReplayJump } from './features/ReplayJump';
+import { replayEaseMessages as rx } from './ui/messages/replayEase';
+import { processEaseMessages } from './ui/messages/modelEdits';
+import { ConnectionPicker } from './features/ProcessActions';
+import { ProjectRename } from './features/ProjectRename';
+import { CommandSearch, QuickGuide, type WorkspaceCommand } from './features/WorkspaceNavigation';
+import { shellEaseMessages as sx } from './ui/messages/shellEase';
+import { easeMessages as ease } from './ui/messages/ease';
+import './features/shellEase.css';
 import { BuildTray, type BuildPrefab } from './features/BuildTray';
 import './features/workspace.css';
-import { DataTools, recoveryProjectKey, serializeDraftRecovery, type RetainedDraft } from './features/DataTools';
+import { DataTools, recoveryProjectKey, serializeDraftRecovery, type RetainedDraft, type FileTab } from './features/DataTools';
 import { CouplingDetails } from './features/CouplingDetails';
 import { CalculationBudget } from './features/CalculationBudget';
 import { CalculationStatus, completedSimulationNotice, sameNumericalSnapshot, useCalculationAnnouncement } from './ui/CalculationAnnouncement';
@@ -38,7 +52,7 @@ import { captureSaveContext, loadLastProject, rememberOpenedProject, saveProject
 import { BoundedCache } from './storage/boundedCache';
 import { ProjectSaveQueue, type SaveInput } from './storage/projectSaveQueue';
 import { openProjectJSON, serializeProject } from './storage/projectFile';
-import { downloadText, readLocalText, safeFilename } from './storage/csv';
+import { downloadText, safeFilename } from './storage/csv';
 
 declare global {
   interface Window {
@@ -50,9 +64,11 @@ const clock = (s: number) => !Number.isFinite(s) ? '—' : `${Math.floor(s / 60)
 const wait = (s: number) => !Number.isFinite(s) ? '—' : s >= 60 ? m.minutes((s / 60).toFixed(1)) : m.seconds(Math.round(s));
 const money = (n: number, currency: string) => new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n);
 const number = (n: number) => new Intl.NumberFormat('en', { maximumFractionDigits: 0 }).format(n);
-type Panel = 'worlds' | 'model' | 'compare' | 'data' | 'experiments' | 'insights' | 'budget' | 'history' | 'help' | null;
+type Panel = 'worlds' | 'model' | 'compare' | 'data' | 'experiments' | 'insights' | 'budget' | 'history' | 'help' | 'scenario' | 'view' | 'rename' | 'search' | 'guide' | null;
 
 export default function App() {
+  const [pendingEdits, setPendingEdits] = useState(false);
+  const [guideIndex, setGuideIndex] = useState(0);
   const [project, setProject] = useState<Project>(() => createExample('factory'));
   const [history, setHistory] = useState(emptyHistory); const historyRef = useRef(history); historyRef.current = history;
   const [selection, setSelection] = useState<EditorSelection>({ ids: ['station-c'], primary: 'station-c' });
@@ -60,17 +76,21 @@ export default function App() {
   const selected = selection.primary, undoAction = history.past.at(-1), redoAction = history.future[0];
   const [result, setResult] = useState<RunResult | null>(null); const [baseline, setBaseline] = useState<RunResult | null>(null);
   // Keep at most one incomplete snapshot, separate from completed results and comparisons.
+  const runDisplayNames = useRef(new WeakMap<RunResult, string>());
+  const [experimentContext, setExperimentContext] = useState<{project:Project;baseline:RunResult|null}|null>(null);
   const [latestAttempt, setLatestAttempt] = useState<RunResult | null>(null);
   const [time, setTime] = useState(0); const [playing, setPlaying] = useState(false); const [speed, setSpeed] = useState(15);
   const [visualSeekEpoch, setVisualSeekEpoch] = useState(0);
   const [panel, setPanelState] = useState<Panel>(null);
+  const [dataInitialTab, setDataInitialTab] = useState<FileTab>('projects');
   const currentPanel = useRef<Panel>(null); const panelGeneration = useRef(0);
   const dialogOrigin = useRef<{ element: HTMLElement | null; panel: Exclude<Panel, null> } | null>(null);
   const [linkFrom, setLinkFrom] = useState<string | null>(null);
+  const [connectionPreview, setConnectionPreview] = useState<{ owner: string; from: string; to: string } | null>(null);
   const [quality, setQuality] = useState<'high' | 'low'>('high');
   const [moving, setMoving] = useState(true); const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [objectDetailsOpen, setObjectDetailsOpen] = useState(() => !matchMedia('(max-width:740px)').matches);
-  const [inspectorTab, setInspectorTab] = useState<'object' | 'tools'>('object');
+  const [inspectorTab, setInspectorTab] = useState<'object' | 'tools' | 'steps'>('object');
   const [buildTrayOpen, setBuildTrayOpen] = useState(false);
   const buildTrayOrigin = useRef<HTMLElement | null>(null);
   const objectDetailsOrigin = useRef<HTMLElement | null>(null);
@@ -93,7 +113,7 @@ export default function App() {
 
   const sim = useSimulation(); const initialized = useRef(false); const requestGeneration = useRef(0); const manualClock = useRef(false);
   const calculationStatus = useCalculationAnnouncement();
-  const fileInput = useRef<HTMLInputElement>(null); const live = useRef({ project, result, latestAttempt, time, playing, speed, selected, selectedIds: selection.ids, running: sim.running, canReplay: false, replayUntil: 0 });
+  const live = useRef({ project, result, latestAttempt, time, playing, speed, selected, selectedIds: selection.ids, running: sim.running, canReplay: false, replayUntil: 0 });
 
   const issues = useMemo(() => validateProject(project), [project]);
   const hasErrors = issues.some(i => i.severity === 'error');
@@ -107,6 +127,7 @@ export default function App() {
   const visualProject = lastValidProject.current;
   const currentHash = useMemo(() => modelHash(project.model), [project.model]);
   const stale = Boolean(result && (result.modelHash !== currentHash || result.seed !== project.model.seed));
+  const staleChanges = useMemo(() => result && stale ? modelDifferences(result.model, project.model) : [], [result, stale, project.model]);
   const attemptMatchesDraft = Boolean(latestAttempt && latestAttempt.modelHash === currentHash && latestAttempt.seed === project.model.seed && !hasErrors);
   const shownResult = stale || hasErrors ? null : result;
   const replay = useMemo(() => shownResult ? replayManifest(shownResult) : null, [shownResult]);
@@ -117,10 +138,8 @@ export default function App() {
   const singleCoupling = useMemo(() => baseline && shownResult && baseline.provenance && shownResult.provenance ? buildCouplingManifest(baseline, shownResult) : null, [baseline, shownResult]);
   const singlePaired = Boolean(baseline && shownResult && singleCoupling?.compatibility.sameExternalDemand && singleCoupling.compatibility.sameMeasurementPolicies && baseline.demandHash === shownResult.demandHash);
   const frame = useMemo(() => frameAt(visualProject, shownResult, time), [visualProject, shownResult, time]);
-  const station = project.model.nodes.find((n): n is ServiceNode => n.id === selected && n.kind === 'service');
   const selectedStep = project.model.nodes.find(n => n.id === selected);
   const worldInfo = WORLD_INFO[project.world];
-  const stationMetrics = shownResult?.stations.find(n => n.nodeId === selected);
   const source = project.model.nodes.find(n => n.kind === 'source');
   const topologySignature = useMemo(() => JSON.stringify(visualProject.model.nodes.map(node => ({ id: node.id, kind: node.kind,
     next: 'next' in node ? node.next : undefined, branches: node.kind === 'route' ? node.branches : undefined }))), [visualProject.model.nodes]);
@@ -135,7 +154,19 @@ export default function App() {
   const flowOpen = flowState.key === flowKey && flowState.open;
   const flowCursor = Math.max(0, Math.min(flowState.cursor, (flowWalk?.links.length ?? 1) - 1));
   const flowSuspended = Boolean(linkFrom || moving || panel);
-  const sceneFlow = useMemo(() => flowOpen && !flowSuspended && !hasErrors && flowWalk ? { walk: flowWalk, cursor: flowCursor } : null, [flowOpen, flowSuspended, hasErrors, flowWalk, flowCursor]);
+  const sceneFlow = useMemo(() => {
+    if (panel || hasErrors) return null;
+    if (buildTrayOpen) {
+      const anchor = insertionAnchor(visualProject), walk = anchor && possibleFlow(topology, anchor.id);
+      if (walk && anchor) return { walk, cursor: Math.max(0, walk.links.findIndex(link => link.from === anchor.id && link.to === anchor.next)) };
+    }
+    if (connectionPreview) {
+      const nodes = visualProject.model.nodes.map(node => node.id === connectionPreview.from && 'next' in node ? { ...node, next: connectionPreview.to } : node);
+      const previewWalk = possibleFlow(flowTopology(nodes), connectionPreview.from);
+      if (previewWalk) return { walk: previewWalk, cursor: Math.max(0, previewWalk.links.findIndex(link => link.from === connectionPreview.from && link.to === connectionPreview.to)) };
+    }
+    return flowOpen && !flowSuspended && flowWalk ? { walk: flowWalk, cursor: flowCursor } : null;
+  }, [panel, hasErrors, connectionPreview, buildTrayOpen, visualProject, selected, topology, flowOpen, flowSuspended, flowWalk, flowCursor]);
   function showFlowConnection(index: number) {
     if (hasErrors || flowSuspended) return;
     document.querySelector('.world-scene')?.dispatchEvent(new CustomEvent('queuelab:show-connection', { detail: index }));
@@ -149,7 +180,8 @@ export default function App() {
     updateSelection(pruneSelection(selectStep(selectionRef.current, id, intent), live.current.project.model.nodes));
   }
 
-  function setPanel(next: Panel, opener?: HTMLElement | null) {
+  function setPanel(next: Panel, opener?: HTMLElement | null, keepExperimentContext = false) {
+    if (next === 'experiments' && !keepExperimentContext) setExperimentContext(null);
     if (next === currentPanel.current) return;
     // Pointer activation need not focus a button in WebKit. Retain the explicit
     // outside opener once; changing panels inside the dialog keeps that origin.
@@ -159,6 +191,8 @@ export default function App() {
     }
     currentPanel.current = next; ++panelGeneration.current; setPanelState(next);
   }
+
+  function openFiles(tab: FileTab = 'projects', opener?: HTMLElement | null) { setDataInitialTab(tab); setPanel('data', opener); }
 
   async function compute(p: Project, establishBaseline = false) {
     const generation = ++requestGeneration.current; setPlaying(false); setLatestAttempt(null);
@@ -170,6 +204,7 @@ export default function App() {
       if (generation !== requestGeneration.current) return;
       if (r.status !== 'completed') { calculationStatus.controller.finish(announcementId, '', panelGeneration.current); setLatestAttempt(r); setToast(r.reason ?? m.incompleteRunNotice(r.status)); return; }
       setLatestAttempt(null);
+      runDisplayNames.current.set(r, p.name);
       setResult(r); if (establishBaseline || !baseline) setBaseline(r);
       const coverage = replayManifest(r).coverage;
       setTime(establishBaseline ? Math.min(p.model.horizon * .38, coverage.at(-1)?.end ?? 0) : 0);
@@ -422,6 +457,7 @@ export default function App() {
   function edit(next: Project, label?: string) {
     if (!canEditProject()) return false;
     const previous = live.current.project;
+    if (next.id !== previous.id) return false;
     const committed = commitEdit(historyRef.current, previous, next, label);
     if (!committed.entry) return true;
     setLinkFrom(null); next = committed.project;
@@ -452,22 +488,7 @@ export default function App() {
     if (!node || !Number.isFinite(node.servers)) return;
     const next = node.servers + delta;
     if (!Number.isInteger(next) || next < 1 || (delta > 0 && next > MAX_PARALLEL_STATIONS)) return;
-    if (next !== node.servers) edit(setCapacity(current, id, next));
-  }
-  function applyCapacityInput(context: string, id: string, input: HTMLInputElement, keepFocus = false) {
-    if (live.current.project.id !== context) return;
-    const station = live.current.project.model.nodes.find((node): node is ServiceNode => node.kind === 'service' && node.id === id);
-    if (!station) return;
-    const value = Number(input.value);
-    if (!Number.isInteger(value) || value < 1 || value > MAX_PARALLEL_STATIONS) {
-      input.value = String(station.servers); setToast(m.stationCountRange);
-    } else if (value !== station.servers) changeCapacity(id, value - station.servers);
-    if (keepFocus) requestAnimationFrame(() => {
-      if (live.current.project.id !== context || selectionRef.current.primary !== id) return;
-      const active = document.activeElement;
-      if (active !== input && active !== document.body && active !== document.documentElement) return;
-      document.querySelector<HTMLInputElement>('#capacity')?.focus({ preventScroll: true });
-    });
+    if (next !== node.servers) edit(mutateProject(current, copy => { const target = copy.model.nodes.find(n => n.id === id); if (target?.kind === 'service') target.servers = next; }), ease.stationChanged(node.label));
   }
   function showBuildTray(origin: HTMLElement) {
     buildTrayOrigin.current = origin;
@@ -519,16 +540,11 @@ export default function App() {
     setInspectorTab('tools'); setObjectDetailsOpen(true);
     revealNarrowSection('#object-properties', '[data-object-details-close]');
   }
-  function editNode(id: string, update: (node: ModelNode) => void, label: string) {
-    if (!canEditProject()) return;
-    const current = live.current.project;
-    edit(mutateProject(current, copy => { const node = copy.model.nodes.find(item => item.id === id); if (node) update(node); }), label);
-  }
-  function insertionAnchor(current: Project) {
+  function insertionAnchor(current: Project): Extract<ModelNode, { next: string }> | undefined {
     const chosen = current.model.nodes.find(node => node.id === selectionRef.current.primary);
     if (chosen && 'next' in chosen) return chosen;
     const exits = new Set(current.model.nodes.filter(node => node.kind === 'sink').map(node => node.id));
-    return current.model.nodes.find(node => 'next' in node && exits.has(node.next));
+    return current.model.nodes.find((node): node is Extract<ModelNode, { next: string }> => 'next' in node && exits.has(node.next));
   }
   function addProcess(prefab: BuildPrefab) {
     const current = live.current.project;
@@ -586,44 +602,47 @@ export default function App() {
       let text: string; let repair = false;
       try { text = serializeProject({ ...snapshot, savedAt: new Date().toISOString() }); }
       catch { repair = true; text = serializeDraftRecovery(snapshot); }
-      downloadText(text, safeFilename(`${snapshot.world}-queuelab${repair ? '-unvalidated-repair' : ''}`, 'json'), 'application/json;charset=utf-8');
+      downloadText(text, safeFilename(`${snapshot.name}-queuelab${repair ? '-unvalidated-repair' : ''}`, 'json'), 'application/json;charset=utf-8');
       setBackupRequestedRevision(snapshot.revision); setToast(m.backupDownloadRequested(repair));
     } catch (e) { setToast(e instanceof Error ? e.message : m.couldNotPrepareABackupKeepThisDraftOpen); }
-  }
-  async function importProject(file: File | undefined) {
-    setLinkFrom(null);
-    if (!file) return;
-    try {
-      const next = openProjectJSON(await readLocalText(file));
-      const sameDocument = next.id === live.current.project.id;
-      const accepted = acceptProject(next);
-      if (!accepted) return;
-      if (sameDocument) void compute(accepted, true);
-      setBackupRequestedRevision(null);
-    } catch (e) { setToast(e instanceof Error ? e.message : m.couldNotOpenThisProject); }
   }
   function restoreDraft(token: string) {
     const draft = retained.current.find(item => item.token === token); if (!draft) return;
     const restored = acceptProject(structuredClone(draft.project), m.restoreRetainedDraftForRepair);
     if (restored) { setPanel('model'); setToast(m.retainedDraftRestoredForRepairItsRetainedCopyStays); }
   }
-  function updateDuration(seconds: number) {
-    if (!canEditProject()) return;
-    if (!station) return;
-    edit(mutateProject(project, p => { const n = p.model.nodes.find(n => n.id === station.id); if (n?.kind === 'service') n.duration = { kind: 'constant', value: seconds }; }), m.changeProcessingTime(station.label));
+  function openStepList() { setInspectorTab('steps'); setObjectDetailsOpen(true); revealNarrowSection('#object-properties', 'input[type=search]'); }
+  function createProcess() { if (acceptProject(createNewProject(project.world))) { setPanel(null); setInspectorTab('object'); setObjectDetailsOpen(true); } }
+  function navigateCommand(command: WorkspaceCommand) {
+    if (command === 'newModel') { createProcess(); return; }
+    if (command === 'steps') { setPanel(null); openStepList(); return; }
+    if (command === 'data') { openFiles('projects'); return; }
+    if (command === 'download') { downloadProject(); setPanel(null); return; }
+    if (command === 'demand' || command === 'team') {
+      const node = live.current.project.model.nodes.find(node => node.kind === (command === 'demand' ? 'source' : 'service'));
+      setPanel(null); if (node) editSceneNode(node.id); return;
+    }
+    setPanel(command);
   }
-
-  return <div className="app-shell studio-shell">
+  function guideTarget(target: string) {
+    if (target === 'scenario' || target === 'compare') { setPanel(target); return; }
+    setPanel(null);
+    if (target === 'steps') { openStepList(); return; }
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(target === 'download' ? '.studio-save' : '.studio-command-actions .studio-primary')?.focus());
+  }
+  const panelTitle = (surface: Exclude<Panel, null>) => ({ worlds: m.chooseYourLittleWorld, compare: m.aBetterPlanStartsHere, model: m.insideYourModel, data: m.keepYourWorkShareYourFindings, experiments: m.runExperiments, insights: m.yourRunInDetail, budget: m.beforeYouCalculate, history: m.yourRecentActions, help: m.helpHeading, scenario: sx.scenario, view: sx.view, rename: sx.renameProject, search: sx.search, guide: sx.guide }[surface]);
+  const draftSummary = normalBudget ? sx.quickSummary(ease.duration(project.model.horizon), number(normalBudget.groups[0].arrivalsPerRun), normalBudget.groups[0].stochastic, project.model.resources.length) : sx.reviewInputs;
+  return <NumericDraftProvider onPendingChange={setPendingEdits}><div className="app-shell studio-shell">
     <header className="studio-header" inert={Boolean(panel)}>
       <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>QueueLab<span className="studio-brand-dot">.</span></span></a>
-      <div className="studio-project"><h1>{project.name}</h1><span><span className="status-dot" />{m.syntheticExample}</span></div>
+      <div className="studio-project"><h1><button className="studio-project-name" data-panel-opener="rename" aria-label={sx.renameProject} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{m.syntheticExample}</span></div>
       <label className="studio-world-picker"><span>{m.chooseWorld}</span><select aria-label={m.chooseWorld} value={project.world} onChange={event => chooseWorld(event.currentTarget.value as World)}><option value="factory">{m.factory}</option><option value="festival">{m.festival}</option><option value="service">{m.service}</option></select></label>
       <div className="studio-command-actions">
-        <button className="studio-icon-button" title={m.openProject} aria-label={m.openProject} onClick={() => fileInput.current?.click()}><FileUp size={17} /></button>
+        <button className="studio-icon-button" title={m.openProject} aria-label={m.openProject} onClick={event => openFiles('projects', event.currentTarget)}><FileUp size={17} /></button>
         <button className="studio-save" aria-label={m.saveProject} onClick={downloadProject}><ArrowDownToLine size={16} /><span>{m.saveProject}</span></button>
-        <span className="studio-command-divider" />
+        <button className="studio-icon-button ease-search-opener" data-panel-opener="search" aria-label={sx.search} title={sx.search} onClick={event => setPanel('search', event.currentTarget)}><Search size={17} /></button><span className="studio-command-divider" />
         <button className="studio-button" aria-label={m.comparePlans} onClick={event => setPanel('compare', event.currentTarget)}><GitCompareArrows size={16} />{m.compareTool}</button>
-        <button className="studio-button studio-primary" disabled={sim.running || hasErrors} onClick={event => { if (stale && baseline) void runAndCompare(event.currentTarget); else void compute(project); }}>{sim.running ? <LoaderCircle size={16} className="spin" /> : <Play size={15} fill="currentColor" />}{sim.running ? m.calculationProgress(Math.round(sim.progress * 100)) : stale && baseline ? m.runAndCompare : m.runSimulation}</button>
+        <button className="studio-button ease-scenario-opener" data-panel-opener="scenario" aria-label={sx.scenario} onClick={event => setPanel('scenario', event.currentTarget)}><span>{sx.scenario}</span><small>{draftSummary}</small></button><button className="studio-button studio-primary" disabled={sim.running || hasErrors || pendingEdits} onClick={event => { if (stale && baseline) void runAndCompare(event.currentTarget); else void compute(project); }}>{sim.running ? <LoaderCircle size={16} className="spin" /> : <Play size={15} fill="currentColor" />}{sim.running ? m.calculationProgress(Math.round(sim.progress * 100)) : stale && baseline ? m.runAndCompare : m.runSimulation}</button>
       </div>
     </header>
     <div className="studio-body" inert={Boolean(panel)}>
@@ -632,14 +651,14 @@ export default function App() {
           <button data-build-opener="" className={buildTrayOpen ? 'is-active' : ''} aria-expanded={buildTrayOpen} aria-controls="process-blocks" aria-pressed={buildTrayOpen} onClick={event => { if (buildTrayOpen) closeBuildTray(); else showBuildTray(event.currentTarget); }}><Plus size={20} /><span>{m.build}</span></button>
           <button className={!moving && !linkFrom ? 'is-active' : ''} aria-pressed={!moving && !linkFrom} onClick={() => { setMoving(false); setLinkFrom(null); }}><MousePointer2 size={19} /><span>{m.selectTool}</span></button>
           <button className={moving && !linkFrom ? 'is-active' : ''} aria-label={m.moveStations} aria-pressed={moving && !linkFrom} disabled={hasErrors} onClick={() => { setMoving(true); setLinkFrom(null); }}><Move size={19} /><span>{m.moveTool}</span></button>
-          <button className={linkFrom ? 'is-active' : ''} aria-label={m.connectSelectedStep} aria-pressed={Boolean(linkFrom)} disabled={hasErrors || !selectedStep || !('next' in selectedStep)} onClick={() => { setMoving(false); setLinkFrom(linkFrom ? null : selected); }}><Link2 size={19} /><span>{m.connectTool}</span></button>
+          <button className={linkFrom ? 'is-active' : ''} aria-label={m.connectSelectedStep} aria-pressed={Boolean(linkFrom)} disabled={hasErrors || !selectedStep || !('next' in selectedStep)} onClick={() => { setBuildTrayOpen(false); setMoving(false); setLinkFrom(linkFrom ? null : selected); }}><Link2 size={19} /><span>{m.connectTool}</span></button>
         </div>
         <div className="studio-rail-group">
           <button data-panel-opener="insights" onClick={event => setPanel('insights', event.currentTarget)}><Activity size={19} /><span>{m.resultsTool}</span></button>
           <button data-panel-opener="compare" onClick={event => setPanel('compare', event.currentTarget)}><GitCompareArrows size={19} /><span>{m.compareTool}</span></button>
-          <button data-panel-opener="data" onClick={event => setPanel('data', event.currentTarget)}><ArrowDownToLine size={19} /><span>{m.filesTool}</span></button>
+          <button data-panel-opener="data" onClick={event => openFiles('projects', event.currentTarget)}><ArrowDownToLine size={19} /><span>{m.filesTool}</span></button>
         </div>
-        <div className="studio-rail-group studio-rail-bottom">
+        <div className="studio-rail-group studio-rail-bottom"><button aria-label={sx.steps} className={objectDetailsOpen && inspectorTab === 'steps' ? 'is-active' : ''} onClick={openStepList}><List size={19} /><span>{sx.steps}</span></button><button data-panel-opener="view" aria-label={sx.view} onClick={event => setPanel('view', event.currentTarget)}><Layers3 size={19} /><span>{sx.view}</span></button>
           <button className={objectDetailsOpen && inspectorTab === 'object' ? 'is-active' : ''} aria-expanded={objectDetailsOpen && inspectorTab === 'object'} onClick={event => { objectDetailsOrigin.current = event.currentTarget; if (objectDetailsOpen && inspectorTab === 'object' && !matchMedia('(max-width:740px)').matches) closeObjectDetails(); else { setInspectorTab('object'); setObjectDetailsOpen(true); revealNarrowSection('#object-properties', '[data-object-details-close]'); } }}><List size={19} /><span>{m.properties}</span></button>
           <button className={objectDetailsOpen && inspectorTab === 'tools' ? 'is-active' : ''} onClick={openTools}><Layers3 size={19} /><span>{m.toolsTool}</span></button>
           <button title={m.fitWorld} aria-label={m.fitWorld} onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={19} /><span>{m.fitWorld}</span></button>
@@ -647,19 +666,21 @@ export default function App() {
       </aside>
       <main className="main-shell studio-main">
         <CalculationStatus announcement={calculationStatus.announcement} active={!panel && calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />
+        {pendingEdits && <p className="ease-pending-banner" role="status">{sx.pendingEdits}</p>}
         {revisionExhausted && <div className="studio-selection-summary" role="status"><span>{m.revisionLimitReached}</span><button onClick={() => acceptProject(duplicateProject(live.current.project))}>{m.duplicateToEdit}</button></div>}
         <section className="world-workspace studio-world" aria-label={m.simulationWorkspace}>
           <div className={`studio-context ${hasErrors ? 'is-error' : ''}`}>
-            <div className="studio-context-copy"><span className="studio-status"><span className={sim.running || stale || hasErrors ? 'status-dot orange' : 'status-dot'} />{sim.running ? m.calculatingStatus : hasErrors ? m.modelIssue : stale ? m.currentDraft : m.playground}</span><span className="studio-context-hint">{hasErrors ? <>{errorNode && <b>{errorNode.label}: </b>}{firstError?.message}</> : linkFrom ? m.connectionHint(selectedStep?.label ?? m.step) : latestAttempt ? attemptMatchesDraft ? m.incompleteAttemptStatus(latestAttempt.status) : m.anIncompleteAttemptBelongsToAnEarlierDraft : stale ? m.changedPlanHint : shownResult && !shownResult.trace.complete ? canReplay ? m.replayCoverageCaption(clock(replayUntil)) : m.noDetailedReplayWasRetainedFullRunNumericalResults : frame.aggregated ? m.representativeActors(frame.actors.length, worldInfo.unit, frame.inSystem) : selectedStep ? m.selectedObjectHint(selectedStep.label) : m.workspaceHint}</span></div>
-            {hasErrors ? <button onClick={event => { if (errorNode) setSelected(errorNode.id); setPanel('model', event.currentTarget); }}>{m.repairModel}<ArrowRight size={13} /></button> : latestAttempt ? <button onClick={event => setPanel('data', event.currentTarget)}>{m.reviewIncompleteRun}<ArrowRight size={13} /></button> : null}
-            <div className="studio-edit-history"><button aria-label={undoAction ? m.undoLabel(undoAction.label) : m.undo} title={undoAction ? m.undoTitle(undoAction.label) : m.undo} disabled={!undoAction || revisionExhausted} onClick={undo}><Undo2 size={15} /></button><button aria-label={redoAction ? m.redoLabel(redoAction.label) : m.redo} title={redoAction ? m.redoTitle(redoAction.label) : m.redo} disabled={!redoAction || revisionExhausted} onClick={redo}><Redo2 size={15} /></button></div>
+            <div className="studio-context-copy"><span className="studio-status"><span className={sim.running || stale || hasErrors ? 'status-dot orange' : 'status-dot'} />{sim.running ? m.calculatingStatus : hasErrors ? m.modelIssue : stale ? m.currentDraft : m.playground}</span><span className="studio-context-hint">{hasErrors ? <>{errorNode && <b>{errorNode.label}: </b>}{firstError?.message}</> : linkFrom ? m.connectionHint(selectedStep?.label ?? m.step) : latestAttempt ? attemptMatchesDraft ? m.incompleteAttemptStatus(latestAttempt.status) : m.anIncompleteAttemptBelongsToAnEarlierDraft : stale ? `${m.changedPlanHint} ${staleChanges.slice(0, 2).map(change => change.label).join('; ')}` : shownResult && !shownResult.trace.complete ? canReplay ? m.replayCoverageCaption(clock(replayUntil)) : m.noDetailedReplayWasRetainedFullRunNumericalResults : frame.aggregated ? m.representativeActors(frame.actors.length, worldInfo.unit, frame.inSystem) : selectedStep ? m.selectedObjectHint(selectedStep.label) : m.workspaceHint}</span></div>
+            {hasErrors ? <button onClick={event => { if (errorNode) setSelected(errorNode.id); setPanel('model', event.currentTarget); }}>{m.repairModel}<ArrowRight size={13} /></button> : latestAttempt ? <><button onClick={event => openFiles('reports', event.currentTarget)}>{m.reviewIncompleteRun}<ArrowRight size={13} /></button><button onClick={event => setPanel('scenario', event.currentTarget)}>{sx.editSettings}</button></> : null}
+            <div className="studio-edit-history"><button aria-label={undoAction ? m.undoLabel(undoAction.label) : m.undo} title={undoAction ? m.undoTitle(undoAction.label) : m.undo} disabled={!undoAction || revisionExhausted} onClick={undo}><Undo2 size={15} /><kbd>{/Mac/.test(navigator.platform) ? '⌘Z' : 'Ctrl+Z'}</kbd></button><button aria-label={redoAction ? m.redoLabel(redoAction.label) : m.redo} title={redoAction ? m.redoTitle(redoAction.label) : m.redo} disabled={!redoAction || revisionExhausted} onClick={redo}><Redo2 size={15} /><kbd>{/Mac/.test(navigator.platform) ? '⇧⌘Z' : 'Ctrl+Y'}</kbd></button></div>
           </div>
           {selection.ids.length > 1 && <div className="studio-selection-summary"><span>{m.selectionSummary(selection.ids.length, selectedStep?.label ?? m.step)}</span><button onClick={event => setPanel('model', event.currentTarget)}>{m.moveOrEditSelection}</button><button onClick={() => setSelected(null)}>{m.clearSelection}</button></div>}
+          {linkFrom && selectedStep && <div className="ease-connect-review"><ConnectionPicker project={project} node={project.model.nodes.find(node => node.id === linkFrom) ?? selectedStep} onChange={(next,label) => { edit(next,label); setLinkFrom(null); setConnectionPreview(null); }} onPreview={to => setConnectionPreview(previous => to ? { owner: 'tool', from: linkFrom, to } : previous?.owner === 'tool' ? null : previous)} /></div>}
           <div className="scene-area studio-canvas">
             <Suspense fallback={<div className="scene-fallback" role="status"><p>{m.buildingYourLittleWorld}</p></div>}><WorldScene playing={playing} playbackSpeed={speed} replayUntil={replayUntil} runKey={shownResult?.id} seekEpoch={visualSeekEpoch} result={shownResult} onMoveStart={() => setPlaying(false)} project={visualProject} quality={quality} frame={frame} selected={selected} selectedIds={selection.ids} reducedMotion={reducedMotion} moving={moving && !hasErrors && !revisionExhausted} editable={!hasErrors && !revisionExhausted} flow={sceneFlow} onSelect={selectFromWorld} onMove={moveSelected} onCapacityChange={changeCapacity} onEditNode={editSceneNode} /></Suspense>
           </div>
           <div className="studio-control-deck">
-            <div className="studio-replay-row"><span className="studio-replay-label">{m.replayLabel}</span><div className="playback-bar"><button className="icon-button" aria-label={m.restartReplay} onClick={() => { setVisualSeekEpoch(value => value + 1); setTime(0); }} disabled={!canReplay}><SkipBack size={16} /></button><button className="play-toggle" aria-label={playing ? m.pauseReplay : m.playReplay} disabled={!canReplay} onClick={() => { manualClock.current = false; if (time >= replayUntil) setTime(0); setPlaying(!playing); }}>{playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}</button><span className="playback-time">{clock(shownResult ? frame.time : 0)}</span><input aria-label={m.replayTime} type="range" min="0" max={shownResult ? replayUntil : Number.isFinite(project.model.horizon) ? project.model.horizon : 1} step="any" value={shownResult ? frame.time : 0} disabled={!canReplay} onChange={e => { setVisualSeekEpoch(value => value + 1); setPlaying(false); setTime(replayTimeFromRange(e.currentTarget, replayUntil)); }} /><span className="playback-end">{clock(shownResult ? replayUntil : project.model.horizon)}</span><select aria-label={m.replaySpeed} value={speed} onChange={e => setSpeed(+e.target.value)}><option value="15">15×</option><option value="30">30×</option><option value="60">60×</option><option value="120">120×</option></select>{canReplay && <details className="studio-replay-details" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}><summary aria-label={m.replayCounts}>{m.replayDetails}</summary><div><strong>{m.replayObservationTime(clock(frame.time))}</strong><dl><div><dt>{m.arrivedInReplay}</dt><dd>{number(frame.arrivals)}</dd></div><div><dt>{m.completed}</dt><dd>{number(frame.completed)}</dd></div><div><dt>{m.inProgress}</dt><dd>{number(frame.inSystem)}</dd></div><div><dt>{m.leftInReplay}</dt><dd>{number(frame.abandoned)}</dd></div></dl><p>{m.replayCountsScope}</p></div></details>}</div></div>
+            <div className="studio-replay-row"><span className="studio-replay-label">{m.replayLabel}</span><div className="playback-bar"><button className="icon-button" aria-label={m.restartReplay} onClick={() => { setVisualSeekEpoch(value => value + 1); setTime(0); }} disabled={!canReplay}><SkipBack size={16} /></button><button className="play-toggle" aria-label={playing ? m.pauseReplay : m.playReplay} aria-keyshortcuts="Space" title={rx.replayShortcut} disabled={!canReplay} onClick={() => { manualClock.current = false; if (time >= replayUntil) setTime(0); setPlaying(!playing); }}>{playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}</button><kbd className="ease-replay-shortcut">{rx.replayShortcut}</kbd><span className="playback-time">{clock(shownResult ? frame.time : 0)}</span><input aria-label={m.replayTime} type="range" min="0" max={shownResult ? replayUntil : Number.isFinite(project.model.horizon) ? project.model.horizon : 1} step="any" value={shownResult ? frame.time : 0} disabled={!canReplay} onChange={e => { setVisualSeekEpoch(value => value + 1); setPlaying(false); setTime(replayTimeFromRange(e.currentTarget, replayUntil)); }} /><span className="playback-end">{clock(shownResult ? replayUntil : project.model.horizon)}</span><select aria-label={m.replaySpeed} value={speed} onChange={e => setSpeed(+e.target.value)}><option value="15">15×</option><option value="30">30×</option><option value="60">60×</option><option value="120">120×</option></select>{canReplay && <ReplayJump until={replayUntil} runKey={shownResult?.id} onSeek={value => { setVisualSeekEpoch(epoch => epoch + 1); setPlaying(false); setTime(value); }} />}{canReplay && <details className="studio-replay-details" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}><summary aria-label={m.replayCounts}>{m.replayDetails}</summary><div><strong>{m.replayObservationTime(clock(frame.time))}</strong><dl><div><dt>{m.arrivedInReplay}</dt><dd>{number(frame.arrivals)}</dd></div><div><dt>{m.completed}</dt><dd>{number(frame.completed)}</dd></div><div><dt>{m.inProgress}</dt><dd>{number(frame.inSystem)}</dd></div><div><dt>{m.leftInReplay}</dt><dd>{number(frame.abandoned)}</dd></div></dl><p>{m.replayCountsScope}</p></div></details>}</div></div>
             <div className="metrics-strip"><div><span className="metric-label"><span className="tiny-square green" />{m.completedByEnd}</span><strong>{shownResult ? number(shownResult.summary.completed) : '—'}<small>{worldInfo.unit}</small></strong><span className="metric-foot">{shownResult ? m.fullRunDuration(wait(shownResult.model.horizon)) : m.runToSeeResults}</span></div><div><span className="metric-label"><span className="tiny-square amber" />{m.unfinishedByEnd}</span><strong>{shownResult ? number(shownResult.summary.inSystem) : '—'}<small>{worldInfo.unit}</small></strong><span className="metric-foot">{m.waitingOrWorkingAtEnd}</span></div><div><span className="metric-label"><span className="tiny-square orange" />{m.averageWait}</span><strong>{shownResult?.summary.waitSampleSize ? wait(shownResult.summary.meanWait) : '—'}</strong><span className="metric-foot">{m.completedJobsFullRun}</span></div><div><span className="metric-label"><span className="tiny-square grey" />{m.resourceCost}</span><strong>{shownResult ? money(shownResult.summary.cost, shownResult.model.currency) : '—'}</strong><span className="metric-foot">{m.runCurrency(project.model.currency)}</span></div></div>
           </div>
           <div className="studio-flow-disclosure"><FlowGuide nodes={flowNodes} walk={flowWalk} shared={sharedConnections} open={flowOpen} cursor={flowCursor}
@@ -668,42 +689,28 @@ export default function App() {
             onClose={() => setFlowState(state => ({ ...state, open: false }))}
             onCursor={cursor => setFlowState({ key: flowKey, open: true, cursor })} onShow={showFlowConnection} /></div>
         </section>
-        {buildTrayOpen && <BuildTray world={project.world} serviceCount={serviceNodes(project).length} insertionLabel={insertionAnchor(project)?.label} insertionId={insertionAnchor(project)?.id} insertionOptions={project.model.nodes.filter(node => 'next' in node).map(node => ({ id: node.id, label: node.label }))} onInsertionChange={id => setSelected(id)} disabled={hasErrors || revisionExhausted || sim.running || project.model.nodes.length >= 100} disabledReason={hasErrors ? m.repairYourModelFirst : revisionExhausted ? m.revisionLimitReached : sim.running ? m.addingWhileRunning : project.model.nodes.length >= 100 ? m.stepLimitReached : undefined} onAdd={addProcess} onClose={closeBuildTray} />}
-        <footer className="workspace-footer"><span><span className="status-dot" />{storageError ? m.localSaveFailedDownloadABackup : !storageReady ? m.openingLocalProject : issues.some(i => i.severity === 'error') ? m.draftHasIssuesRepairBeforeSaving : localRevision === project.revision ? m.savedInThisBrowser : m.savingLocally}{backupRequestedRevision === project.revision ? m.backupRequestedVerifyFile : ''}{retainedDrafts.length > 0 && <button onClick={event => setPanel('data', event.currentTarget)}>{m.retainedDraftRecovery(retainedDrafts.length)}</button>}</span><span>{m.seedLabel(Number.isFinite(project.model.seed) ? project.model.seed : m.check)}<span className="footer-separator" />{source?.kind === 'source' ? m.variableDemand : m.customModel}<span className="footer-separator" /><button onClick={() => setReducedMotion(!reducedMotion)}>{reducedMotion ? m.reducedMotionOn : m.motionOn}</button></span></footer>
+        {buildTrayOpen && <BuildTray world={project.world} serviceCount={serviceNodes(project).length} insertionLabel={insertionAnchor(project)?.label} insertionId={insertionAnchor(project)?.id} followingLabel={project.model.nodes.find(node => node.id === insertionAnchor(project)?.next)?.label} insertionOptions={project.model.nodes.filter(node => 'next' in node).map(node => ({ id: node.id, label: node.label }))} onInsertionChange={id => setSelected(id)} disabled={hasErrors || revisionExhausted || sim.running || project.model.nodes.length >= 100} disabledReason={hasErrors ? m.repairYourModelFirst : revisionExhausted ? m.revisionLimitReached : sim.running ? m.addingWhileRunning : project.model.nodes.length >= 100 ? m.stepLimitReached : undefined} onAdd={addProcess} onClose={closeBuildTray} />}
+        <footer className="workspace-footer"><span title={sx.storageScope(window.location.origin)}><span className="status-dot" />{storageError ? m.localSaveFailedDownloadABackup : !storageReady ? m.openingLocalProject : issues.some(i => i.severity === 'error') ? m.draftHasIssuesRepairBeforeSaving : localRevision === project.revision ? m.savedInThisBrowser : m.savingLocally}{backupRequestedRevision === project.revision ? m.backupRequestedVerifyFile : ''}<small className="ease-storage-origin">{window.location.host}</small>{retainedDrafts.length > 0 && <button onClick={event => setPanel('data', event.currentTarget)}>{m.retainedDraftRecovery(retainedDrafts.length)}</button>}</span><span>{m.seedLabel(Number.isFinite(project.model.seed) ? project.model.seed : m.check)}<span className="footer-separator" />{source?.kind === 'source' ? m.variableDemand : m.customModel}<span className="footer-separator" /><button onClick={() => setReducedMotion(!reducedMotion)}>{reducedMotion ? m.reducedMotionOn : m.motionOn}</button></span></footer>
       </main>
       {objectDetailsOpen && <aside id="object-properties" className="inspector studio-inspector" aria-label={inspectorTab === 'tools' ? m.studioTools : m.stationInspector}>
-        <div className="studio-inspector-tabs"><button className={inspectorTab === 'object' ? 'selected' : ''} onClick={() => setInspectorTab('object')}>{m.properties}</button><button className={inspectorTab === 'tools' ? 'selected' : ''} onClick={() => setInspectorTab('tools')}>{m.toolsTool}</button><button className="studio-inspector-close" data-object-details-close="" aria-label={m.closeObjectDetails} onClick={closeObjectDetails}><X size={16} /></button></div>
-        {inspectorTab === 'tools' ? <div className="studio-tool-list"><h2>{m.processTools}</h2><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><button data-panel-opener="model" onClick={event => setPanel('model', event.currentTarget)}><List size={17} /><span>{m.processEditor}</span><ChevronRight size={14} /></button><button data-panel-opener="experiments" onClick={event => setPanel('experiments', event.currentTarget)}><FlaskConical size={17} /><span>{m.experiments}</span><ChevronRight size={14} /></button><button data-panel-opener="budget" onClick={event => setPanel('budget', event.currentTarget)}><ShieldCheck size={17} /><span>{m.runLimits}</span><ChevronRight size={14} /></button><button data-panel-opener="history" onClick={event => setPanel('history', event.currentTarget)}><History size={17} /><span>{m.actionHistory}</span><ChevronRight size={14} /></button><button data-panel-opener="worlds" onClick={event => setPanel('worlds', event.currentTarget)}><Globe2 size={17} /><span>{m.exploreWorlds}</span><ChevronRight size={14} /></button><button data-panel-opener="help" onClick={event => setPanel('help', event.currentTarget)}><CircleHelp size={17} /><span>{m.aLittleGuidance}</span><ChevronRight size={14} /></button><div className="studio-tool-note"><ShieldCheck size={15} />{m.yourWorldStaysOnYourDevice}</div></div> : selectedStep ? <fieldset className="studio-properties" aria-label={m.properties} disabled={revisionExhausted}>
-          <div className="studio-object-heading"><span>{stepKindLabels[selectedStep.kind]}</span><h2>{selectedStep.label}</h2></div>
-          <label className="studio-field"><span>{m.objectName}</span><input value={selectedStep.label} maxLength={160} onChange={event => editNode(selectedStep.id, node => { node.label = event.currentTarget.value; }, m.renameObject(selectedStep.label))} /></label>
-          {station && <>
-            <div className="studio-property-section"><h3>{m.parallelStations}</h3><div className="stepper"><button aria-label={m.removeOneStation} disabled={hasErrors || station.servers <= 1} onClick={() => changeCapacity(station.id, -1)}><Minus size={15} /></button><input key={`${station.id}:${station.servers}`} id="capacity" aria-label={m.parallelStations} aria-describedby="station-count-help" disabled={hasErrors} type="number" min="1" max={MAX_PARALLEL_STATIONS} step="1" defaultValue={Number.isFinite(station.servers) ? station.servers : ''} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); applyCapacityInput(project.id, station.id, event.currentTarget, true); } }} onBlur={event => applyCapacityInput(project.id, station.id, event.currentTarget)} /><button aria-label={m.addOneStation} disabled={hasErrors || station.servers >= MAX_PARALLEL_STATIONS} onClick={() => changeCapacity(station.id, 1)}><Plus size={15} /></button></div><p id="station-count-help" className="studio-field-hint">{m.capacityEntryHint}</p><p>{station.resources.some(req => project.model.nodes.filter(node => node.kind === 'service' && node.resources.some(resource => resource.poolId === req.poolId)).length > 1) ? m.thisStationSharesAResourcePoolAdjustTheShared : m.moreCapacityHereMayMoveTheBottleneckElsewhere}</p></div>
-            <label className="studio-field"><span>{station.duration.kind === 'constant' ? m.fixedTime : m.meanProcessingTime}<small>{m.secondsLabel}</small></span><input type="number" min="0" max="604800" step="any" value={Number.isFinite(meanDuration(station.duration)) ? station.duration.kind === 'constant' ? station.duration.value : Number(meanDuration(station.duration).toPrecision(5)) : ''} onChange={event => updateDuration(event.currentTarget.value === '' ? NaN : Number(event.currentTarget.value))} /></label>
-            <p className="studio-field-hint">{station.duration.kind === 'constant' ? m.fixedProcessingTime : m.fixedTimeEditingHint}</p>
-          </>}
-          {selectedStep.kind === 'queue' && <>
-            <label className="studio-field"><span>{m.waitingCapacity}</span><input type="number" min="0" max={MAX_WAITING_PLACES} step="1" placeholder={m.unlimitedCapacity} value={selectedStep.capacity ?? ''} onChange={event => { const value = event.currentTarget.value; if (!value || Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= MAX_WAITING_PLACES) editNode(selectedStep.id, node => { if (node.kind === 'queue') node.capacity = value ? Number(value) : null; }, m.changeObject(selectedStep.label)); }} /></label>
-            <label className="studio-field"><span>{m.queueOrder}</span><select value={selectedStep.discipline} onChange={event => editNode(selectedStep.id, node => { if (node.kind === 'queue') node.discipline = event.currentTarget.value as 'fifo' | 'priority'; }, m.changeObject(selectedStep.label))}><option value="fifo">{m.firstInFirstOut}</option><option value="priority">{m.priorityOrder}</option></select></label>
-          </>}
-          {selectedStep.kind === 'delay' && <><label className="studio-field"><span>{m.fixedDelay}<small>{m.secondsLabel}</small></span><input type="number" min="0" max="604800" step="any" value={Number.isFinite(meanDuration(selectedStep.duration)) ? Number(meanDuration(selectedStep.duration).toPrecision(5)) : ''} onChange={event => { const value = Number(event.currentTarget.value); if (event.currentTarget.value && Number.isFinite(value) && value >= 0) editNode(selectedStep.id, node => { if (node.kind === 'delay') node.duration = { kind: 'constant', value }; }, m.changeObject(selectedStep.label)); }} /></label>{selectedStep.duration.kind !== 'constant' && <p className="studio-field-hint">{m.fixedTimeEditingHint}</p>}</>}
-          {selectedStep.kind === 'source' && <>{selectedStep.arrival.kind === 'fixed' ? <label className="studio-field"><span>{m.arrivalsPerHour}</span><input type="number" min="0" max={MAX_ARRIVALS_PER_HOUR} step="any" value={Number.isFinite(selectedStep.arrival.perHour) ? selectedStep.arrival.perHour : ''} onChange={event => { const value = event.currentTarget.value === '' ? NaN : Number(event.currentTarget.value); editNode(selectedStep.id, node => { if (node.kind === 'source') node.arrival = { kind: 'fixed', perHour: value }; }, m.changeObject(selectedStep.label)); }} /></label> : <div className="studio-property-section"><h3>{m.arrivalPattern}</h3><p>{selectedStep.arrival.kind === 'schedule' ? m.scheduledArrivals : m.variableArrivals}</p></div>}</>}
-          {'next' in selectedStep && <label className="studio-field"><span>{m.nextStep}</span><select value={selectedStep.next} onChange={event => { try { edit(connectNext(live.current.project, selectedStep.id, event.currentTarget.value), m.changeObject(selectedStep.label)); } catch (error) { setToast(error instanceof Error ? error.message : m.chooseAValidNextStep); } }}>{project.model.nodes.map(node => <option key={node.id} value={node.id}>{node.label}</option>)}</select></label>}
-          <button className="studio-text-link" onClick={event => setPanel('model', event.currentTarget)}>{m.advancedSettings}<ArrowUpRight size={14} /></button>
-          {station && <div className="studio-property-section studio-object-results"><h3>{m.thisRun}<span>{stale ? m.outOfDate : m.fullRunHeading}</span></h3><dl><div><dt>{m.finishedHere}</dt><dd>{stationMetrics ? number(stationMetrics.finished) : '—'}</dd></div><div><dt>{m.avgWaitingTime}</dt><dd>{stationMetrics?.finished ? wait(stationMetrics.averageWait) : '—'}</dd></div><div><dt>{m.utilization}</dt><dd>{stationMetrics?.utilization != null ? `${Math.round(stationMetrics.utilization * 100)}%` : '—'}</dd></div></dl></div>}
-          <div className="studio-property-footer"><span><ShieldCheck size={13} />{m.layoutIsIllustrativeTimingComesFromYourModel}</span><button className="studio-button studio-primary" disabled={hasErrors || sim.running} onClick={event => { if (stale) void runAndCompare(event.currentTarget); else setPanel('compare', event.currentTarget); }}><GitCompareArrows size={15} />{stale ? m.runAndCompare : m.compareWithBaseline}</button></div>
-        </fieldset> : <div className="studio-empty-properties"><MousePointer2 size={26} /><h2>{m.properties}</h2><p>{m.selectionEmpty}</p><button className="studio-button" onClick={event => showBuildTray(event.currentTarget)}><Plus size={15} />{m.processBlocks}</button></div>}
+        <div className="studio-inspector-tabs"><button className={inspectorTab === 'steps' ? 'selected' : ''} onClick={() => setInspectorTab('steps')}>{sx.steps}</button><button className={inspectorTab === 'object' ? 'selected' : ''} onClick={() => setInspectorTab('object')}>{m.properties}</button><button className={inspectorTab === 'tools' ? 'selected' : ''} onClick={() => setInspectorTab('tools')}>{m.toolsTool}</button><button className="studio-inspector-close" data-object-details-close="" aria-label={m.closeObjectDetails} onClick={closeObjectDetails}><X size={16} /></button></div>
+        {inspectorTab === 'tools' ? <div className="studio-tool-list"><h2>{m.processTools}</h2><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><button data-panel-opener="model" onClick={event => setPanel('model', event.currentTarget)}><List size={17} /><span>{m.processEditor}</span><ChevronRight size={14} /></button><button data-panel-opener="experiments" onClick={event => setPanel('experiments', event.currentTarget)}><FlaskConical size={17} /><span>{m.experiments}</span><ChevronRight size={14} /></button><button data-panel-opener="budget" onClick={event => setPanel('budget', event.currentTarget)}><ShieldCheck size={17} /><span>{m.runLimits}</span><ChevronRight size={14} /></button><button data-panel-opener="history" onClick={event => setPanel('history', event.currentTarget)}><History size={17} /><span>{m.actionHistory}</span><ChevronRight size={14} /></button><button data-panel-opener="worlds" onClick={event => setPanel('worlds', event.currentTarget)}><Globe2 size={17} /><span>{m.exploreWorlds}</span><ChevronRight size={14} /></button><button data-panel-opener="help" onClick={event => setPanel('help', event.currentTarget)}><CircleHelp size={17} /><span>{m.aLittleGuidance}</span><ChevronRight size={14} /></button><div className="studio-tool-note"><ShieldCheck size={15} />{m.yourWorldStaysOnYourDevice}</div></div> : inspectorTab === 'steps' ? <ProcessList project={project} selectedId={selected} selectedIds={selection.ids} onSelect={(id, intent) => { if (intent === 'toggle') setSelected(id, intent); else if (id) editSceneNode(id); }} /> : selectedStep ? <fieldset className="studio-properties" aria-label={m.properties} disabled={revisionExhausted}>{!('next' in selectedStep) && <p className="ease-help">{processEaseMessages.noOutgoing}</p>}<QuickProperties key={`${project.id}:${selectedStep.id}`} project={project} node={selectedStep} result={shownResult} onChange={edit} onAdvanced={() => setPanel('model')} onPreviewConnection={to => { if (to) setBuildTrayOpen(false); setConnectionPreview(previous => to ? { owner: 'quick', from: selectedStep.id, to } : previous?.owner === 'quick' ? null : previous); }} /></fieldset> : <div className="studio-empty-properties"><MousePointer2 size={26} /><h2>{m.properties}</h2><p>{m.selectionEmpty}</p><button className="studio-button" onClick={event => showBuildTray(event.currentTarget)}><Plus size={15} />{m.processBlocks}</button></div>}
       </aside>}
     </div>
-    <input ref={fileInput} aria-label={m.openProjectFile} type="file" accept=".json,application/json" hidden onChange={e => { void importProject(e.target.files?.[0]); e.target.value = ''; }} />
     {storageError && <button className="storage-warning" onClick={event => { setToast(storageError); setPanel('data', event.currentTarget); }}>{m.localSaveNeedsAttentionDownloadABackup}</button>}
     {(toast || sim.error) && <div role="status" className="toast"><span>{toast ?? sim.error}</span><button aria-label={m.dismissNotification} onClick={() => { setToast(null); sim.clearError(); }}><X size={15} /></button></div>}
     {sim.running && <button className="cancel-run" disabled={sim.cancelling} onClick={cancelCalculation}>{sim.cancelling ? m.stoppingCalculation : m.cancelCalculation}<X size={14} /></button>}
-    {panel && <div className="modal-backdrop" onClick={() => setPanel(null)}><section className={`modal ${panel === 'model' || panel === 'data' || panel === 'experiments' || panel === 'insights' ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">{m.modalEyebrow(m.modalSection(panel))}</span><h2 id="modal-title">{panel === 'worlds' ? m.chooseYourLittleWorld : panel === 'compare' ? m.aBetterPlanStartsHere : panel === 'model' ? m.insideYourModel : panel === 'data' ? m.keepYourWorkShareYourFindings : panel === 'experiments' ? m.runExperiments : panel === 'insights' ? m.yourRunInDetail : panel === 'budget' ? m.beforeYouCalculate : panel === 'history' ? m.yourRecentActions : m.helpHeading}</h2></div><button className="icon-button" aria-label={m.closeDialog} onClick={() => setPanel(null)}><X size={20} /></button></div>
+    {panel && <div className="modal-backdrop" onClick={() => setPanel(null)}><section className={`modal ${panel === 'model' || panel === 'data' || panel === 'experiments' || panel === 'insights' ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">{m.modalEyebrow(m.modalSection(panel))}</span><h2 id="modal-title">{panelTitle(panel)}</h2></div><button className="icon-button" aria-label={m.closeDialog} onClick={() => setPanel(null)}><X size={20} /></button></div>
       <div key={panel} className="modal-body">
       <CalculationStatus announcement={calculationStatus.announcement} active={calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />
+      {panel === 'scenario' && <ScenarioSettings project={project} onChange={edit} onBudget={() => setPanel('budget')} />}
+      {panel === 'rename' && <ProjectRename key={project.id} project={project} onChange={edit} onDone={() => setPanel(null)} />}
+      {panel === 'search' && <CommandSearch onCommand={navigateCommand} />}
+      {panel === 'guide' && <QuickGuide index={guideIndex} onIndexChange={setGuideIndex} onTarget={guideTarget} onClose={() => setPanel(null)} />}
+      {panel === 'view' && <div className="ease-view"><p>{sx.viewScope}</p><label className="ease-select-label">{sx.detail}<select value={quality} onChange={event => setQuality(event.currentTarget.value as 'high' | 'low')}><option value="high">{sx.high}</option><option value="low">{sx.low}</option></select></label><label className="ease-checkbox"><input type="checkbox" checked={reducedMotion} onChange={event => setReducedMotion(event.currentTarget.checked)} />{sx.reducedMotion}</label><div className="ease-actions"><button className="ease-button" onClick={() => { setPanel(null); document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:focus')); }}>{rx.focus}<kbd>G</kbd></button><button className="ease-button" onClick={() => { setPanel(null); requestAnimationFrame(() => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.querySelector<HTMLElement>('.world-workspace')?.requestFullscreen?.().catch(() => setToast(m.fullScreenIsUnavailableInThisBrowser)); }); }}>{rx.fullscreen}<kbd>F</kbd></button></div><p>{sx.shortcuts}</p><p>{sx.inputHelp}</p></div>}
       {panel === 'history' && <ActionHistory history={history} revision={project.revision} onUndo={undo} onRedo={redo} />}
       {panel === 'budget' && (normalBudget ? <CalculationBudget budget={normalBudget} /> : <p className="modal-intro">{m.repairYourModelToSeeTheWorkloadEstimateThe}</p>)}
-      {panel === 'worlds' && <div className="world-gallery">{(['factory', 'festival', 'service'] as const).map(w => <button key={w} onClick={() => chooseWorld(w)}><span className={`world-mini ${w}`}><img src={`/previews/${w}.png`} alt="" loading="lazy" width="640" height="360" /></span><h3>{WORLD_INFO[w].name}<ArrowUpRight size={18} /></h3><p>{WORLD_INFO[w].subtitle}</p><span className="gallery-foot">{m.syntheticModelOpenEdit}</span></button>)}</div>}
+      {panel === 'worlds' && <div className="world-gallery"><button className="ease-new-model" onClick={createProcess}><Plus size={28} /><h3>{sx.newModel}</h3><p>{sx.newModelScope}</p><span className="gallery-foot">{sx.startFlow}</span></button>{(['factory', 'festival', 'service'] as const).map(w => <button key={w} onClick={() => chooseWorld(w)}><span className={`world-mini ${w}`}><img src={`/previews/${w}.png`} alt="" loading="lazy" width="640" height="360" /></span><h3>{WORLD_INFO[w].name}<ArrowUpRight size={18} /></h3><p>{WORLD_INFO[w].subtitle}</p><span className="gallery-foot">{m.syntheticModelOpenEdit}</span></button>)}</div>}
       {panel === 'compare' && <><p className="modal-intro">{m.keepYourOriginalPlanChangeAStationRunIt}</p>
         {singlePaired && baseline && shownResult && <section className="comparison-summary" aria-label={m.whatChanged}>
           <span className="eyebrow">{m.whatChanged}</span>
@@ -711,13 +718,13 @@ export default function App() {
           <p>{shownResult.summary.waitSampleSize && baseline.summary.waitSampleSize ? m.waitingOutcome(shownResult.summary.meanWait - baseline.summary.meanWait, wait(Math.abs(shownResult.summary.meanWait - baseline.summary.meanWait))) : m.noComparableWaitSamples} {shownResult.model.currency === baseline.model.currency ? m.costOutcome(shownResult.summary.cost - baseline.summary.cost, money(Math.abs(shownResult.summary.cost - baseline.summary.cost), shownResult.model.currency)) : m.differentCostCurrencies}</p>
           <small>{m.compareScope}</small>
         </section>}
-        {stale && <button className="primary-button comparison-run" disabled={hasErrors || sim.running} onClick={event => void runAndCompare(event.currentTarget)}>{sim.running ? <LoaderCircle className="spin" size={16} /> : <Play size={16} />}{m.runAndCompare}</button>}<div className="comparison-table"><div className="comparison-row table-header"><span>{m.fullRunHeading}</span><span>{m.baseline}</span><span>{m.currentPlan}</span></div>{[[m.completed, baseline?.summary.completed, shownResult?.summary.completed, ''], [m.averageWait, baseline?.summary.waitSampleSize ? baseline.summary.meanWait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.meanWait : null, 'wait'], [m.label95thPercentileWait, baseline?.summary.waitSampleSize ? baseline.summary.p95Wait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.p95Wait : null, 'wait'], [m.resourceCost, baseline?.summary.cost, shownResult?.summary.cost, 'cost']].map(([label, a, b, kind]) => <div className="comparison-row" key={String(label)}><span>{label}</span><strong>{typeof a === 'number' ? kind === 'wait' ? wait(a) : kind === 'cost' ? money(a, baseline?.model.currency ?? project.model.currency) : number(a) : '—'}</strong><strong>{typeof b === 'number' ? kind === 'wait' ? wait(b) : kind === 'cost' ? money(b, shownResult?.model.currency ?? project.model.currency) : number(b) : shownResult ? '—' : m.runYourPlan}</strong></div>)}</div><div className="comparison-note"><ShieldCheck size={16} />{singlePaired ? m.sameExternalDemandSeed(shownResult?.seed) : !shownResult ? m.runTheCurrentDraftToCompareItWithThe : !singleCoupling ? m.matchingScopeWasNotRecordedInThisOlderRun : m.demandSeedOrMeasurementPoliciesDifferTheseAreSeparate}{m.samplingUncertaintyNote}</div>{baseline && shownResult && singleCoupling && <details className="comparison-disclosure"><summary>{m.comparisonDetails}</summary><CouplingDetails manifest={singleCoupling} baseline={baseline} candidate={shownResult} /></details>}<button className="secondary-button" disabled={!shownResult} onClick={() => { if (shownResult) { setBaseline(shownResult); setToast(m.currentRunIsNowYourBaseline); } }}><Copy size={16} />{m.useCurrentRunAsBaseline}</button><details className="comparison-disclosure"><summary>{m.moreComparisonTools}</summary><SavedScenarios project={project} baseline={baseline} busy={sim.running} onChange={edit} onBaseline={async snapshot => { const generation = ++requestGeneration.current; calculationStatus.controller.invalidate(panelGeneration.current); setLatestAttempt(null); const computed = await sim.run(snapshot.model); if (generation !== requestGeneration.current) throw new Error(m.supersededByANewerRun); if (computed.status !== 'completed') { setLatestAttempt(computed); throw new Error(computed.reason ?? m.baselineRunDidNotComplete); } setLatestAttempt(null); setBaseline(computed); }} /></details></>}
+        {stale && <button className="primary-button comparison-run" disabled={hasErrors || sim.running} onClick={event => void runAndCompare(event.currentTarget)}>{sim.running ? <LoaderCircle className="spin" size={16} /> : <Play size={16} />}{m.runAndCompare}</button>}<InputDifferences before={baseline?.model ?? project.model} after={shownResult?.model ?? project.model} /><div className="comparison-table"><div className="comparison-row table-header"><span>{m.fullRunHeading}</span><span>{m.baseline}<strong className="ease-plan-name">{baseline ? runDisplayNames.current.get(baseline) ?? baseline.model.name : '—'}</strong>{baseline && <small>{ease.duration(baseline.model.horizon)} · {baseline.id.slice(0,8)}</small>}</span><span>{m.currentPlan}<strong className="ease-plan-name">{shownResult ? runDisplayNames.current.get(shownResult) ?? shownResult.model.name : project.name}</strong><small>{ease.duration(shownResult?.model.horizon ?? project.model.horizon)}{shownResult ? ` · ${shownResult.id.slice(0,8)}` : ''}</small></span></div>{[[m.completed, baseline?.summary.completed, shownResult?.summary.completed, ''], [m.averageWait, baseline?.summary.waitSampleSize ? baseline.summary.meanWait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.meanWait : null, 'wait'], [m.label95thPercentileWait, baseline?.summary.waitSampleSize ? baseline.summary.p95Wait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.p95Wait : null, 'wait'], [m.resourceCost, baseline?.summary.cost, shownResult?.summary.cost, 'cost']].map(([label, a, b, kind]) => <div className="comparison-row" key={String(label)}><span>{label}</span><strong>{typeof a === 'number' ? kind === 'wait' ? wait(a) : kind === 'cost' ? money(a, baseline?.model.currency ?? project.model.currency) : number(a) : '—'}</strong><strong>{typeof b === 'number' ? kind === 'wait' ? wait(b) : kind === 'cost' ? money(b, shownResult?.model.currency ?? project.model.currency) : number(b) : shownResult ? '—' : m.runYourPlan}</strong></div>)}</div><div className="comparison-note"><ShieldCheck size={16} />{singlePaired ? m.sameExternalDemandSeed(shownResult?.seed) : !shownResult ? m.runTheCurrentDraftToCompareItWithThe : !singleCoupling ? m.matchingScopeWasNotRecordedInThisOlderRun : m.demandSeedOrMeasurementPoliciesDifferTheseAreSeparate}{m.samplingUncertaintyNote}</div>{baseline && shownResult && singleCoupling && <details className="comparison-disclosure"><summary>{m.comparisonDetails}</summary><CouplingDetails manifest={singleCoupling} baseline={baseline} candidate={shownResult} /></details>}<button className="secondary-button" disabled={!shownResult} onClick={() => { if (shownResult) { setBaseline(shownResult); setToast(m.currentRunIsNowYourBaseline); } }}><Copy size={16} />{m.useCurrentRunAsBaseline}</button><SavedScenarios project={project} baseline={baseline} busy={sim.running} onChange={edit} onBaseline={async snapshot => { const generation = ++requestGeneration.current; calculationStatus.controller.invalidate(panelGeneration.current); setLatestAttempt(null); const computed = await sim.run(snapshot.model); if (generation !== requestGeneration.current) throw new Error(m.supersededByANewerRun); if (computed.status !== 'completed') { setLatestAttempt(computed); throw new Error(computed.reason ?? m.baselineRunDidNotComplete); } setLatestAttempt(null); runDisplayNames.current.set(computed, snapshot.name); setBaseline(computed); }} /><button className="secondary-button" disabled={!baseline || !shownResult} onClick={event => { setExperimentContext({ project: structuredClone(live.current.project), baseline: baseline ? structuredClone(baseline) : null }); setPanel('experiments', event.currentTarget, true); }}>{sx.repeatComparison}</button></>}
       {panel === 'model' && <ModelEditor project={project} onChange={edit} selectedId={selected} selectedIds={selection.ids} onSelect={setSelected} onMove={moveSelected} />}
-      {panel === 'insights' && <RunInsights result={result} draft={project.model} onReport={() => setPanel('data')} onExperiments={() => setPanel('experiments')} />}
-      {panel === 'experiments' && <ExperimentsPanel project={project} baseline={baseline} onApplyCapacity={(poolId, capacity) => { if (!canEditProject()) return; edit(mutateProject(project, p => { const pool = p.model.resources.find(r => r.id === poolId); if (pool) pool.capacity = capacity; })); setPanel(null); setToast(m.appliedTheVerifiedPoolCapacityToYourDraftRun); }} />}
-      {panel === 'data' && <DataTools project={project} result={result} latestAttempt={latestAttempt} onImport={acceptProject} onSave={persistProject} retainedDrafts={retainedDrafts} onRestoreDraft={restoreDraft} onRetryDraft={token => { const draft = retained.current.find(item => item.token === token); if (draft) void persistProject(draft.project, false, draft.context).catch(() => {}); }} onRemoveDraft={token => updateRetained(retained.current.filter(draft => draft.token !== token))} />}
-      {panel === 'help' && <div className="help-content"><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><ol><li><b>{m.watchTheQueue}</b>{m.selectAStationToInspectItsCapacityAndProcessing}</li><li><b>{m.tryAnotherPlan}</b>{m.makeAChangeThenRunTheModelTheOriginal}</li><li><b>{m.compareTheTradeOff}</b>{m.checkCompletedWorkWaitingAndResourceCostTogether}</li><li><b>{m.keepYourWorld}</b>{m.downloadTheProjectFileAndReopenItLater}</li></ol><p className="quiet-copy">{m.withTheWorldFocusedSpaceToPlayOrPause}</p><p className="quiet-copy">{m.theEngineUsesAReproducibleSeedTheVisualLayout}</p><button className="secondary-button" onClick={() => setQuality(quality === 'high' ? 'low' : 'high')}>{m.qualitySetting(quality === 'high' ? m.detailed : m.lowPower)}</button><button className="secondary-button" onClick={() => setReducedMotion(!reducedMotion)}>{reducedMotion ? <Check size={15} /> : <Pause size={15} />}{m.motionSetting(reducedMotion)}</button></div>}
+      {panel === 'insights' && <RunInsights result={result} draft={project.model} onReport={() => openFiles('reports')} onExperiments={() => setPanel('experiments')} onSelectNode={id => { if (!project.model.nodes.some(node => node.id === id)) return; setPanel(null); editSceneNode(id); }} />}
+      {panel === 'experiments' && <ExperimentsPanel project={experimentContext?.project ?? project} baseline={experimentContext?.baseline ?? baseline} initialKind={experimentContext ? 'paired' : undefined} draftPending={pendingEdits} onApplyCapacity={(poolId, capacity) => { if (!canEditProject()) return; if (experimentContext && (project.id !== experimentContext.project.id || modelHash(project.model) !== modelHash(experimentContext.project.model) || project.model.seed !== experimentContext.project.model.seed)) { setToast(sx.earlierExperiment); return; } edit(mutateProject(project, p => { const pool = p.model.resources.find(r => r.id === poolId); if (pool) pool.capacity = capacity; })); setPanel(null); setToast(m.appliedTheVerifiedPoolCapacityToYourDraftRun); }} />}
+      {panel === 'data' && <DataTools initialTab={dataInitialTab} project={project} result={result} latestAttempt={latestAttempt} onImport={acceptProject} onSave={persistProject} retainedDrafts={retainedDrafts} onRestoreDraft={restoreDraft} onRetryDraft={token => { const draft = retained.current.find(item => item.token === token); if (draft) void persistProject(draft.project, false, draft.context).catch(() => {}); }} onRemoveDraft={token => updateRetained(retained.current.filter(draft => draft.token !== token))} />}
+      {panel === 'help' && <div className="help-content"><button className="secondary-button" onClick={() => setPanel('guide')}>{sx.guide}</button><dl className="ease-glossary">{sx.glossary.map(([term,description]) => <div key={term}><dt>{term}</dt><dd>{description}</dd></div>)}</dl><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><ol><li><b>{m.watchTheQueue}</b>{m.selectAStationToInspectItsCapacityAndProcessing}</li><li><b>{m.tryAnotherPlan}</b>{m.makeAChangeThenRunTheModelTheOriginal}</li><li><b>{m.compareTheTradeOff}</b>{m.checkCompletedWorkWaitingAndResourceCostTogether}</li><li><b>{m.keepYourWorld}</b>{m.downloadTheProjectFileAndReopenItLater}</li></ol><p className="quiet-copy">{m.withTheWorldFocusedSpaceToPlayOrPause}</p><p className="quiet-copy">{m.theEngineUsesAReproducibleSeedTheVisualLayout}</p><button className="secondary-button" onClick={() => setQuality(quality === 'high' ? 'low' : 'high')}>{m.qualitySetting(quality === 'high' ? m.detailed : m.lowPower)}</button><button className="secondary-button" onClick={() => setReducedMotion(!reducedMotion)}>{reducedMotion ? <Check size={15} /> : <Pause size={15} />}{m.motionSetting(reducedMotion)}</button></div>}
       </div>
     </section></div>}
-  </div>;
+  </div></NumericDraftProvider>;
 }
