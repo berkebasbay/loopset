@@ -18,7 +18,7 @@ const contentRules = [
 function privatePath(file) {
   const parts = file.toLowerCase().split('/'), name = parts.at(-1);
   return parts.some(part => deniedComponents.has(part)) || privateRoots.has(parts[0])
-    || name === '.ds_store' || name === 'progress.md'
+    || name === '.ds_store' || name === 'progress.md' || name === 'agents.override.md'
     || (name.startsWith('.env') && name !== '.env.example')
     || /\.(?:zip|bundle|sqlite3?|db|har|p12|pfx|pem|key)$/.test(name);
 }
@@ -36,6 +36,17 @@ function indexEntries() {
     if (stage !== '0') throw new Error('Resolve index conflicts before publication checks.');
     return { file: row.slice(tab + 1), oid, type: 'blob', mode };
   });
+}
+
+function outgoingTagMessages(oid, messages) {
+  while (text(['cat-file', '-t', oid]).trim() === 'tag') {
+    if (messages.has(oid)) return;
+    const body = text(['cat-file', 'tag', oid]);
+    messages.set(oid, { id: oid, kind: 'tag', body });
+    const target = /^object ([a-f0-9]+)\n/.exec(body)?.[1];
+    if (!target) throw new Error('Could not verify annotated tag target.');
+    oid = target;
+  }
 }
 
 function inspect(snapshots, messages) {
@@ -57,8 +68,8 @@ function inspect(snapshots, messages) {
       for (const [label, rule] of contentRules) if (rule.test(body.toString('utf8'))) findings.add(`${file}: ${label}`);
     }
   }
-  for (const { id, body } of messages) {
-    for (const [label, rule] of contentRules) if (rule.test(body)) findings.add(`commit ${id.slice(0, 8)}: ${label}`);
+  for (const { id, body, kind = 'commit' } of messages) {
+    for (const [label, rule] of contentRules) if (rule.test(body)) findings.add(`${kind} ${id.slice(0, 8)}: ${label}`);
   }
   if (findings.size) {
     console.error(`Publication blocked:\n${[...findings].map(f => `- ${f}`).join('\n')}\nRepair the staged/outgoing history. Do not bypass the guard. Matching contents are never printed.`);
@@ -70,12 +81,15 @@ try {
   const [mode, value] = process.argv.slice(2);
   if (mode === '--staged') inspect(indexEntries(), [{ id: 'staged', body: text(['var', 'GIT_AUTHOR_IDENT']) + text(['var', 'GIT_COMMITTER_IDENT']) }]);
   else {
-    const revisions = new Set();
+    const revisions = new Set(), tagMessages = new Map();
     if (mode === '--pre-push') {
       for (const line of readFileSync(0, 'utf8').trim().split('\n').filter(Boolean)) {
         const [, local, , remote] = line.trim().split(/\s+/);
         if (!local || !remote) throw new Error('Invalid pre-push input.');
         if (/^0+$/.test(local)) continue;
+        // Tags can add private annotations without adding any outgoing commit.
+        // Inspect every tag object in a nested chain before peeling revisions.
+        outgoingTagMessages(local, tagMessages);
         const args = /^0+$/.test(remote) ? [local, '--not', `--remotes=${value}`] : [`${remote}..${local}`];
         for (const id of text(['rev-list', ...args]).trim().split('\n').filter(Boolean)) revisions.add(id);
       }
@@ -83,7 +97,7 @@ try {
       if (mode === '--range' && !value) throw new Error('Provide the outgoing commit range.');
       for (const id of text(['rev-list', ...(mode ? [value] : ['-1', 'HEAD'])]).trim().split('\n').filter(Boolean)) revisions.add(id);
     } else throw new Error('Use --staged, --range BASE..HEAD, --pre-push REMOTE, or no arguments.');
-    inspect([...revisions].flatMap(entries), [...revisions].map(id => ({ id, body: text(['show', '-s', '--format=%B%n%an <%ae>%n%cn <%ce>', id]) })));
+    inspect([...revisions].flatMap(entries), [...tagMessages.values(), ...[...revisions].map(id => ({ id, body: text(['show', '-s', '--format=%B%n%an <%ae>%n%cn <%ce>', id]) }))]);
   }
 } catch {
   console.error('Publication check could not complete. Resolve Git/index/range errors and retry; do not bypass the guard.');
