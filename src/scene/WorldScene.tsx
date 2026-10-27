@@ -424,6 +424,9 @@ export function WorldScene(props: Props) {
       if (previous.x === width && previous.y === height) return;
       measureLabels = true;
       renderer.setSize(width, height);
+      // A user-selected view survives a dock/viewport resize. In automatic
+      // Fit mode the whole diorama should use the newly available space.
+      if (!manualView) { frameExtent(true); return; }
       // Opening a dock or resizing a viewport is not a Fit command. Preserve
       // the user's view and vertical world scale; only the aspect changes.
       const vertical = camera.top - camera.bottom, center = (camera.left + camera.right) / 2;

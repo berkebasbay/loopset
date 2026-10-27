@@ -9,10 +9,15 @@ const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['localhost', '127.0.0.1'].includes(origin.hostname), 'Use a loopback QA server.');
 const kind = process.env.QUEUELAB_BROWSER || 'chromium', phase = process.env.QUEUELAB_UX_PHASE || 'core';
 assert(['chromium', 'firefox', 'webkit'].includes(kind));
+const viewportWidth = Number(process.env.QUEUELAB_UX_WIDTH || 1440), viewportHeight = Number(process.env.QUEUELAB_UX_HEIGHT || 900);
+assert(Number.isInteger(viewportWidth) && viewportWidth >= 320 && viewportWidth <= 4000);
+assert(Number.isInteger(viewportHeight) && viewportHeight >= 400 && viewportHeight <= 3000);
+const worlds = (process.env.QUEUELAB_UX_WORLDS || 'factory,festival,service').split(',');
+assert(worlds.length > 0 && worlds.every(world => ['factory', 'festival', 'service'].includes(world)));
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || `.private/evidence/ux-smoke-${kind}-${phase}`);
 await fs.mkdir(out, { recursive: true }); await fs.mkdir('.cache/tmp', { recursive: true }); process.env.TMPDIR = path.resolve('.cache/tmp');
 const browser = await { chromium, firefox, webkit }[kind].launch({ headless: true, ...(kind === 'chromium' && process.env.QUEUELAB_SYSTEM_CHROME ? { channel: 'chrome' } : {}) });
-const receipt = { origin: origin.href, browser: browser.version(), engine: kind, phase, checks: [], files: [], errors: [] };
+const receipt = { origin: origin.href, browser: browser.version(), engine: kind, phase, viewport: { width: viewportWidth, height: viewportHeight }, worlds, checks: [], files: [], errors: [] };
 const state = page => page.evaluate(() => JSON.parse(window.render_game_to_text()));
 const ready = page => page.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !s.running && s.result?.status === 'completed' && !s.result.stale; });
 const close = page => page.getByRole('button', { name: 'Close dialog', exact: true }).click();
@@ -29,16 +34,23 @@ async function inspect(page, label, intent = 'single') {
   else await page.getByRole('button', { name: `Inspect ${label}`, exact: true }).click();
 }
 async function field(page, name, value, scope = page) { const input = scope.getByRole('spinbutton', { name, exact: true }); await input.fill(String(value)); await input.press('Enter'); return input; }
-async function fresh(world = 'factory', width = 1440, height = 900) {
+async function fresh(world = 'factory', width = viewportWidth, height = viewportHeight) {
   const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', acceptDownloads: true }); const page = await context.newPage();
   page.on('pageerror', error => receipt.errors.push(String(error))); await page.goto(origin.href); await ready(page);
   if (world !== 'factory') { await page.locator('.studio-world-picker select').selectOption(world); await ready(page); }
   const pause = page.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click(); return { context, page };
 }
 async function core() {
- for (const world of ['factory', 'festival', 'service']) {
+ for (const world of worlds) {
   const { context, page } = await fresh(world);
   try {
+   if (viewportWidth <= 740) {
+    const before = await state(page);
+    await page.getByRole('button', { name: 'Edit selected step', exact: true }).click();
+    await page.getByRole('spinbutton', { name: 'Parallel stations', exact: true }).waitFor();
+    assert.equal((await state(page)).revision, before.revision);
+    assert.equal((await state(page)).result.hash, before.result.hash);
+   }
    const original = await projectJSON(page, `${world}-original.json`), originalState = await state(page);
    await page.getByRole('button', { name: 'Scenario settings', exact: true }).click();
    const unit = page.getByRole('combobox', { name: 'Unit for Run length', exact: true });
@@ -93,7 +105,7 @@ async function core() {
    check([28, 30, 46, 48], `${world}: observed bottleneck, reachable metric scope and real identity-bound report files`, `${world}-run.json`);
    const reopening = await fresh(); try { const freshState = await state(reopening.page); await headerProjectInput(reopening.page).setInputFiles({ name: 'portable.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(portable)) }); await ready(reopening.page); const reopened = await projectJSON(reopening.page, `${world}-reopened.json`); assert.equal(reopened.id, portable.id); assert.deepEqual(reopened.model, portable.model); assert.deepEqual(reopened.scenarios, portable.scenarios); assert.notEqual((await state(reopening.page)).result.hash, freshState.result.hash); } finally { await reopening.context.close(); }
    check([41, 42], `${world}: actual project JSON opens through reviewed Files flow in a fresh context`, `${world}-reopened.json`);
-  } catch (error) { await screenshot(page, `${world}-failure.png`); await fs.writeFile(path.join(out, `${world}-failure.txt`), `${error}\n${await page.locator('body').innerText()}`); throw error; }
+  } catch (error) { await screenshot(page, `${world}-failure.png`); await fs.writeFile(path.join(out, `${world}-failure.txt`), `${error}\n${await page.locator('body').innerText()}`); await fs.writeFile(path.join(out, `${world}-failure-state.json`), JSON.stringify({ error: String(error), state: await state(page), focus: await page.evaluate(() => document.activeElement?.outerHTML) }, null, 2)); throw error; }
   finally { await context.close(); }
  }
 }
