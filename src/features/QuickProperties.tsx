@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { Distribution, ModelNode, Project, QueueNode, ResourcePool, RouteNode, RunResult, ServiceNode, SourceNode } from '../model/types';
 import { meanDuration, mutateProject } from '../model/commands';
 import { arrivalProfile, scaleDemand, scaleDistribution, setNodeMean } from '../model/easeCommands';
@@ -7,6 +7,7 @@ import { modelHash } from '../model/identity';
 import { validateProject } from '../model/validate';
 import { arrivalExpectation } from '../model/workBudget';
 import { stepKindLabels } from '../ui/messages/labels';
+import { actualArrivalDisplay } from './demandSummary';
 import { ConnectionPicker } from './ProcessActions';
 import { NumberField, TimeField, usePendingEdit } from './EditFields';
 import { ScheduleEditor, Timeline } from './ScheduleEditor';
@@ -73,20 +74,22 @@ function SourceControl(props: ControlProps & { node: SourceNode }) {
   const { project, node, commit, attempt, onAdvanced, result } = props;
   const [profile, setProfile] = useState<'' | 'regular' | 'peak' | 'waves'>(''); const [profileError, setProfileError] = useState('');
   useEffect(() => { setProfile(''); setProfileError(''); }, [project.id, node.id]);
-  let expected: ReturnType<typeof arrivalExpectation> | null = null;
-  try { expected = arrivalExpectation({ ...project.model, nodes: project.model.nodes.map(item => item.kind === 'source' && item.id !== node.id ? { ...item, arrival: { kind: 'fixed' as const, perHour: 0 } } : item) }); } catch { /* Model validation elsewhere explains invalid drafts. */ }
+  const expected = useMemo(() => { try { return arrivalExpectation({ ...project.model, nodes: project.model.nodes.map(item => item.kind === 'source' && item.id !== node.id ? { ...item, arrival: { kind: 'fixed' as const, perHour: 0 } } : item) }); } catch { return null; } }, [project.model, node.id]);
   const averageRate = (expected?.count ?? 0) / project.model.horizon * 3600;
-  let preview: Project | null = null; let previewFailure = '';
-  if (profile) { try { preview = arrivalProfile(project, node.id, profile); } catch (e) { previewFailure = e instanceof Error ? e.message : m.editFailed; } }
+  const profilePreview = useMemo(() => { if (!profile) return { project: null, error: '' }; try { return { project: arrivalProfile(project, node.id, profile), error: '' }; } catch (e) { return { project: null, error: e instanceof Error ? e.message : m.editFailed }; } }, [project, node.id, profile]);
+  const preview = profilePreview.project, previewFailure = profilePreview.error;
   const previewSource = preview?.model.nodes.find((item): item is SourceNode => item.id === node.id && item.kind === 'source');
   const previewCount = previewSource?.arrival.kind === 'poisson' ? previewSource.arrival.segments.reduce((sum, segment) => sum + (segment.end - segment.start) * segment.perHour / 3600, 0) : null;
   const update = (arrival: SourceNode['arrival']) => commit(mutateProject(project, copy => { const target = copy.model.nodes.find(item => item.id === node.id); if (target?.kind === 'source') target.arrival = arrival; }), m.demandChanged(node.label));
-  const matches = result && result.modelHash === modelHash(project.model) && result.seed === project.model.seed;
+  const currentHash = useMemo(() => modelHash(project.model), [project.model]);
+  const matches = result && result.status === 'completed' && result.modelHash === currentHash && result.seed === project.model.seed;
+  const actual = useMemo(() => actualArrivalDisplay(result, node.id), [result, node.id]);
   return <>
     {node.arrival.kind === 'fixed' && <NumberField label={m.demandRate} value={node.arrival.perHour} min={0} max={MAX_ARRIVALS_PER_HOUR} contextKey={`${project.id}:${node.id}:rate`} onChange={perHour => update({ kind: 'fixed', perHour })} />}
     {node.arrival.kind === 'poisson' && <><NumberField label={m.averageDemandRate} value={averageRate} min={0} max={MAX_ARRIVALS_PER_HOUR} contextKey={`${project.id}:${node.id}:average-rate`} onChange={rate => { if (averageRate === 0 && rate !== 0) throw new Error(m.zeroDemandScale); commit(scaleDemand(project, node.id, averageRate === 0 ? 1 : rate / averageRate), m.demandChanged(node.label)); }} help={m.variableDemandScope} /></>}
     {node.arrival.kind !== 'schedule' ? <div className="ease-presets" role="group" aria-label={m.demandScale}>{[[.5, m.scaleHalf], [1, m.scaleOriginal], [2, m.scaleDouble]].map(([factor, label]) => <button type="button" key={factor} onClick={() => attempt(() => commit(scaleDemand(project, node.id, Number(factor)), m.demandChanged(node.label)))}>{label}</button>)}</div> : <><p>{m.exactScheduleCount(node.arrival.times.length)}</p><p className="ease-help">{m.exactScheduleScope}</p><button type="button" className="ease-link" onClick={onAdvanced}>{m.advancedSettings}</button></>}
-    <dl className="ease-demand-summary"><div><dt>{expected?.stochastic ? m.expectedArrivals : m.scheduledArrivals}</dt><dd>{expected ? `${expected.stochastic ? '≈ ' : ''}${count(expected.count)}` : '—'}</dd></div>{matches && <div><dt>{m.actualArrivals}</dt><dd>{count(result.summary.arrivals)}</dd></div>}</dl>
+    <dl className="ease-demand-summary"><div><dt>{expected?.stochastic ? m.expectedArrivals : m.scheduledArrivals}</dt><dd>{expected ? `${expected.stochastic ? '≈ ' : ''}${count(expected.count)}` : '—'}</dd></div>{matches && actual && <div><dt>{actual.scope === 'source' ? m.actualSourceArrivals : m.actualAllArrivals}</dt><dd>{count(actual.count)}</dd></div>}</dl>
+    {project.model.warmup > 0 && <p className="ease-help">{m.arrivalWarmupScope}</p>}{matches && actual?.scope === 'allSources' && <p className="ease-help">{m.arrivalAllScope}</p>}
     {expected?.stochastic && <p className="ease-help">{m.randomExpectation}</p>}
     {node.arrival.kind === 'poisson' && <details className="ease-disclosure"><summary>{m.timelineArrival}</summary><ScheduleEditor kind="arrival" segments={node.arrival.segments} horizon={project.model.horizon} contextKey={`${project.id}:${node.id}:rates`} onChange={segments => update({ kind: 'poisson', segments })} /></details>}
     <details className="ease-disclosure"><summary>{m.profile}</summary><label className="ease-select-label">{m.profile}<select value={profile} onChange={event => { setProfile(event.currentTarget.value as typeof profile); setProfileError(''); }}><option value="">{m.chooseProfile}</option><option value="regular">{m.regular}</option><option value="peak">{m.peak}</option><option value="waves">{m.waves}</option></select></label>
