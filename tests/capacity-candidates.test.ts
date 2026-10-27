@@ -11,6 +11,6 @@ describe('explicit capacity candidates',()=>{
   for(const text of ['1,,2','1,1','1.5','-1','1001',''])expect(()=>capacityList(text)).toThrow();
  });
  it('explains unused resources and whole-run calendar overrides without predicting improvements',()=>{
-  const p=createExample('factory'),pool=p.model.resources[0];pool.calendar=[{start:0,end:p.model.horizon,capacity:1}];expect(capacitySearchNotes(p.model,pool.id).join(' ')).toContain('never used');p.model.nodes.forEach(n=>{if(n.kind==='service')n.resources=n.resources.filter(req=>req.poolId!==pool.id);});expect(capacitySearchNotes(p.model,pool.id).join(' ')).toContain('No processing step');
+  const p=createExample('factory'),pool=p.model.resources[0];pool.calendar=[{start:0,end:p.model.horizon,capacity:1}];expect(capacitySearchNotes(p.model,pool.id,[1,2,3]).join(' ')).toContain('maximum simultaneous requirement of 1');expect(capacitySearchNotes(p.model,pool.id).join(' ')).toContain('never used');p.model.nodes.forEach(n=>{if(n.kind==='service')n.resources=n.resources.filter(req=>req.poolId!==pool.id);});expect(capacitySearchNotes(p.model,pool.id).join(' ')).toContain('No processing step');
  });
 });

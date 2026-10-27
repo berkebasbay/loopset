@@ -7,6 +7,7 @@ export const experimentsEaseMessages={
  consumers:(labels:string)=>`Stages using this resource (parallel stations): ${labels}. A free resource unit alone does not guarantee a free station.`,
  unusedPool:'No processing step uses this resource. Changing it can change modeled cost without increasing processing capacity.',
  calendarOverrides:(n:number)=>`${n} calendar override periods remain fixed for every candidate. Base availability applies outside those periods.`,
+ aboveDemand:(capacities:string,upper:number)=>`Candidates ${capacities} exceed the maximum simultaneous requirement of ${upper} units across the current station counts. Extra base units cannot permit more concurrent starts under those counts, but can change scheduled cost.`,
  fullyCoveredCalendar:'The calendar covers the entire run. Base availability is never used, so these candidates do not change the resource’s availability schedule.',
  captureScope:'This experiment uses the two model snapshots captured from Compare. Navigation does not replace them with a later draft.',
 }as const;
