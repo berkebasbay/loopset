@@ -1,4 +1,4 @@
-name: Local-release checks
+name: Verify changes
 
 # Check every PR revision, including drafts; keep manual dispatch available.
 on:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: queuelab-ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  group: loopset-ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:

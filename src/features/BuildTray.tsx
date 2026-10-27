@@ -1,3 +1,4 @@
+import { assetURL } from '../assetUrl';
 import { Plus, Users, X, Clock3 } from 'lucide-react';
 import type { World } from '../model/types';
 import { buildPrefabsFor } from '../scene/catalogAssets';
@@ -33,7 +34,7 @@ export function BuildTray({ world, serviceCount, insertionLabel, insertionId, fo
     <p className="build-link-preview" role="status">{insertionLabel && followingLabel ? pm.insertionPreview(insertionLabel, followingLabel) : pm.chooseInsertion}</p>
     <div className="build-tray-items">
       {prefabs.map(prefab => <button type="button" className="build-prefab" key={prefab.id} disabled={disabled || !insertionLabel} onClick={() => onAdd(prefab)} title={`${m.addProcessLabel(prefab.label)}. ${prefab.description}${prefab.source ? ` · ${prefab.source}` : ''}`}>
-        <span className="prefab-preview">{prefab.thumbnail ? <img src={prefab.thumbnail} alt="" width="64" height="64" loading="lazy" /> : prefab.kind === 'delay' ? <Clock3 size={27} color="#4d6758" aria-hidden="true" /> : <Users size={27} color="#4d6758" aria-hidden="true" />}</span>
+        <span className="prefab-preview">{prefab.thumbnail ? <img src={assetURL(prefab.thumbnail)} alt="" width="64" height="64" loading="lazy" /> : prefab.kind === 'delay' ? <Clock3 size={27} color="#4d6758" aria-hidden="true" /> : <Users size={27} color="#4d6758" aria-hidden="true" />}</span>
         <span className="prefab-copy"><strong>{prefab.label}</strong><small>{prefab.description}</small></span><Plus size={16} />
       </button>)}
     </div>

@@ -1,3 +1,4 @@
+import { assetURL } from '../assetUrl';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -123,7 +124,7 @@ export function WorldScene(props: Props) {
     sunlight.shadow.camera.far = 120; sunlight.shadow.normalBias = .025; sunlight.shadow.radius = 3;
     own(sunlight.shadow); scene.add(sunlight);
     const fill = new THREE.DirectionalLight('#e4eee7', .5); fill.position.set(15, 12, -8); scene.add(fill);
-    const environmentURL = '/assets/environment/studio-small-09.hdr';
+    const environmentURL = assetURL('/assets/environment/studio-small-09.hdr');
     let environmentState: 'idle' | 'pending' | 'ready' | 'failed' = 'idle';
     let environmentTarget: THREE.WebGLRenderTarget | null = null;
     host.dataset.environment = 'analytic-lighting';

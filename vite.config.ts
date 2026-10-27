@@ -5,13 +5,19 @@ import { isIP } from 'node:net';
 import type { HtmlTagDescriptor } from 'vite';
 import { BRAND } from './src/brand.ts';
 
-function socialMetadata(value: string | undefined): HtmlTagDescriptor[] {
-  if (!value?.trim()) return [];
-  const message = 'QUEUELAB_PUBLIC_URL must be an HTTPS domain origin at /, without credentials, a custom port, query or fragment.';
+function publicSiteURL(value: string | undefined): URL | undefined {
+  if (!value?.trim()) return undefined;
+  const message = 'QUEUELAB_PUBLIC_URL must be an HTTPS domain URL with a slash-terminated deployment path, without credentials, a custom port, query or fragment.';
   let url: URL;
   try { url = new URL(value.trim()); } catch { throw new Error(message); }
   const host = url.hostname.toLowerCase();
-  if (url.protocol !== 'https:' || url.username || url.password || url.port || url.href !== `${url.origin}/` || !host.includes('.') || host.endsWith('.') || host.endsWith('.localhost') || host.endsWith('.local') || isIP(host.replace(/^\[|\]$/g, ''))) throw new Error(message);
+  if (url.protocol !== 'https:' || url.username || url.password || url.port || url.href !== `${url.origin}${url.pathname}` || !/^\/(?:[A-Za-z0-9_-]+\/)*$/.test(url.pathname) || !host.includes('.') || host.endsWith('.') || host.endsWith('.localhost') || host.endsWith('.local') || isIP(host.replace(/^\[|\]$/g, ''))) throw new Error(message);
+  return url;
+}
+
+function socialMetadata(value: string | undefined): HtmlTagDescriptor[] {
+  const url = publicSiteURL(value);
+  if (!url) return [];
   const title = `${BRAND.name} — ${BRAND.tagline}`;
   const description = 'A free process and capacity simulator. Build a little world, find its bottleneck and compare plans.';
   const image = new URL('social-card.png', url).href;
@@ -30,6 +36,7 @@ function socialMetadata(value: string | undefined): HtmlTagDescriptor[] {
 }
 
 export default defineConfig({
+  base: publicSiteURL(process.env.QUEUELAB_PUBLIC_URL)?.pathname ?? '/',
   plugins: [react(), {
     name: 'queuelab-distribution-notices',
     generateBundle() {

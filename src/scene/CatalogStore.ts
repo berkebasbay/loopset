@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { BROWSER_GZIP_URLS } from './browserAssets';
+import { assetURL } from '../assetUrl';
 
 const compressedModelURLs = new Set<string>(BROWSER_GZIP_URLS);
 const isGLB = (bytes: ArrayBuffer) => bytes.byteLength >= 12 && new DataView(bytes).getUint32(0, true) === 0x46546c67;
@@ -24,10 +25,11 @@ export class CatalogStore {
   private disposed = false;
 
   private async loadModel(url: string) {
-    if (!compressedModelURLs.has(url) || typeof DecompressionStream === 'undefined') return this.loader.loadAsync(url);
+    const resolved = assetURL(url);
+    if (!compressedModelURLs.has(url) || typeof DecompressionStream === 'undefined') return this.loader.loadAsync(resolved);
     let bytes: ArrayBuffer;
     try {
-      const response = await fetch(`${url}.gz`);
+      const response = await fetch(`${resolved}.gz`);
       if (!response.ok) throw new Error('Compressed model unavailable');
       bytes = await response.arrayBuffer();
       // Fetch already decodes HTTP Content-Encoding. A decoded GLB must not be
@@ -38,11 +40,11 @@ export class CatalogStore {
         bytes = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
       }
       if (!isGLB(bytes)) throw new Error('Invalid model payload');
-      return await this.loader.parseAsync(bytes, url.slice(0, url.lastIndexOf('/') + 1));
+      return await this.loader.parseAsync(bytes, resolved.slice(0, resolved.lastIndexOf('/') + 1));
     } catch {
       // Standalone GLBs remain available on hosts without compressed transport
       // or with a damaged compressed payload. A failed fallback still surfaces.
-      return this.loader.loadAsync(url);
+      return this.loader.loadAsync(resolved);
     }
   }
 

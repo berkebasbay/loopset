@@ -31,9 +31,22 @@ function malformedModel(): ArrayBuffer {
   return bytes;
 }
 
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe('catalogue compressed transport fallback', () => {
+  it('loads a real compressed model from the configured deployment subpath', async () => {
+    vi.stubEnv('BASE_URL', '/loopset/');
+    const original = vi.spyOn(GLTFLoader.prototype, 'loadAsync');
+    const fetchModel = vi.fn(async () => compressedResponse(modelBytes('Subpath model')));
+    vi.stubGlobal('fetch', fetchModel);
+    const store = new CatalogStore();
+    try {
+      expect((await store.load(modelURL)).children[0]?.name).toBe('Subpath_model');
+      expect(fetchModel).toHaveBeenCalledExactlyOnceWith(`/loopset${modelURL}.gz`);
+      expect(original).not.toHaveBeenCalled();
+    } finally { store.dispose(); }
+  });
+
   it('falls back once after a real GLB parse rejection and caches the recovered scene', async () => {
     const raw = await new GLTFLoader().parseAsync(modelBytes('Raw recovery'), baseURL);
     const original = vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockResolvedValue(raw);
