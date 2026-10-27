@@ -6,7 +6,7 @@ import { arrivalExpectation } from '../model/workBudget';
 import { TimeField, usePendingEdit } from './EditFields';
 import { easeMessages as m } from '../ui/messages/ease';
 
-interface Props { project: Project; onChange: (project: Project, label?: string) => void; onBudget: () => void }
+interface Props { project: Project; onChange: (project: Project, label?: string) => void; onBudget: () => void; onInspect?: (nodeId: string) => void }
 export function HorizonControl({ project, onChange }: Pick<Props, 'project' | 'onChange'>) {
   const [seconds, setSeconds] = useState(project.model.horizon); const [policy, setPolicy] = useState<'keep' | 'crop' | 'repeat'>('keep'); const [error, setError] = useState(''); const root = useRef<HTMLDivElement>(null);
   useEffect(() => { setSeconds(project.model.horizon); setError(''); }, [project.id, project.model.horizon]);
@@ -40,13 +40,14 @@ export function HorizonControl({ project, onChange }: Pick<Props, 'project' | 'o
     {error && <p className="ease-error" role="alert">{error}</p>}
   </div>;
 }
-export function ScenarioSettings({ project, onChange, onBudget }: Props) {
+export function ScenarioSettings({ project, onChange, onBudget, onInspect }: Props) {
   let demand: ReturnType<typeof arrivalExpectation> | null = null;
   try { demand = arrivalExpectation(project.model); } catch { /* Existing validation surface remains authoritative. */ }
   return <div className="ease-scenario">
+    <p className="quality-scenario-intro">{m.scenarioIntro}</p>
     <HorizonControl project={project} onChange={onChange} />
-    <section className="ease-section"><h3>{m.demandSummary}</h3>{demand ? <><strong>{m.totalExpected(demand.count.toLocaleString('en', { maximumFractionDigits: 2 }), demand.stochastic)}</strong>{demand.stochastic && <p className="ease-help">{m.randomExpectation}</p>}</> : <p className="ease-help">{m.modelInvalid}</p>}</section>
-    <section className="ease-section"><h3>{m.resourcesSummary}</h3>{project.model.resources.length ? <ul className="ease-resource-summary">{project.model.resources.map(pool => <li key={pool.id}><strong>{pool.label}</strong><span>{m.availableUnits(pool.capacity, pool.installedCapacity)}</span><small>{pool.calendar.length ? m.calendarSummary(pool.calendar.length) : m.teamNoCalendar}</small></li>)}</ul> : <p className="ease-help">{m.noResources}</p>}</section>
+    <section className="ease-section"><h3>{m.demandSummary}</h3>{demand ? <><strong>{m.totalExpected(demand.count.toLocaleString('en', { maximumFractionDigits: 2 }), demand.stochastic)}</strong>{demand.stochastic && <p className="ease-help">{m.randomExpectation}</p>}</> : <p className="ease-help">{m.modelInvalid}</p>}{onInspect && project.model.nodes.filter(node => node.kind === 'source').map(node => <button key={node.id} type="button" className="ease-link quality-scenario-jump" onClick={() => onInspect(node.id)}>{m.editDemand}<span>{node.label} ↗</span></button>)}</section>
+    <section className="ease-section"><h3>{m.resourcesSummary}</h3>{project.model.resources.length ? <ul className="ease-resource-summary">{project.model.resources.map(pool => { const consumer = project.model.nodes.find(node => node.kind === 'service' && node.resources.some(requirement => requirement.poolId === pool.id)); return <li key={pool.id}><strong>{pool.label}</strong><span>{m.availableUnits(pool.capacity, pool.installedCapacity)}</span><small>{pool.calendar.length ? m.calendarSummary(pool.calendar.length) : m.teamNoCalendar}</small>{onInspect && consumer && <button type="button" className="ease-link quality-scenario-jump" onClick={() => onInspect(consumer.id)}>{m.editTeam(pool.label)}<span aria-hidden="true">↗</span></button>}</li>; })}</ul> : <p className="ease-help">{m.noResources}</p>}</section>
     <button type="button" className="ease-link" onClick={onBudget}>{m.openWorkBudget}</button>
   </div>;
 }

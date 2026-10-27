@@ -29,43 +29,47 @@ export interface NumberFieldProps {
   onPendingChange?: (pending: boolean) => void; compact?: boolean; trackPending?: boolean; displayPrecision?: number;
 }
 export function NumberField({ label, value, onChange, contextKey, min, max, step = 'any', help, disabled, onPendingChange, compact, trackPending = true, displayPrecision }: NumberFieldProps) {
-  const id = useId(); const format = (v: number) => Number.isFinite(v) ? String(displayPrecision ? Number(v.toPrecision(displayPrecision)) : v) : '';
-  const [draft, setDraft] = useState(() => format(value)); const [error, setError] = useState('');
+  const id = useId(); const format = (v: number) => Number.isFinite(v) ? String(displayPrecision && !Number.isInteger(v) ? Number(v.toPrecision(displayPrecision)) : v) : '';
+  // The edit buffer always retains full precision. Only an unfocused, unchanged
+  // field uses the shorter reading format; focusing never creates a model edit.
+  const [draft, setDraft] = useState(() => String(value)); const [error, setError] = useState('');
   const currentContext = useRef(contextKey); currentContext.current = contextKey;
-  useEffect(() => { setDraft(format(value)); setError(''); }, [value, contextKey]);
+  useEffect(() => { setDraft(String(value)); setError(''); }, [value, contextKey]);
   const parsed = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(draft.trim()) ? Number(draft) : NaN;
-  const dirty = draft !== format(value);
+  const dirty = draft !== String(value);
+  const compactReading = !dirty && format(value) !== draft;
   const validStep = step === 'any' || !Number.isFinite(parsed) || (step === 1 ? Number.isInteger(parsed) : Math.abs((parsed - (min ?? 0)) / step - Math.round((parsed - (min ?? 0)) / step)) < 1e-7);
   const valid = Number.isFinite(parsed) && (min === undefined || parsed >= min) && (max === undefined || parsed <= max) && validStep;
   usePendingEdit(contextKey, trackPending && dirty);
   const pendingCallback = useRef(onPendingChange); pendingCallback.current = onPendingChange;
   useEffect(() => { pendingCallback.current?.(dirty); return () => pendingCallback.current?.(false); }, [dirty, contextKey]);
-  function reset() { setDraft(format(value)); setError(''); }
+  function reset() { setDraft(String(value)); setError(''); }
   function commit() {
     if (!dirty || currentContext.current !== contextKey || disabled) return;
     if (!valid) { setError(m.numberRange(min, max, step)); return; }
-    try { onChange(parsed); setDraft(format(parsed)); setError(''); } catch (e) { setError(e instanceof Error ? e.message : m.editFailed); }
+    try { onChange(parsed); setDraft(String(parsed)); setError(''); } catch (e) { setError(e instanceof Error ? e.message : m.editFailed); }
   }
   return <div className={`ease-field${compact ? ' ease-field-compact' : ''}`}>
     <label htmlFor={id}>{label}</label>
-    <input id={id} type="text" inputMode="decimal" role="spinbutton" aria-valuemin={min} aria-valuemax={max} aria-valuenow={Number.isFinite(parsed) ? parsed : undefined} aria-invalid={Boolean(error)} data-pending={dirty || undefined} aria-describedby={help || error || dirty ? `${id}-help` : undefined} value={draft} disabled={disabled} onChange={event => { setDraft(event.currentTarget.value); setError(''); }} onBlur={commit} onKeyDown={event => {
+    <div className="ease-number-input"><input id={id} type="text" inputMode="decimal" role="spinbutton" aria-valuemin={min} aria-valuemax={max} aria-valuenow={dirty ? Number.isFinite(parsed) ? parsed : undefined : value} aria-invalid={Boolean(error)} data-reading={compactReading || undefined} data-pending={dirty || undefined} aria-describedby={help || error || dirty ? `${id}-help` : undefined} value={draft} disabled={disabled} onChange={event => { setDraft(event.currentTarget.value); setError(''); }} onBlur={commit} onKeyDown={event => {
       if (event.key === 'Enter') { event.preventDefault(); commit(); }
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); reset(); }
       if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && !event.altKey && !event.metaKey && !event.ctrlKey) {
         event.preventDefault(); const increment = step === 'any' ? 1 : step;
-        if (Number.isFinite(parsed)) setDraft(String(parsed + (event.key === 'ArrowUp' ? increment : -increment)));
+        const startingValue = dirty ? parsed : value;
+        if (Number.isFinite(startingValue)) setDraft(String(startingValue + (event.key === 'ArrowUp' ? increment : -increment)));
       }
-    }} />
+    }} />{compactReading && <span className="ease-number-reading" aria-hidden="true">{format(value)}</span>}</div>
     {(help || error || dirty) && <small id={`${id}-help`} className={error ? 'ease-field-error' : ''}>{error ? <span role="alert">{error}</span> : dirty ? m.applyFieldHint : help}</small>}
   </div>;
 }
 export type TimeUnit = 'seconds' | 'minutes' | 'hours' | 'days';
 export const TIME_SCALE: Record<TimeUnit, number> = { seconds: 1, minutes: 60, hours: 3600, days: 86400 };
-export function TimeField({ label, value, onChange, contextKey, min = 0, max, help, disabled, trackPending = true, defaultUnit = 'seconds' }: Omit<NumberFieldProps, 'step' | 'onPendingChange' | 'compact'> & { defaultUnit?: TimeUnit }) {
+export function TimeField({ label, value, onChange, contextKey, min = 0, max, help, disabled, trackPending = true, defaultUnit = 'seconds', displayPrecision = 6 }: Omit<NumberFieldProps, 'step' | 'onPendingChange' | 'compact'> & { defaultUnit?: TimeUnit }) {
   const [unit, setUnit] = useState<TimeUnit>(defaultUnit); const [pending, setPending] = useState(false); const id = useId();
   const scale = TIME_SCALE[unit];
   return <div className="ease-time-field">
-    <div className="ease-time-value"><NumberField key={`${contextKey}:${unit}`} label={label} value={value / scale} onChange={v => onChange(v * scale)} contextKey={`${contextKey}:${unit}`} min={min / scale} max={max === undefined ? undefined : max / scale} disabled={disabled} help={help} onPendingChange={setPending} trackPending={trackPending} displayPrecision={12} /></div>
+    <div className="ease-time-value"><NumberField key={`${contextKey}:${unit}`} label={label} value={value / scale} onChange={v => onChange(v * scale)} contextKey={`${contextKey}:${unit}`} min={min / scale} max={max === undefined ? undefined : max / scale} disabled={disabled} help={help} onPendingChange={setPending} trackPending={trackPending} displayPrecision={displayPrecision} /></div>
     <div className="ease-field ease-time-unit"><label htmlFor={id}>{m.timeUnit}</label><select id={id} aria-label={m.unitFor(label)} value={unit} disabled={disabled || pending} onChange={event => setUnit(event.currentTarget.value as TimeUnit)}>{(Object.keys(TIME_SCALE) as TimeUnit[]).map(key => <option key={key} value={key}>{m.units[key]}</option>)}</select></div>
   </div>;
 }

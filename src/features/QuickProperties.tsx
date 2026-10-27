@@ -35,8 +35,6 @@ function DistributionControl({ project, node, distribution, commit, patience = f
   useEffect(() => { setMode('scale'); }, [project.id, node.id, distribution.kind]);
   const mean = meanDuration(distribution); const isService = node.kind === 'service';
   return <section ref={root} className="ease-section ease-duration-control">
-    <p className="ease-help">{m.distributionSummary(m.distributionNames[distribution.kind], m.duration(mean))}</p>
-    {distribution.kind !== 'constant' && <label className="ease-select-label" htmlFor={id}>{m.distributionMode}<select id={id} value={mode} onChange={event => setMode(event.currentTarget.value as typeof mode)}><option value="scale">{m.keepDistribution}</option><option value="fixed">{m.fixedDuration}</option></select></label>}
     <TimeField label={patience ? m.patienceTime : node.kind === 'delay' ? m.delayTime : distribution.kind === 'constant' ? m.processingTime : m.meanTime} value={mean} min={isService ? Number.MIN_VALUE : 0} max={604800} contextKey={`${project.id}:${node.id}:${patience ? 'patience' : 'duration'}:${mode}`} onChange={value => {
       if (!patience && mode === 'scale') commit(setNodeMean(project, node.id, value), node.kind === 'delay' ? m.delayChanged(node.label) : m.durationChanged(node.label));
       else commit(mutateProject(project, copy => {
@@ -46,12 +44,15 @@ function DistributionControl({ project, node, distribution, commit, patience = f
         else if (target.kind === 'service' || target.kind === 'delay') target.duration = next;
       }), patience ? m.queueChanged(node.label) : m.durationChanged(node.label));
     }} help={distribution.kind !== 'constant' ? mode === 'scale' ? m.shapePreserved : m.fixedConversion : undefined} />
+    <details className="ease-disclosure quality-duration-options"><summary>{m.distributionSummary(m.distributionNames[distribution.kind], m.duration(mean))}</summary>
+    {distribution.kind !== 'constant' && <label className="ease-select-label" htmlFor={id}>{m.distributionMode}<select id={id} value={mode} onChange={event => setMode(event.currentTarget.value as typeof mode)}><option value="scale">{m.keepDistribution}</option><option value="fixed">{m.fixedDuration}</option></select></label>}
     {mode === 'fixed' && distribution.kind !== 'constant' && <button type="button" className="ease-button" onClick={() => {
       if (root.current?.querySelector('[data-pending="true"]')) { setError(m.applyFieldsFirst); return; }
       try {
         commit(mutateProject(project, copy => { const target = copy.model.nodes.find(item => item.id === node.id); if (patience && target?.kind === 'queue') target.patience = { kind: 'constant', value: mean }; else if (target?.kind === 'service' || target?.kind === 'delay') target.duration = { kind: 'constant', value: mean }; }), patience ? m.queueChanged(node.label) : m.durationChanged(node.label)); setError('');
       } catch (e) { setError(e instanceof Error ? e.message : m.editFailed); }
     }}>{m.convertToFixed}</button>}
+    </details>
     {error && <p role="alert" className="ease-error">{error}</p>}
   </section>;
 }
@@ -60,15 +61,26 @@ function TeamControl({ project, pool, service, commit }: { project: Project; poo
   const requirement = service.resources.find(req => req.poolId === pool.id)!;
   const change = (patch: Partial<ResourcePool>) => commit(mutateProject(project, copy => { Object.assign(copy.model.resources.find(item => item.id === pool.id)!, patch); }), m.teamChanged(pool.label));
   const context = `${project.id}:${pool.id}`;
-  return <details className="ease-disclosure ease-team"><summary><span><strong>{pool.label}</strong><small>{m.availableUnits(pool.capacity, pool.installedCapacity)}</small><small>{m.unitsPerStart(requirement.units)}</small><small>{m.modeledHourlyCost(money(pool.capacity * pool.costPerHour, project.model.currency))}</small></span></summary>
-    <p className="ease-help">{m.unitsPerStart(requirement.units)}</p><p className="ease-help">{consumers.length > 1 ? m.usedBy(consumers.map(node => node.label).join(', ')) : m.dedicatedTo(service.label)}</p>
-    <NumberField label={m.teamCapacity} contextKey={`${context}:base`} value={pool.capacity} min={0} max={pool.installedCapacity} step={1} onChange={capacity => change({ capacity })} />
+  return <details open className="ease-disclosure ease-team"><summary><span><strong>{pool.label}</strong><small>{m.availableUnits(pool.capacity, pool.installedCapacity)}</small></span></summary>
+    <NumberField label={m.teamCapacity} contextKey={`${context}:base`} value={pool.capacity} min={0} max={pool.installedCapacity} step={1} onChange={capacity => change({ capacity })} help={m.unitsPerStart(requirement.units)} />
+    {consumers.length > 1 && <p className="ease-help">{m.usedBy(consumers.map(node => node.label).join(', '))}</p>}
+    <details className="ease-disclosure quality-team-details"><summary>{m.teamPlanDetails}</summary>
     <NumberField label={m.installedLimit} contextKey={`${context}:installed`} value={pool.installedCapacity} min={1} max={1000} step={1} onChange={installedCapacity => change({ installedCapacity })} />
     <NumberField label={m.costPerHour} contextKey={`${context}:cost`} value={pool.costPerHour} min={0} max={1_000_000} onChange={costPerHour => change({ costPerHour })} />
     <p className="ease-help">{m.modeledHourlyCost(money(pool.capacity * pool.costPerHour, project.model.currency))}</p>
+    </details>
     <details className="ease-disclosure"><summary>{m.timelineCalendar}</summary><ScheduleEditor kind="calendar" periods={pool.calendar} horizon={project.model.horizon} baseCapacity={pool.capacity} installedCapacity={pool.installedCapacity} contextKey={`${context}:calendar`} onChange={calendar => change({ calendar })} /></details>
     <details className="ease-disclosure"><summary>{m.overtimeCost}</summary><NumberField label={m.overtimeCost} value={pool.overtimeCostPerHour} min={0} max={1_000_000} contextKey={`${context}:overtime`} onChange={overtimeCostPerHour => change({ overtimeCostPerHour })} /></details>
   </details>;
+}
+function CapacityNote({ project, node }: { project: Project; node: ServiceNode }) {
+  const notes = node.resources.flatMap(requirement => {
+    const pool = project.model.resources.find(item => item.id === requirement.poolId);
+    const needed = node.servers * requirement.units;
+    return pool && pool.capacity < needed ? [m.baseCapacityNote(pool.label, pool.capacity, needed)] : [];
+  });
+  if (!notes.length) return null;
+  return <aside className="quality-capacity-note" aria-label={m.checkTeamCapacity}><strong>{m.checkTeamCapacity}</strong>{notes.map(note => <p key={note}>{note}</p>)}</aside>;
 }
 function SourceControl(props: ControlProps & { node: SourceNode }) {
   const { project, node, commit, attempt, onAdvanced, result } = props;
@@ -123,7 +135,7 @@ export function QuickProperties(props: Props) {
   const controls: ControlProps = { ...props, commit, attempt };
   return <div className="ease-quick-properties">
     <LabelEditor project={project} node={node} commit={commit} />
-    {node.kind === 'service' && <><div className="ease-station-stepper"><button className="ease-button" type="button" aria-label={m.removeOneStation} disabled={node.servers <= 1} onClick={() => attempt(() => commit(mutateProject(project, copy => { const target = copy.model.nodes.find(item => item.id === node.id); if (target?.kind === 'service') target.servers--; }), m.stationChanged(node.label)))}>−</button><NumberField label={m.parallelStations} value={node.servers} contextKey={`${project.id}:${node.id}:servers`} min={1} max={1000} step={1} help={m.parallelHint} onChange={servers => commit(mutateProject(project, copy => { const target = copy.model.nodes.find(item => item.id === node.id); if (target?.kind === 'service') target.servers = servers; }), m.stationChanged(node.label))} /><button className="ease-button" type="button" aria-label={m.addOneStation} disabled={node.servers >= 1000} onClick={() => attempt(() => commit(mutateProject(project, copy => { const target = copy.model.nodes.find(item => item.id === node.id); if (target?.kind === 'service') target.servers++; }), m.stationChanged(node.label)))}>+</button></div><DistributionControl project={project} node={node} distribution={node.duration} commit={commit} />{node.resources.length > 0 && <section className="ease-section"><h4>{m.teamHeading}</h4><p className="ease-help">{m.capacityScope}</p>{node.resources.map(requirement => { const pool = project.model.resources.find(item => item.id === requirement.poolId); return pool ? <TeamControl key={pool.id} project={project} pool={pool} service={node} commit={commit} /> : null; })}</section>}</>}
+    {node.kind === 'service' && <><div className="ease-station-stepper"><button className="ease-button" type="button" aria-label={m.removeOneStation} disabled={node.servers <= 1} onClick={() => attempt(() => commit(mutateProject(project, copy => { const target = copy.model.nodes.find(item => item.id === node.id); if (target?.kind === 'service') target.servers--; }), m.stationChanged(node.label)))}>−</button><NumberField label={m.parallelStations} value={node.servers} contextKey={`${project.id}:${node.id}:servers`} min={1} max={1000} step={1} help={m.parallelHint} onChange={servers => commit(mutateProject(project, copy => { const target = copy.model.nodes.find(item => item.id === node.id); if (target?.kind === 'service') target.servers = servers; }), m.stationChanged(node.label))} /><button className="ease-button" type="button" aria-label={m.addOneStation} disabled={node.servers >= 1000} onClick={() => attempt(() => commit(mutateProject(project, copy => { const target = copy.model.nodes.find(item => item.id === node.id); if (target?.kind === 'service') target.servers++; }), m.stationChanged(node.label)))}>+</button></div><CapacityNote project={project} node={node} /><DistributionControl project={project} node={node} distribution={node.duration} commit={commit} />{node.resources.length > 0 && <section className="ease-section"><h4>{m.teamHeading}</h4>{node.resources.map(requirement => { const pool = project.model.resources.find(item => item.id === requirement.poolId); return pool ? <TeamControl key={pool.id} project={project} pool={pool} service={node} commit={commit} /> : null; })}<details className="ease-disclosure quality-capacity-explanation"><summary>{m.capacityExplanation}</summary><p className="ease-help">{m.capacityScope}</p></details></section>}</>}
     {node.kind === 'delay' && <DistributionControl project={project} node={node} distribution={node.duration} commit={commit} />}
     {node.kind === 'source' && <SourceControl {...controls} node={node} />}
     {node.kind === 'queue' && <QueueControl {...controls} node={node} />}

@@ -60,8 +60,8 @@ async function core() {
    const station = original.model.nodes.filter(n => n.kind === 'service').at(-1); await inspect(page, station.label); await field(page, 'Parallel stations', station.servers + 1);
    const stationOnly = await projectJSON(page, `${world}-station-only.json`); assert.deepEqual(stationOnly.model.resources, original.model.resources);
    for (const requirement of station.resources) {
-    const pool = original.model.resources.find(pool => pool.id === requirement.poolId), team = page.locator('.ease-team').filter({ hasText: pool.label }); await team.locator('summary').first().click();
-    const desired = pool.capacity + requirement.units; if (desired > pool.installedCapacity) await field(page, 'Installed unit limit', desired, team);
+    const pool = original.model.resources.find(pool => pool.id === requirement.poolId), team = page.locator('.ease-team').filter({ hasText: pool.label }); if (await team.getAttribute('open') === null) await team.locator('summary').first().click();
+    const desired = pool.capacity + requirement.units; if (desired > pool.installedCapacity) { await team.locator('.quality-team-details>summary').click(); await field(page, 'Installed unit limit', desired, team); }
     await field(page, 'Base available units', desired, team);
    }
    const edited = await projectJSON(page, `${world}-edited.json`); assert.equal(edited.model.nodes.find(n => n.id === station.id).servers, station.servers + 1);
@@ -174,9 +174,112 @@ async function guardsPhase(){const {context,page}=await fresh();try{const origin
 
 async function printPhase(){const {context,page}=await fresh();try{const snapshot=await state(page);await openPanel(page,'insights');await page.locator('.ease-report-chooser>summary').click();const event=page.waitForEvent('popup');await page.getByRole('button',{name:'Print / save as PDF',exact:true}).click();const report=await event;await report.waitForLoadState('domcontentloaded');assert((await report.locator('body').innerText()).includes(snapshot.result.hash));assert((await report.locator('body').innerText()).includes(String(snapshot.result.summary.completed)));await fs.writeFile(path.join(out,'actual-print-report.html'),await report.content());await report.close();check([46],'Actualprint/PDFreportwindowcontainsrecordedmodelhashandcompletedcount; noOSPDFsaveclaim','actual-print-report.html');}finally{await context.close();}}
 
-async function navigationPhase(){const {context,page}=await fresh();try{const original=await projectJSON(page,'navigation-original.json'),packing=original.model.nodes.filter(n=>n.kind==='service').at(-1),first=original.model.nodes.find(n=>n.kind==='service');await inspect(page,first.label);const before=await state(page);await openPanel(page,'insights');await page.getByRole('dialog').getByRole('button',{name:packing.label,exact:true}).click();await page.waitForFunction(id=>JSON.parse(window.render_game_to_text()).selected===id,packing.id);assert.equal((await state(page)).revision,before.revision);assert.equal((await state(page)).result.hash,before.result.hash);await page.getByRole('combobox',{name:'How to change the duration',exact:true}).selectOption('fixed');assert.equal((await state(page)).revision,before.revision);await page.getByRole('button',{name:'Convert to a fixed duration at this mean',exact:true}).click();const fixed=await projectJSON(page,'navigation-fixed-duration.json');assert.equal(fixed.model.nodes.find(n=>n.id===packing.id).duration.kind,'constant');assert.equal(fixed.model.nodes.find(n=>n.id===packing.id).samplingId,packing.samplingId);await page.getByRole('button',{name:/^Undo /}).click();assert.deepEqual((await projectJSON(page,'navigation-undo-fixed.json')).model,original.model);check([10,29],'ResultrowopenscorrectPropertieswithoutmodelchange; fixedconversion explicitandUndo restoresoriginalshape','navigation-fixed-duration.json');}finally{await context.close();}}
+async function navigationPhase(){const {context,page}=await fresh();try{const original=await projectJSON(page,'navigation-original.json'),packing=original.model.nodes.filter(n=>n.kind==='service').at(-1),first=original.model.nodes.find(n=>n.kind==='service');await inspect(page,first.label);const before=await state(page);await openPanel(page,'insights');await page.getByRole('dialog').getByRole('button',{name:packing.label,exact:true}).click();await page.waitForFunction(id=>JSON.parse(window.render_game_to_text()).selected===id,packing.id);assert.equal((await state(page)).revision,before.revision);assert.equal((await state(page)).result.hash,before.result.hash);await page.locator('.quality-duration-options>summary').click();await page.getByRole('combobox',{name:'How to change the duration',exact:true}).selectOption('fixed');assert.equal((await state(page)).revision,before.revision);await page.getByRole('button',{name:'Convert to a fixed duration at this mean',exact:true}).click();const fixed=await projectJSON(page,'navigation-fixed-duration.json');assert.equal(fixed.model.nodes.find(n=>n.id===packing.id).duration.kind,'constant');assert.equal(fixed.model.nodes.find(n=>n.id===packing.id).samplingId,packing.samplingId);await page.getByRole('button',{name:/^Undo /}).click();assert.deepEqual((await projectJSON(page,'navigation-undo-fixed.json')).model,original.model);check([10,29],'ResultrowopenscorrectPropertieswithoutmodelchange; fixedconversion explicitandUndo restoresoriginalshape','navigation-fixed-duration.json');}finally{await context.close();}}
+
+async function qualityPhase() {
+ const { context, page } = await fresh();
+ try {
+  const original = await projectJSON(page, 'quality-original.json'), initial = await state(page);
+  const packing = original.model.nodes.find(node => node.id === 'station-c');
+  const mean = (packing.duration.min + packing.duration.mode + packing.duration.max) / 3;
+  const meanInput = page.getByRole('spinbutton', { name: 'Mean processing time', exact: true });
+  assert.equal(await meanInput.inputValue(), String(mean));
+  assert.equal(await meanInput.locator('..').locator('.ease-number-reading').innerText(), String(Number(mean.toPrecision(6))));
+  const canvasHeight = await page.locator('[data-testid="world-scene"]').evaluate(node => node.getBoundingClientRect().height);
+  await meanInput.fill('');
+  await page.locator('.ease-pending-banner').waitFor();
+  assert.equal(await page.locator('[data-testid="world-scene"]').evaluate(node => node.getBoundingClientRect().height), canvasHeight);
+  assert.equal((await state(page)).revision, initial.revision);
+  await meanInput.press('Escape');
+  await meanInput.focus(); await meanInput.press('Tab');
+  const unit = page.getByRole('combobox', { name: 'Unit for Mean processing time', exact: true });
+  await unit.selectOption('minutes'); await unit.selectOption('hours'); await unit.selectOption('seconds');
+  assert.deepEqual((await projectJSON(page, 'quality-display-only.json')).model, original.model);
+  assert.equal((await state(page)).revision, initial.revision);
+  assert.equal((await state(page)).result.hash, initial.result.hash);
+  await meanInput.press('ArrowUp'); await meanInput.press('Enter');
+  const increased = await projectJSON(page, 'quality-arrow-increment.json');
+  const changed = increased.model.nodes.find(node => node.id === packing.id);
+  assert.equal(changed.duration.kind, 'triangular');
+  assert(Math.abs((changed.duration.min + changed.duration.mode + changed.duration.max) / 3 - mean - 1) < 1e-10);
+  assert.equal(changed.samplingId, packing.samplingId);
+  await page.getByRole('button', { name: /^Undo / }).click();
+  assert.deepEqual((await projectJSON(page, 'quality-undo-precision.json')).model, original.model);
+  await page.getByRole('button', { name: 'Scenario settings', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Unit for Run length', exact: true }).selectOption('seconds');
+  const length = page.getByRole('spinbutton', { name: 'Run length', exact: true });
+  await length.fill('1000000'); await length.press('Enter'); await length.press('ArrowUp'); await length.press('Enter');
+  assert.equal(await length.inputValue(), '1000001');
+  await length.press('Tab'); assert.equal(await length.inputValue(), '1000001');
+  await page.getByRole('button', { name: 'Cancel change', exact: true }).click(); await close(page);
+  assert.deepEqual((await projectJSON(page, 'quality-long-time-cancel.json')).model, original.model);
+  check(['B4'], 'Rounded time display, focus/blur, units and precise arrow increments preserve canonical model and distribution', 'quality-arrow-increment.json');
+
+  const navigationRevision = (await state(page)).revision;
+  await page.getByRole('button', { name: 'Scenario settings', exact: true }).click();
+  await page.getByRole('button', { name: /^Change arrivals/ }).click();
+  assert.equal((await state(page)).selected, original.model.nodes.find(node => node.kind === 'source').id);
+  await page.getByRole('button', { name: 'Scenario settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit Packing team', exact: true }).click();
+  assert.equal((await state(page)).selected, packing.id);
+  const team = page.locator('.ease-team').filter({ hasText: 'Packing team' });
+  assert(await team.getByRole('spinbutton', { name: 'Base available units', exact: true }).isVisible());
+  assert.equal((await state(page)).revision, navigationRevision);
+  await page.getByRole('button', { name: 'How it works', exact: true }).click();
+  assert.equal(await page.locator('.quality-guide-progress li').count(), 3);
+  await page.getByRole('button', { name: 'Next step', exact: true }).click();
+  await page.getByRole('heading', { name: 'Run the changed plan', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Go to Run', exact: true }).click();
+  await page.waitForFunction(() => document.activeElement?.matches('.studio-command-actions .studio-primary'));
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.deepEqual((await projectJSON(page, 'quality-guide-navigation.json')).model, original.model);
+  check(['B1', 'B3'], 'Scenario shortcuts inspect the right source/team; staffing visible; optional three-step guide reaches Run without changing the model', 'quality-guide-navigation.json');
+
+  await page.locator('[data-testid="world-scene"][data-status="ready"]').waitFor();
+  const scene = page.locator('[data-testid="world-scene"]');
+  const beforeZoom = await scene.getAttribute('data-camera');
+  await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+  await page.waitForFunction(previous => document.querySelector('[data-testid="world-scene"]')?.getAttribute('data-camera') !== previous, beforeZoom);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const manualCamera = JSON.parse(await scene.getAttribute('data-camera'));
+  await field(page, 'Parallel stations', 2);
+  await page.waitForFunction(() => JSON.parse(document.querySelector('[data-testid="world-scene"]').dataset.capacityCopies).find(item => item.id === 'station-c')?.count === 2);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.deepEqual(JSON.parse(await scene.getAttribute('data-camera')), manualCamera);
+  await page.getByRole('complementary', { name: 'Check team capacity', exact: true }).waitFor();
+  const stationOnly = await projectJSON(page, 'quality-station-only.json');
+  assert.deepEqual(stationOnly.model.resources, original.model.resources);
+  assert.match(await page.locator('.quality-capacity-note').innerText(), /1 base unit available/);
+  await screenshot(page, 'quality-capacity-and-camera.png');
+  check(['A1', 'A6', 'B3'], 'Manual zoom survives station-count edit; separate base team limit is explained without auto-increasing resources', 'quality-station-only.json');
+  await page.getByRole('button', { name: 'Show the whole world', exact: true }).click();
+  const canvas = page.locator('[data-testid="world-canvas"]'), box = await canvas.boundingBox();
+  await canvas.click({ position: { x: 25, y: box.height - 18 } });
+  await scene.locator('button[data-station-id="station-c"]').click();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const fittedCamera = await scene.getAttribute('data-camera');
+  await field(page, 'Parallel stations', 100);
+  await page.waitForFunction(() => JSON.parse(document.querySelector('[data-testid="world-scene"]').dataset.capacityCopies).find(item => item.id === 'station-c')?.count === 100);
+  assert.notDeepEqual(JSON.parse(await scene.getAttribute('data-camera')), JSON.parse(fittedCamera));
+  const beforePan = await scene.getAttribute('data-camera');
+  await page.mouse.move(box.x + 25, box.y + box.height - 18); await page.mouse.down();
+  await page.mouse.move(box.x + 60, box.y + box.height - 40, { steps: 5 }); await page.mouse.up();
+  await page.waitForFunction(previous => document.querySelector('[data-testid="world-scene"]')?.getAttribute('data-camera') !== previous, beforePan);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const pannedCamera = JSON.parse(await scene.getAttribute('data-camera'));
+  await field(page, 'Parallel stations', 200);
+  await page.waitForFunction(() => JSON.parse(document.querySelector('[data-testid="world-scene"]').dataset.capacityCopies).find(item => item.id === 'station-c')?.count === 200);
+  assert.deepEqual(JSON.parse(await scene.getAttribute('data-camera')), pannedCamera);
+  await screenshot(page, 'quality-camera-growth.png');
+  check(['A1', 'A6'], 'An ordinary canvas click keeps auto framing; genuine pointer pan disables auto framing and survives further capacity growth', 'quality-camera-growth.png');
+ } catch (error) {
+  await screenshot(page, 'quality-failure.png');
+  await fs.writeFile(path.join(out, 'quality-failure.txt'), `${error}\n${await page.locator('body').innerText()}`);
+  throw error;
+ } finally { await context.close(); }
+}
 
 try {
- if (phase === 'core') await core(); else if(phase === 'editor') await editor(); else if(phase==='lab') await lab(); else if(phase==='editor-validation')await validationPhase(); else if(phase==='files')await files(); else if(phase==='route-cancel')await routeCancelPhase(); else if(phase==='preview')await previewPhase(); else if(phase==='library')await libraryPhase(); else if(phase==='profiles')await profilesPhase(); else if(phase==='guards')await guardsPhase(); else if(phase==='print')await printPhase(); else if(phase==='navigation')await navigationPhase(); else throw new Error(`Unknown phase ${phase}`);
+ if (phase === 'core') await core(); else if(phase === 'editor') await editor(); else if(phase==='lab') await lab(); else if(phase==='editor-validation')await validationPhase(); else if(phase==='files')await files(); else if(phase==='route-cancel')await routeCancelPhase(); else if(phase==='preview')await previewPhase(); else if(phase==='library')await libraryPhase(); else if(phase==='profiles')await profilesPhase(); else if(phase==='guards')await guardsPhase(); else if(phase==='print')await printPhase(); else if(phase==='navigation')await navigationPhase(); else if(phase==='quality')await qualityPhase(); else throw new Error(`Unknown phase ${phase}`);
  assert.deepEqual(receipt.errors, []); console.log(JSON.stringify({ checks: receipt.checks.length, files: receipt.files.length, errors: receipt.errors }));
 } finally { await fs.writeFile(path.join(out, 'receipt.json'), JSON.stringify(receipt, null, 2)); await browser.close(); }

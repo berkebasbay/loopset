@@ -38,6 +38,7 @@ import { easeMessages as ease } from './ui/messages/ease';
 import { BuildTray, type BuildPrefab } from './features/BuildTray';
 import './features/workspace.css';
 import './features/shellEase.css';
+import './features/quality.css';
 import { DataTools, recoveryProjectKey, serializeDraftRecovery, type RetainedDraft, type FileTab } from './features/DataTools';
 import { CouplingDetails } from './features/CouplingDetails';
 import { CalculationBudget } from './features/CalculationBudget';
@@ -638,7 +639,7 @@ export default function App() {
   return <NumericDraftProvider onPendingChange={setPendingEdits}><div className="app-shell studio-shell">
     <header className="studio-header" inert={Boolean(panel)}>
       <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>QueueLab<span className="studio-brand-dot">.</span></span></a>
-      <div className="studio-project"><h1><button className="studio-project-name" data-panel-opener="rename" aria-label={sx.renameProject} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{m.syntheticExample}</span></div>
+      <div className="studio-project"><h1><button className="studio-project-name" data-panel-opener="rename" aria-label={sx.renameProject} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{sx.localProject}</span></div>
       <label className="studio-world-picker"><span>{m.chooseWorld}</span><select aria-label={m.chooseWorld} value={project.world} onChange={event => chooseWorld(event.currentTarget.value as World)}><option value="factory">{m.factory}</option><option value="festival">{m.festival}</option><option value="service">{m.service}</option></select></label>
       <div className="studio-command-actions">
         <button className="studio-icon-button" title={m.openProject} aria-label={m.openProject} onClick={event => openFiles('projects', event.currentTarget)}><FileUp size={17} /></button>
@@ -680,6 +681,7 @@ export default function App() {
           {selection.ids.length > 1 && <div className="studio-selection-summary"><span>{m.selectionSummary(selection.ids.length, selectedStep?.label ?? m.step)}</span><button onClick={event => setPanel('model', event.currentTarget)}>{m.moveOrEditSelection}</button><button onClick={() => setSelected(null)}>{m.clearSelection}</button></div>}
           {linkFrom && selectedStep && <div className="ease-connect-review"><ConnectionPicker project={project} node={project.model.nodes.find(node => node.id === linkFrom) ?? selectedStep} onChange={(next,label) => { edit(next,label); setLinkFrom(null); setConnectionPreview(null); }} onPreview={to => setConnectionPreview(previous => to ? { owner: 'tool', from: linkFrom, to } : previous?.owner === 'tool' ? null : previous)} /></div>}
           <div className="scene-area studio-canvas">
+            <div className="quality-world-brief"><p>{project.model.id === `${project.world}-model` ? sx.worldQuestions[project.world] : sx.workspaceQuestion}</p><button type="button" data-panel-opener="guide" onClick={event => { setGuideIndex(0); setPanel('guide', event.currentTarget); }}><CircleHelp size={14} />{sx.firstSteps}</button></div>
             <Suspense fallback={<div className="scene-fallback" role="status"><p>{m.buildingYourLittleWorld}</p></div>}><WorldScene playing={playing} playbackSpeed={speed} replayUntil={replayUntil} runKey={shownResult?.id} seekEpoch={visualSeekEpoch} result={shownResult} onMoveStart={() => setPlaying(false)} project={visualProject} quality={quality} frame={frame} selected={selected} selectedIds={selection.ids} reducedMotion={reducedMotion} moving={moving && !hasErrors && !revisionExhausted} editable={!hasErrors && !revisionExhausted} flow={sceneFlow} onSelect={selectFromWorld} onMove={moveSelected} onCapacityChange={changeCapacity} onEditNode={editSceneNode} /></Suspense>
           </div>
           <div className="studio-control-deck">
@@ -706,7 +708,7 @@ export default function App() {
     {panel && <div className="modal-backdrop" onClick={() => setPanel(null)}><section className={`modal ${panel === 'model' || panel === 'data' || panel === 'experiments' || panel === 'insights' ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">{m.modalEyebrow(m.modalSection(panel))}</span><h2 id="modal-title">{panelTitle(panel)}</h2></div><button className="icon-button" aria-label={m.closeDialog} onClick={() => setPanel(null)}><X size={20} /></button></div>
       <div key={panel} className="modal-body">
       <CalculationStatus announcement={calculationStatus.announcement} active={calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />{sim.error && <p role="alert" className="ease-error">{sim.error}</p>}
-      {panel === 'scenario' && <ScenarioSettings project={project} onChange={edit} onBudget={() => setPanel('budget')} />}
+      {panel === 'scenario' && <ScenarioSettings project={project} onChange={edit} onBudget={() => setPanel('budget')} onInspect={id => { setPanel(null); editSceneNode(id); }} />}
       {panel === 'rename' && <ProjectRename key={project.id} project={project} onChange={edit} onDone={() => setPanel(null)} />}
       {panel === 'search' && <CommandSearch onCommand={navigateCommand} />}
       {panel === 'guide' && <QuickGuide index={guideIndex} onIndexChange={setGuideIndex} onTarget={guideTarget} onClose={() => setPanel(null)} />}
