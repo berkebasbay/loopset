@@ -1,9 +1,7 @@
 # Security
 
-Loopset processes synthetic examples and user-supplied models locally. No account service, model-upload endpoint or analytics is part of the application.
+Report vulnerabilities through [GitHub private vulnerability reporting](https://github.com/berkebasbay/loopset/security/advisories/new). Include a minimal synthetic reproduction, affected version, expected behavior and impact. Keep credentials, personal data and customer models out of public issues.
 
-Use GitHub's private vulnerability reporting control when available. If it is unavailable, request a private reporting route without posting sensitive technical details. Never include credentials, real customer models or personal data in a public issue.
+Loopset processes models locally. It has no account service, model-upload endpoint or application analytics. Imports must remain bounded and validated; exported reports must neutralize HTML/CSV injection and preserve the recorded run's identity.
 
-Include a minimal synthetic reproduction, affected version, expected behavior and impact. Portable imports must remain bounded and validated; report exports must preserve scope and neutralize HTML/CSV injection. Local file receipt, browser storage acknowledgment and deployed behavior are separate claims.
-
-Dependencies and third-party artwork retain their own licences. Keep browser profiles, downloaded project backups and unrelated local data intact while reproducing a problem.
+Use isolated test contexts and synthetic files when reproducing a problem. Preserve browser libraries and downloaded backups.

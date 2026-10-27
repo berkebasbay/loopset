@@ -1,30 +1,37 @@
-# Verification and quality boundaries
+# Testing
 
-The core checks are reproducible locally:
+Use Node.js 24 and the committed lockfile:
 
 ```sh
+npm ci
 npm run typecheck
 npm test -- --maxWorkers=1
+npm run test:publication
 npm run build
 npm run test:headless
 ```
 
-The unit suite covers independent numerical references, conservation/capacity invariants, event phases, keyed randomness, snapshot/protocol safety, cancellation, validation, history, local-storage conflicts/recovery, strict data conversion and report identity. Headless contracts verify the three examples, repeatability, input bounds, safe diagnostics and the standalone engine bundle.
+The unit suite covers numerical references, conservation/capacity invariants, event ordering, keyed randomness, validation, cancellation, history, storage conflicts/recovery and report identity. Headless contracts check the three examples, repeatability, import bounds, diagnostics and the standalone engine.
 
-## Browser checks
+## Browser smoke checks
 
-Serve a production build locally, then run the maintained UX smoke script in an isolated context:
+Serve a production build on loopback and run:
 
 ```sh
 QUEUELAB_URL=http://127.0.0.1:4173 QUEUELAB_UX_PHASE=core node scripts/ux-smoke.mjs
 ```
 
-Additional phases exercise process edits, explicit profiles/horizon policies, experiments/replay, file/library behavior and cancellation/limits. Artifacts stay outside version control under `.private/evidence/`. Browser binaries are a separate local Playwright prerequisite; the script does not install them or use an owner's profile.
+The script uses isolated browser contexts and synthetic models. It requires Playwright browser binaries; it does not install them. Generated screenshots and files stay outside version control.
 
-Check the three worlds and desktop/tablet/phone layouts for actual input→calculate→compare→scenario→file/report behavior. Inspect real downloaded contents; a toast alone does not prove file receipt. Verify keyboard/focus, partially typed inputs, obsolete async operations and preservation of the last accepted result. Do not weaken assertions or time limits to conceal defects.
+| Area | Check |
+| --- | --- |
+| Scenario and time plans | Duration, demand, distribution shapes, period boundaries and explicit horizon policies. |
+| Process and capacity | Selection, insertion, copying, connections and independent station, team and calendar limits. |
+| History and comparison | Undo/Redo, immutable recorded results, input differences and outcome metrics. |
+| Experiments and replay | Sampling identities, experiment limits and separation of calculated results from presentation. |
+| Projects and reports | Real download/reopen, exported contents, save conflicts, invalid input, cancellation and recovery. |
+| Navigation | Keyboard/focus and desktop, tablet and phone layouts, including DOM editing alternatives. |
 
-## Interpretation
+Use the [workspace guide](UX_GUIDE.md) for the interactions. Viewport emulation does not cover every physical device or assistive technology; include the tested browser, revision, actions and any unresolved failure in a contribution.
 
-Functional browser checks at emulated widths are not physical-device, assistive-technology or participant research. Headless WebKit is not a native Safari certification. Visual smoothness depends on device and workload; no universal frame-rate or memory guarantee is made.
-
-Numerical outcomes and recorded replay have different coverage. A limited, cancelled or failed attempt must remain explicitly incomplete. Synthetic examples and observed bottleneck candidates are not validated business forecasts or guaranteed optimization results.
+For numerical changes, use an independent reference or invariant. Preserve incomplete-run labels and the last accepted results through failures. The [model guide](MODEL_GUIDE.md) defines calculation assumptions and limits.

@@ -2,7 +2,7 @@
 
 Loopset is a static React/Three.js application with a headless TypeScript discrete-event engine. There is no simulation backend, account service or remote model upload.
 
-The product was developed under the working name QueueLab. The existing `queuelab` private package ID, `queuelab-projects` database, portable/repair format tags, `QUEUELAB_PUBLIC_URL` build setting and `dist-engine/queuelab.js` entry are retained for compatibility. A display-name change does not migrate, rename or discard stored projects or numerical identities.
+Compatibility identifiers include the `queuelab` package, `queuelab-projects` database, portable/repair format tags, `QUEUELAB_PUBLIC_URL` build setting and `dist-engine/queuelab.js` entry. Preserve these identifiers when changing presentation or branding so stored projects and package entry points continue to work.
 
 | Area | Responsibility |
 | --- | --- |

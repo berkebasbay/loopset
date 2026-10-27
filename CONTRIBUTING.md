@@ -14,15 +14,13 @@ npm run dev
 
 No backend, account or API key is required. Use invented data in issues, tests, screenshots and examples. Keep customer files, personal information, credentials, browser profiles and raw local logs out of contributions.
 
-## Keep public history clean
+## Publication checks
 
-Every pushed branch and intermediate commit is public. Use synthetic examples and stage explicit reviewed files. Private notes, credentials, personal models, browser data, machine paths, raw traces and generated archives belong outside tracked source.
+Set up the optional local hooks with `npm run setup:hooks`. They check staged files before a commit and outgoing commit/tag contents before a push. Existing custom hooks are preserved; integrate these checks into a custom setup when needed. Setup enables repository-local `user.useConfigOnly`, so configure your intended Git identity. A GitHub noreply address keeps your contact address private.
 
-The optional local hooks inspect the staged snapshot before a commit and all outgoing commit snapshots before a push. Set them up with `npm run setup:hooks`; if you already use a custom hooks path, integrate `.githooks` into it rather than replacing it. Fresh clones need this explicit setup. Setup also enables repository-local `user.useConfigOnly`: configure your intended Git identity instead of letting Git derive one from your device. Choose a GitHub noreply address if you want to keep your contact address private. GitHub secret scanning and push protection provide a separate provider-token check.
+Use `npm run check:publication` for the committed tree or `node scripts/check-publication.mjs --staged` for the index. The guard rejects private/generated paths, machine paths and common credential shapes. GitHub push protection is a separate layer. Review prose, images, metadata and licences too; automated patterns cannot recognize every kind of private data.
 
-Run `npm run check:publication` to inspect the committed tree, or `node scripts/check-publication.mjs --staged` for the current index. A rejected push must be repaired before publication; deleting the file in a later commit does not remove it from history. Never bypass a warning to publish private material. Review the diff, commit text, images and licenses yourself: automated checks do not understand every kind of private information.
-
-Use focused branches and PRs, with meaningful commits and relevant checks. Keep public documentation about the product and contributions; personal delivery or session notes stay local.
+Repair rejected content before pushing. Removing a file in a later commit does not remove it from earlier history. Use focused branches, meaningful commits and reviewable PRs.
 
 ## Keep the boundaries clear
 
@@ -66,7 +64,7 @@ npm run test:headless
 
 The last command builds and checks the standalone engine and portable examples. If an example definition changes, run `npm run examples:export` and review both its project JSON and reference-result differences. Do not edit expected results merely to make a story or a test look better.
 
-Pull requests targeting `main` run the repository's automatic checks; manual workflow dispatch is also available. The Pages workflow checks, builds and publishes `main` to the browser demo. CI covers its listed checks, not human usability, every device or live hosting behavior. Report the actual tested revision and distinguish unit, browser and manual evidence.
+Pull requests targeting `main` run the repository's automatic checks; manual workflow dispatch is also available. The Pages workflow checks, builds and publishes `main` to the browser demo. See [Testing](docs/QUALITY.md) for check coverage and browser smoke commands.
 
 ## Keep source portable
 
