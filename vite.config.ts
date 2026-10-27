@@ -15,7 +15,7 @@ function socialMetadata(value: string | undefined): HtmlTagDescriptor[] {
   const title = `${BRAND.name} — ${BRAND.tagline}`;
   const description = 'A free process and capacity simulator. Build a little world, find its bottleneck and compare plans.';
   const image = new URL('social-card.png', url).href;
-  const alt = `${BRAND.name} with an actual miniature Factory scene and the words ${BRAND.tagline}`;
+  const alt = `${BRAND.name} with an actual miniature Factory scene and the words Build a little world. Try a better plan.`;
   const properties = {
     'og:type': 'website', 'og:site_name': BRAND.name, 'og:title': title,
     'og:description': description, 'og:url': url.href, 'og:image': image,
