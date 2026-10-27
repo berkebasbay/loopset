@@ -15,7 +15,7 @@ export const calculationBudgetMessages = {
   retainedReplayEntities: "Retained replay entities",
   retainedReplayEvents: "Retained replay events",
   theseCountsDoNotPredictDurationOrGuaranteeTotal: "These counts do not predict duration or guarantee total memory use. Calculations can be cancelled.",
-  ifARunReachesALimitInspectItsIncomplete: "If a run reaches a limit, inspect its incomplete attempt, reduce arrivals or the horizon, or simplify looping routes, then run again. Fewer repetitions reduce total work; they do not raise a per-run limit.",
+  ifARunReachesALimitInspectItsIncomplete: "Large runs calculate full numerical results while keeping only a bounded prefix for replay. The safety limits above apply to each run; available device memory and processing time also matter. You can cancel without losing your draft or previous results.",
   plannedRuns: (minimum: string, maximum: string, maximumRuns: number) => `${minimum === maximum ? maximum : `${minimum}–${maximum}`} model ${maximumRuns === 1 ? 'run' : 'runs'}`,
   maximumWork: (count: string) => `At most ${count} work units across the largest plan. Zero is a literal limit. Replay retention is separate from numerical results.`,
 } as const;

@@ -41,7 +41,7 @@ describe('pre-run workload estimates', () => {
   it('counts paired and conditional search work without running models or inflating trace retention', () => {
     const model = createExample('factory').model;
     const paired = calculationBudget([{ label: 'Baseline', model, runs: 30 }, { label: 'Candidate', model, runs: 30 }], { maxTraceEntities: 0, maxTraceEvents: 0 });
-    expect([paired.minimumRuns, paired.maximumRuns, paired.maximumWorkUnits]).toEqual([60, 60, 60_000_000]);
+    expect([paired.minimumRuns, paired.maximumRuns, paired.maximumWorkUnits]).toEqual([60, 60, 60_000_000_000]);
     expect(paired.limits.maxTraceEntities).toBe(0); expect(paired.limits.maxTraceEvents).toBe(0);
     const search = calculationBudget([{ label: 'Training', model, runs: 40 }, { label: 'Held out', model, runs: 10 }], {}, 10);
     expect([search.minimumRuns, search.maximumRuns]).toEqual([40, 50]);

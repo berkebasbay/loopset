@@ -15,7 +15,7 @@ function fixture(): SimulationModel {
     { id: 'out', samplingId: 'done', label: 'Done', kind: 'sink' },
   ] };
 }
-const defaults = { maxEvents: 1_000_000, maxEntities: 100_000, maxMicrosteps: 10_000, maxTraceEntities: 4_000, maxTraceEvents: 100_000 };
+const defaults = { maxEvents: 1_000_000_000, maxEntities: 10_000_000, maxMicrosteps: 1_000_000, maxTraceEntities: 4_000, maxTraceEvents: 100_000 };
 const zeroLimits = { maxEvents: 0, maxEntities: 0, maxMicrosteps: 0, maxTraceEntities: 0, maxTraceEvents: 0 };
 const numerical = (run: ReturnType<typeof simulate>) => ({ summary: run.summary, stations: run.stations, pools: run.pools, classes: run.classes, waits: run.waitDistribution, processedEvents: run.processedEvents });
 const withoutTiming = (run: ReturnType<typeof simulate>) => { const { elapsedMs: _time, ...rest } = run; return rest; };
@@ -56,7 +56,8 @@ describe('actual run RNG and effective caps', () => {
   });
 
   it.each(['maxEvents', 'maxEntities', 'maxMicrosteps', 'maxTraceEntities', 'maxTraceEvents'] as const)('rejects invalid %s values instead of claiming a clamped or default cap', key => {
-    for (const value of [-1, 0.5, Infinity, NaN, 10_000_001]) expect(() => normalizeRunLimits({ [key]: value })).toThrow('Run limit');
+    const ceilings = { maxEvents: 1_000_000_000, maxEntities: 10_000_000, maxMicrosteps: 1_000_000, maxTraceEntities: 100_000, maxTraceEvents: 1_000_000 };
+    for (const value of [-1, 0.5, Infinity, NaN, ceilings[key] + 1]) expect(() => normalizeRunLimits({ [key]: value })).toThrow('Run limit');
   });
 
   it('keeps sync/async provenance and numerical results equal after task yielding, without serializing callbacks', async () => {

@@ -1,4 +1,5 @@
 import type { Project, SimulationModel, ValidationIssue } from './types';
+import { MAX_ARRIVALS_PER_HOUR, MAX_RUN_SECONDS, MAX_WAITING_PLACES } from './limits';
 
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -15,7 +16,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
   if (!object(value)) return [{ path: 'model', message: 'The model must be an object.', severity: 'error' }];
   const m = value;
   if (!id(m.id) || !text(m.name)) error('model', 'A valid model ID and name are required.');
-  if (!finite(m.horizon) || m.horizon <= 0 || m.horizon > 604800) error('horizon', 'Run length must be between 0 and 604,800 seconds (7 days).');
+  if (!finite(m.horizon) || m.horizon <= 0 || m.horizon > MAX_RUN_SECONDS) error('horizon', 'Run length must be positive and no longer than 365 days.');
   if (!finite(m.warmup) || m.warmup < 0 || !finite(m.horizon) || m.warmup >= m.horizon) error('warmup', 'Warm-up must be non-negative and shorter than the run.');
   if (!finite(m.seed) || !Number.isSafeInteger(m.seed)) error('seed', 'Seed must be a safe integer.');
   if (!finite(m.slaSeconds) || m.slaSeconds < 0) error('slaSeconds', 'The wait target must be a non-negative number of seconds.');
@@ -67,7 +68,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
     if (!text(n.label)) error(`${at}.label`, 'Give this step a name.');
     if (n.kind === 'source') {
       if (!object(n.arrival)) error(`${at}.arrival`, 'Choose an arrival pattern.');
-      else if (n.arrival.kind === 'fixed') { if (!finite(n.arrival.perHour) || n.arrival.perHour < 0 || n.arrival.perHour > 1e6) error(`${at}.arrival`, 'Arrivals per hour must be between 0 and 1,000,000.'); }
+      else if (n.arrival.kind === 'fixed') { if (!finite(n.arrival.perHour) || n.arrival.perHour < 0 || n.arrival.perHour > MAX_ARRIVALS_PER_HOUR) error(`${at}.arrival`, 'Arrivals per hour must be between 0 and 10,000,000.'); }
       else if (n.arrival.kind === 'schedule') {
         const times = n.arrival.times;
         if (!Array.isArray(times) || times.length > 100000 || !dense(times) || times.some((t, k) => !finite(t) || t < 0 || !finite(m.horizon) || t >= m.horizon || (k > 0 && Number(times[k - 1]) > t))) error(`${at}.arrival.times`, 'Arrival times must be ordered, non-negative, before the run ends, and limited to 100,000 rows.');
@@ -76,7 +77,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
         else {
           let last = 0;
           n.arrival.segments.forEach((s, j) => {
-            if (!object(s) || !finite(s.start) || !finite(s.end) || s.start < last || s.end <= s.start || !finite(m.horizon) || s.end > m.horizon || !finite(s.perHour) || s.perHour < 0 || s.perHour > 1e6) error(`${at}.arrival.segments.${j}`, 'Arrival periods must be ordered, non-overlapping, within the run and have valid rates.');
+            if (!object(s) || !finite(s.start) || !finite(s.end) || s.start < last || s.end <= s.start || !finite(m.horizon) || s.end > m.horizon || !finite(s.perHour) || s.perHour < 0 || s.perHour > MAX_ARRIVALS_PER_HOUR) error(`${at}.arrival.segments.${j}`, 'Arrival periods must be ordered, non-overlapping, within the run and have valid rates.');
             if (object(s) && finite(s.end)) last = s.end;
           });
         }
@@ -91,7 +92,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
         if (Math.abs(sum - 1) > 1e-9) error(`${at}.classes`, 'Class probabilities must add up to 1.');
       }
     } else if (n.kind === 'queue') {
-      if (n.capacity !== null && (!finite(n.capacity) || !Number.isInteger(n.capacity) || n.capacity < 0 || n.capacity > 100000)) error(`${at}.capacity`, 'Waiting capacity must be a non-negative integer or unlimited.');
+      if (n.capacity !== null && (!finite(n.capacity) || !Number.isInteger(n.capacity) || n.capacity < 0 || n.capacity > MAX_WAITING_PLACES)) error(`${at}.capacity`, 'Waiting capacity must be an integer from 0 to 10,000,000, or unlimited.');
       if (!['fifo', 'priority'].includes(String(n.discipline))) error(`${at}.discipline`, 'Choose FIFO or priority.');
       if (n.patience !== null) distribution(n.patience, `${at}.patience`, true);
     } else if (n.kind === 'service') {

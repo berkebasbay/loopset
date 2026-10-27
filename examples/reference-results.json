@@ -1,5 +1,5 @@
 {
-  "engineVersion": "0.1.1",
+  "engineVersion": "0.1.2",
   "rngVersion": "keyed-murmur32-v1",
   "examples": {
     "factory": {
@@ -9,9 +9,9 @@
       "provenance": {
         "rngVersion": "keyed-murmur32-v1",
         "limits": {
-          "maxEvents": 1000000,
-          "maxEntities": 100000,
-          "maxMicrosteps": 10000,
+          "maxEvents": 1000000000,
+          "maxEntities": 10000000,
+          "maxMicrosteps": 1000000,
           "maxTraceEntities": 4000,
           "maxTraceEvents": 100000
         }
@@ -29,9 +29,9 @@
       "provenance": {
         "rngVersion": "keyed-murmur32-v1",
         "limits": {
-          "maxEvents": 1000000,
-          "maxEntities": 100000,
-          "maxMicrosteps": 10000,
+          "maxEvents": 1000000000,
+          "maxEntities": 10000000,
+          "maxMicrosteps": 1000000,
           "maxTraceEntities": 4000,
           "maxTraceEvents": 100000
         }
@@ -49,9 +49,9 @@
       "provenance": {
         "rngVersion": "keyed-murmur32-v1",
         "limits": {
-          "maxEvents": 1000000,
-          "maxEntities": 100000,
-          "maxMicrosteps": 10000,
+          "maxEvents": 1000000000,
+          "maxEntities": 10000000,
+          "maxMicrosteps": 1000000,
           "maxTraceEntities": 4000,
           "maxTraceEvents": 100000
         }

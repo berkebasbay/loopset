@@ -9,7 +9,7 @@ export const fileErrorMessages = {
   cellLimit: (maximumCharacters: number) => `CSV cells are limited to ${maximumCharacters} characters.`,
   unclosedQuotedCell: 'CSV ends inside a quoted cell.',
   plainSecondsRequired: (row: number) => `Row ${row}: use plain seconds with a decimal point, for example 12.5. No grouping, decimal commas or units.`,
-  secondsRange: (row: number, allowZero: boolean) => `Row ${row}: seconds must be ${allowZero ? 'non-negative' : 'positive'} and no more than 604,800.`,
+  secondsRange: (row: number, allowZero: boolean, maximum = 604800) => `Row ${row}: seconds must be ${allowZero ? 'non-negative' : 'positive'} and no more than ${maximum.toLocaleString('en')}.`,
   expectedSampleColumn: (header: string) => `Expected exactly one column named ${header}. Delimiter: comma; decimal mark: point.`,
   missingSampleRows: 'Provide at least one data row after the header.',
   expectedSingleColumn: (row: number) => `Row ${row}: expected one column. Decimal commas and extra columns are not supported.`,
