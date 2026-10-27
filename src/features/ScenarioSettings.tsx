@@ -34,7 +34,7 @@ export function HorizonControl({ project, onChange }: Pick<Props, 'project' | 'o
       <label className="ease-select-label">{m.horizonPolicy}<select value={policy} onChange={event => setPolicy(event.currentTarget.value as typeof policy)}><option value="keep">{m.keepPlan}</option><option value="crop">{m.cropPlan}</option>{impact.extended && <option value="repeat">{m.repeatPlan}</option>}</select></label>
       <p className="ease-help">{policy === 'keep' ? m.horizonKeep : policy === 'crop' ? m.horizonCrop : m.horizonRepeat}</p>
       {beforeDemand && afterDemand && <p className="ease-help">{m.demandPreview(beforeDemand.count, afterDemand.count, afterDemand.stochastic)}</p>}{preview.error && <p className="ease-error" role="alert">{preview.error}</p>}
-      <div className="ease-actions"><button type="button" className="ease-button ease-primary" disabled={!preview.project} onClick={apply}>{m.applyRunLength}</button><button type="button" className="ease-button" onClick={() => { setSeconds(project.model.horizon); setPolicy('keep'); setError(''); }}>{m.cancelChange}</button></div>
+      <div className="ease-actions"><button type="button" className="ease-button ease-primary" disabled={!preview.project} onClick={apply}>{m.applyRunLength}</button><button type="button" className="ease-button" onPointerDown={event=>event.preventDefault()} onClick={() => { setSeconds(project.model.horizon); setPolicy('keep'); setError(''); }}>{m.cancelChange}</button></div>
     </section>}
     {impactFailure && <p role="alert" className="ease-error">{impactFailure}</p>}
     {error && <p className="ease-error" role="alert">{error}</p>}

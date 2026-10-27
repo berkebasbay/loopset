@@ -186,6 +186,7 @@ export default function App() {
     // Pointer activation need not focus a button in WebKit. Retain the explicit
     // outside opener once; changing panels inside the dialog keeps that origin.
     if (next && !currentPanel.current) {
+      setToast(null);
       const active = document.activeElement;
       dialogOrigin.current = { element: opener ?? (active instanceof HTMLElement && active !== document.body && !active.closest('[role=dialog]') ? active : null), panel: next };
     }
@@ -700,11 +701,11 @@ export default function App() {
       </aside>}
     </div>
     {storageError && <button className="storage-warning" onClick={event => { setToast(storageError); setPanel('data', event.currentTarget); }}>{m.localSaveNeedsAttentionDownloadABackup}</button>}
-    {(toast || sim.error) && <div role="status" className="toast"><span>{toast ?? sim.error}</span><button aria-label={m.dismissNotification} onClick={() => { setToast(null); sim.clearError(); }}><X size={15} /></button></div>}
+    {!panel && (toast || sim.error) && <div role="status" className="toast"><span>{toast ?? sim.error}</span><button aria-label={m.dismissNotification} onClick={() => { setToast(null); sim.clearError(); }}><X size={15} /></button></div>}
     {sim.running && <button className="cancel-run" disabled={sim.cancelling} onClick={cancelCalculation}>{sim.cancelling ? m.stoppingCalculation : m.cancelCalculation}<X size={14} /></button>}
     {panel && <div className="modal-backdrop" onClick={() => setPanel(null)}><section className={`modal ${panel === 'model' || panel === 'data' || panel === 'experiments' || panel === 'insights' ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">{m.modalEyebrow(m.modalSection(panel))}</span><h2 id="modal-title">{panelTitle(panel)}</h2></div><button className="icon-button" aria-label={m.closeDialog} onClick={() => setPanel(null)}><X size={20} /></button></div>
       <div key={panel} className="modal-body">
-      <CalculationStatus announcement={calculationStatus.announcement} active={calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />
+      <CalculationStatus announcement={calculationStatus.announcement} active={calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />{sim.error && <p role="alert" className="ease-error">{sim.error}</p>}
       {panel === 'scenario' && <ScenarioSettings project={project} onChange={edit} onBudget={() => setPanel('budget')} />}
       {panel === 'rename' && <ProjectRename key={project.id} project={project} onChange={edit} onDone={() => setPanel(null)} />}
       {panel === 'search' && <CommandSearch onCommand={navigateCommand} />}
