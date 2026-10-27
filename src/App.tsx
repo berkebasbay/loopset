@@ -619,7 +619,9 @@ export default function App() {
     if (command === 'data') { openFiles('projects'); return; }
     if (command === 'download') { downloadProject(); setPanel(null); return; }
     if (command === 'demand' || command === 'team') {
-      const node = live.current.project.model.nodes.find(node => node.kind === (command === 'demand' ? 'source' : 'service'));
+      const kind = command === 'demand' ? 'source' : 'service';
+      const current = live.current.project.model.nodes.find(node => node.id === selectionRef.current.primary);
+      const node = current?.kind === kind ? current : live.current.project.model.nodes.find(node => node.kind === kind);
       setPanel(null); if (node) editSceneNode(node.id); return;
     }
     setPanel(command);
@@ -651,7 +653,7 @@ export default function App() {
           <button data-build-opener="" className={buildTrayOpen ? 'is-active' : ''} aria-expanded={buildTrayOpen} aria-controls="process-blocks" aria-pressed={buildTrayOpen} onClick={event => { if (buildTrayOpen) closeBuildTray(); else showBuildTray(event.currentTarget); }}><Plus size={20} /><span>{m.build}</span></button>
           <button className={!moving && !linkFrom ? 'is-active' : ''} aria-pressed={!moving && !linkFrom} onClick={() => { setMoving(false); setLinkFrom(null); }}><MousePointer2 size={19} /><span>{m.selectTool}</span></button>
           <button className={moving && !linkFrom ? 'is-active' : ''} aria-label={m.moveStations} aria-pressed={moving && !linkFrom} disabled={hasErrors} onClick={() => { setMoving(true); setLinkFrom(null); }}><Move size={19} /><span>{m.moveTool}</span></button>
-          <button className={linkFrom ? 'is-active' : ''} aria-label={m.connectSelectedStep} aria-pressed={Boolean(linkFrom)} disabled={hasErrors || !selectedStep || !('next' in selectedStep)} onClick={() => { setBuildTrayOpen(false); setMoving(false); setLinkFrom(linkFrom ? null : selected); }}><Link2 size={19} /><span>{m.connectTool}</span></button>
+          <button className={linkFrom ? 'is-active' : ''} aria-label={m.connectSelectedStep} title={!selectedStep || !('next' in selectedStep) ? processEaseMessages.noOutgoing : hasErrors ? m.repairYourModelFirst : m.connectSelectedStep} aria-pressed={Boolean(linkFrom)} disabled={hasErrors || !selectedStep || !('next' in selectedStep)} onClick={() => { setBuildTrayOpen(false); setMoving(false); setLinkFrom(linkFrom ? null : selected); }}><Link2 size={19} /><span>{m.connectTool}</span></button>
         </div>
         <div className="studio-rail-group">
           <button data-panel-opener="insights" onClick={event => setPanel('insights', event.currentTarget)}><Activity size={19} /><span>{m.resultsTool}</span></button>
