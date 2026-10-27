@@ -52,9 +52,9 @@ export function ScheduleEditor(props: ScheduleEditorProps) {
   const { kind, horizon, contextKey, disabled } = props;
   const original: Slot[] = kind === 'arrival' ? props.segments.map(p => ({ start: p.start, end: p.end, value: p.perHour })) : props.periods.map(p => ({ start: p.start, end: p.end, value: p.capacity }));
   const signature = JSON.stringify(original);
-  const [draft, setDraft] = useState<Slot[]>(original); const [error, setError] = useState(''); const root = useRef<HTMLDivElement>(null); const rows = useRef<(HTMLDivElement | null)[]>([]); const id = useId();
+  const [resetEpoch, setResetEpoch] = useState(0); const [draft, setDraft] = useState<Slot[]>(original); const [error, setError] = useState(''); const root = useRef<HTMLDivElement>(null); const rows = useRef<(HTMLDivElement | null)[]>([]); const id = useId();
   const [breakStart, setBreakStart] = useState(horizon / 2); const [breakLength, setBreakLength] = useState(Math.min(300, horizon / 10));
-  useEffect(() => { setDraft(JSON.parse(signature) as Slot[]); setError(''); }, [signature, contextKey]);
+  useEffect(() => { setDraft(JSON.parse(signature) as Slot[]); setError(''); setResetEpoch(epoch => epoch + 1); }, [signature, contextKey]);
   const maximum = kind === 'arrival' ? MAX_ARRIVALS_PER_HOUR : props.installedCapacity;
   const problems = issues(draft, horizon, maximum, kind === 'calendar'); const changed = JSON.stringify(draft) !== signature;
   usePendingEdit(`${contextKey}:time-plan`, changed);
@@ -90,14 +90,14 @@ export function ScheduleEditor(props: ScheduleEditorProps) {
     {!draft.length && <p className="ease-help">{kind === 'arrival' ? m.emptyArrivalPlan : m.emptyCalendar}</p>}
     <div className="ease-periods">{draft.map((slot, i) => <div className="ease-period" key={i} ref={element => { rows.current[i] = element; }}>
       <div className="ease-period-heading"><strong>{m.period(i + 1)}</strong><button type="button" className="ease-link" disabled={disabled} onClick={() => setDraft(draft.filter((_, index) => index !== i))}>{m.removePeriod(i + 1)}</button></div>
-      <TimeField label={m.periodStart(i + 1)} contextKey={`${contextKey}:period:${i}:start`} value={slot.start} min={0} max={horizon} defaultUnit="minutes" disabled={disabled} onChange={start => update(i, { start })} />
-      <TimeField label={m.periodEnd(i + 1)} contextKey={`${contextKey}:period:${i}:end`} value={slot.end} min={0} max={horizon} defaultUnit="minutes" disabled={disabled} onChange={end => update(i, { end })} />
-      <NumberField label={kind === 'arrival' ? m.periodRate(i + 1) : m.periodCapacity(i + 1)} contextKey={`${contextKey}:period:${i}:value`} value={slot.value} min={0} max={maximum} step={kind === 'calendar' ? 1 : 'any'} disabled={disabled} onChange={value => update(i, { value })} />
+      <TimeField label={m.periodStart(i + 1)} contextKey={`${contextKey}:${resetEpoch}:period:${i}:start`} value={slot.start} min={0} max={horizon} defaultUnit="minutes" disabled={disabled} onChange={start => update(i, { start })} />
+      <TimeField label={m.periodEnd(i + 1)} contextKey={`${contextKey}:${resetEpoch}:period:${i}:end`} value={slot.end} min={0} max={horizon} defaultUnit="minutes" disabled={disabled} onChange={end => update(i, { end })} />
+      <NumberField label={kind === 'arrival' ? m.periodRate(i + 1) : m.periodCapacity(i + 1)} contextKey={`${contextKey}:${resetEpoch}:period:${i}:value`} value={slot.value} min={0} max={maximum} step={kind === 'calendar' ? 1 : 'any'} disabled={disabled} onChange={value => update(i, { value })} />
     </div>)}</div>
     <button className="ease-button" type="button" disabled={disabled || draft.length >= 200} onClick={add}>{m.addPeriod}</button>
-    {props.kind === 'calendar' && <details className="ease-disclosure"><summary>{m.addBreak}</summary><p className="ease-help">{m.breakScope}</p><TimeField label={m.breakStart} value={breakStart} min={0} max={horizon} defaultUnit="minutes" contextKey={`${contextKey}:break-start`} disabled={disabled} onChange={setBreakStart} /><TimeField label={m.breakDuration} value={breakLength} min={Number.MIN_VALUE} max={horizon} defaultUnit="minutes" contextKey={`${contextKey}:break-length`} disabled={disabled} onChange={setBreakLength} /><button className="ease-button" type="button" disabled={disabled} onClick={addBreak}>{m.addBreak}</button></details>}
+    {props.kind === 'calendar' && <details className="ease-disclosure"><summary>{m.addBreak}</summary><p className="ease-help">{m.breakScope}</p><TimeField label={m.breakStart} value={breakStart} min={0} max={horizon} defaultUnit="minutes" contextKey={`${contextKey}:${resetEpoch}:break-start`} disabled={disabled} onChange={setBreakStart} /><TimeField label={m.breakDuration} value={breakLength} min={Number.MIN_VALUE} max={horizon} defaultUnit="minutes" contextKey={`${contextKey}:${resetEpoch}:break-length`} disabled={disabled} onChange={setBreakLength} /><button className="ease-button" type="button" disabled={disabled} onClick={addBreak}>{m.addBreak}</button></details>}
     {problems.length > 0 && <ul className="ease-problems" role="alert">{problems.map((problem, i) => <li key={i}>{problem}</li>)}</ul>}
-    {changed && <><p className="ease-help">{m.reviewSchedule}</p><div className="ease-actions"><button className="ease-button ease-primary" type="button" disabled={disabled || problems.length > 0} onClick={apply}>{m.applySchedule}</button><button className="ease-button" type="button" onClick={() => { setDraft(JSON.parse(signature) as Slot[]); setError(''); }}>{m.cancelSchedule}</button></div></>}
+    <>{changed && <p className="ease-help">{m.reviewSchedule}</p>}<div className="ease-actions"><button className="ease-button ease-primary" type="button" disabled={disabled || !changed || problems.length > 0} onClick={apply}>{m.applySchedule}</button><button className="ease-button" type="button" onClick={() => { setDraft(JSON.parse(signature) as Slot[]); setError(''); setBreakStart(horizon / 2); setBreakLength(Math.min(300, horizon / 10)); setResetEpoch(epoch => epoch + 1); }}>{m.cancelSchedule}</button></div></>
     {error && <p role="alert" className="ease-error">{error}</p>}
   </div>;
 }

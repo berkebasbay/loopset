@@ -1,6 +1,6 @@
 /* Contextual controls inherit the existing graphite / paper / moss studio. */
 .ease-scenario,.ease-quick-properties,.ease-schedule,.ease-process-list{--ease-input:#fff;--ease-line:#ccd7cb;--ease-help:#5c6e60;--ease-accent:#446d49;color:inherit;min-width:0;font-size:14px;line-height:1.5}
-.studio-inspector .ease-quick-properties,.studio-inspector .ease-process-list{--ease-input:#222d2e;--ease-line:#5a6b60;--ease-help:#b3c3b9;--ease-accent:#c5e995}
+.studio-inspector .ease-quick-properties,.studio-inspector .ease-process-list,.studio-inspector .ease-schedule{--ease-input:#222d2e;--ease-line:#5a6b60;--ease-help:#b3c3b9;--ease-accent:#c5e995}
 .ease-field,.ease-select-label{display:flex;flex-direction:column;gap:6px;margin:0 0 14px;min-width:0}
 .ease-field>label,.ease-select-label,.ease-name-editor>label{font-size:12px;font-weight:550;line-height:1.45;color:inherit}
 .ease-field input,.ease-field select,.ease-select-label select,.ease-name-editor>input{width:100%;min-width:0;min-height:40px;padding:9px 11px;border:1px solid var(--ease-line);border-radius:7px;background:var(--ease-input);color:inherit;font:inherit;font-size:14px;line-height:1.4;font-variant-numeric:tabular-nums;box-sizing:border-box}
