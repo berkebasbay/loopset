@@ -1,0 +1,22 @@
+export const modelDiffMessages = {
+  title: 'Input differences', none: 'The numerical inputs are unchanged. Names, layout and viewing preferences do not create numerical differences.',
+  before: 'Recorded plan', after: 'Changed plan', added: 'Added', removed: 'Removed',
+  horizon: 'Run length', warmup: 'Warm-up', slaSeconds: 'Wait target', currency: 'Cost currency', seed: 'Random seed',
+  servers: 'Parallel stations', capacity: 'Waiting places', discipline: 'Queue order', patience: 'Patience', duration: 'Duration distribution',
+  arrival: 'Arrival pattern', classes: 'Visitor/job class shares', resources: 'Units required per start', next: 'Next step', branches: 'Route shares', samplingId: 'Sampling identity', id: 'Step identity',
+  installedCapacity: 'Installed resource limit', base: 'Base available units', calendar: 'Shift calendar', costPerHour: 'Cost per unit/hour', overtimeCostPerHour: 'Overtime cost per unit/hour',
+  unlimited: 'Unlimited', noAbandonment: 'No abandonment', seconds: (v:number)=>`${v.toLocaleString('en',{maximumFractionDigits:8})} s`,
+  count: (n:number)=>`${n.toLocaleString('en')} differences`,
+  bottleneck: 'Where to investigate first', noBottleneck: 'No waiting queue was observed in this run. Check the whole process before changing capacity.',
+  candidate: (label:string,queue:string,wait:string|null,utilization:string)=>`${label} had the largest observed average queue (${queue}). ${wait === null ? 'No stage visit finished, so there is no completed-stage wait sample.' : `Completed stage visits waited ${wait} on average.`} Station utilization was ${utilization}.`,
+  caveat: 'This is an observation from this recorded run, not a proven cause or a guarantee that adding capacity will improve the process. Shared teams and shifts can limit several stages.',
+  inspect: (label:string)=>`Inspect ${label}`, missingStep: 'This step is no longer in the current draft.',
+  metricHelp: 'What these numbers mean',
+  definitions: [
+    ['Average / median / 95th-percentile wait','Seconds or minutes waited by completed members of the measured arrival cohort. Unfinished, rejected and abandoned jobs are excluded from these samples.'],
+    ['Unfinished work','Measured-cohort arrivals still waiting, processing or transferring at the end. The model does not drain after the run horizon.'],
+    ['Wait target achieved','Completed cohort members whose total wait met the target, divided by all measured-cohort arrivals; unfinished work does not count as success.'],
+    ['Station utilization','Busy station-seconds divided by parallel stations × observed measurement time. Resource utilization is a separate measure.'],
+    ['Resource cost','Modeled scheduled unit-hours plus out-of-schedule use at the recorded cost rates; this is not an actual business bill.'],
+  ],
+} as const;

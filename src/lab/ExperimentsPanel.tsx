@@ -1,3 +1,6 @@
+import { NumberField } from '../features/EditFields';
+import { capacityRange, capacitySearchNotes } from './capacityCandidates';
+import { experimentsEaseMessages as ex } from '../ui/messages/experimentsEase';
 import { experimentsPanelMessages as m } from '../ui/messages/ExperimentsPanel';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, FlaskConical, LoaderCircle, Play, X } from 'lucide-react';
@@ -6,7 +9,7 @@ import { modelHash } from '../model/identity';
 import { validateProject } from '../model/validate';
 import { WorkerClient } from '../worker/client';
 import { readExperimentResponse } from '../worker/protocol';
-import type { ExperimentRequest, ExperimentValue } from '../worker/protocol';
+import type { ExperimentKind, ExperimentRequest, ExperimentValue } from '../worker/protocol';
 import { CouplingDetails } from '../features/CouplingDetails';
 import { RunProvenanceDetails } from '../features/RunProvenanceDetails';
 import { CalculationBudget } from '../features/CalculationBudget';
@@ -15,7 +18,7 @@ import { prepareExperiment } from './experimentPlan';
 import './lab.css';
 
 type Result = ExperimentValue & { receipt: { id: string; elapsedMs: number; runs: number; workUnits: number } };
-interface Props { project: Project; baseline: RunResult | null; onApplyCapacity: (poolId: string, capacity: number) => void }
+interface Props { project: Project; baseline: RunResult | null; onApplyCapacity: (poolId: string, capacity: number) => void; initialKind?: ExperimentKind; draftPending?: boolean }
 const formatted = (n: number, unit: string) => `${n.toLocaleString('en', { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ''}`;
 const interval = (e: MetricEstimate, unit = '') => e.samples === 0 ? m.noObservations : e.lower95 === null || e.upper95 === null ? m.requiresAtLeast2Runs : m.interval(formatted(e.lower95, unit), formatted(e.upper95, unit));
 function Estimates({ experiment, currency }: { experiment: ExperimentResult; currency: string }) {
@@ -28,11 +31,13 @@ function ExperimentRunSettings({ experiment, summary }: { experiment: Experiment
   return <details className="ql-provenance"><summary>{summary}</summary><div className="ql-provenance-body"><p>{m.eachEntryPreservesTheActualSeedRngVersionAnd}</p>{experiment.runs.map((run, index) => <RunProvenanceDetails key={`${index}:${run.id}`} run={run} summary={m.runIdentity(index + 1, run.seed, run.status)} />)}</div></details>;
 }
 
-export function ExperimentsPanel({ project, baseline, onApplyCapacity }: Props) {
-  const [tab, setTab] = useState<'replications' | 'paired' | 'search'>('replications');
+export function ExperimentsPanel({ project, baseline, onApplyCapacity, initialKind, draftPending = false }: Props) {
+  const [tab, setTab] = useState<'replications' | 'paired' | 'search'>(initialKind ?? 'replications');
   const [count, setCount] = useState(10); const [firstSeed, setFirstSeed] = useState(Number.isSafeInteger(project.model.seed) ? project.model.seed : 4207);
   const [poolId, setPoolId] = useState(project.model.resources.at(-1)?.id ?? '');
   const [capacities, setCapacities] = useState('1, 2, 3, 4');
+  const [candidateMode, setCandidateMode] = useState<'list' | 'range'>('list');
+  const [rangeStart, setRangeStart] = useState(1), [rangeEnd, setRangeEnd] = useState(4), [rangeStep, setRangeStep] = useState(1);
   const [target, setTarget] = useState(String(baseline?.summary.completed ?? 1)); const [maxWait, setMaxWait] = useState('');
   const [result, setResult] = useState<Result | null>(null);
   const [resultPoolId, setResultPoolId] = useState('');
@@ -50,9 +55,9 @@ export function ExperimentsPanel({ project, baseline, onApplyCapacity }: Props) 
   const currentPool = project.model.resources.find(p => p.id === poolId);
   const invalid = validateProject(project).some(i => i.severity === 'error');
   const preparation = useMemo(() => {
-    try { return { value: prepareExperiment({ kind: tab, model: project.model, baseline, count, firstSeed, poolId, capacities, target, maxWait }), error: '' }; }
+    try { return { value: prepareExperiment({ kind: tab, model: project.model, baseline, count, firstSeed, poolId, capacities: candidateMode === 'range' ? capacityRange(rangeStart, rangeEnd, rangeStep).join(',') : capacities, target, maxWait }), error: '' }; }
     catch (error) { return { value: null, error: error instanceof Error ? error.message : m.checkExperimentSettings }; }
-  }, [tab, project.model, baseline, count, firstSeed, poolId, capacities, target, maxWait]);
+  }, [tab, project.model, baseline, count, firstSeed, poolId, capacities, target, maxWait, candidateMode, rangeStart, rangeEnd, rangeStep]);
   liveIdentity.current = { projectId: project.id, hash: currentHash, valid: !invalid };
   useEffect(() => () => { pending.current = null; client.current?.dispose(); }, []);
   function cancel() {
@@ -93,11 +98,13 @@ export function ExperimentsPanel({ project, baseline, onApplyCapacity }: Props) 
     <CalculationStatus announcement={calculationStatus.announcement} label={m.experimentStatus} />
     <p className="lab-intro">{m.aSingleRunTellsOneStoryRepeatItWith}</p>
     <div className="lab-tabs" role="tablist" aria-label={m.experimentType}>{(['replications', 'paired', 'search'] as const).map(kind => <button key={kind} role="tab" aria-selected={tab === kind} disabled={running} onClick={() => setTab(kind)}>{kind === 'replications' ? m.independentRuns : kind === 'paired' ? m.pairedComparison : m.capacitySearch}</button>)}</div>
-    <div className="lab-settings"><label>{m.independentRuns}<input type="number" min="1" max="100" value={count} disabled={running} onChange={e => setCount(Number(e.target.value))} /></label><label>{m.firstSeed}<input type="number" step="1" value={firstSeed} disabled={running} onChange={e => setFirstSeed(Number(e.target.value))} /></label><div className="lab-seed-note">{m.seedRange(firstSeed, firstSeed + count - 1)}<br />{preparation.value ? m.totalModelRuns(preparation.value.budget.minimumRuns === preparation.value.budget.maximumRuns ? preparation.value.budget.maximumRuns : `${preparation.value.budget.minimumRuns}–${preparation.value.budget.maximumRuns}`) : m.checkSettings}</div></div>
+    <p className="lab-note">{ex.purpose[tab]}</p>{initialKind === 'paired' && <p className="lab-small">{ex.captureScope}</p>}
+    <div className="lab-settings"><NumberField label={ex.runCount} contextKey={`${project.id}:experiment:count`} value={count} min={1} max={100} step={1} disabled={running} onChange={setCount} /><div className="lab-seed-note">{preparation.value ? m.totalModelRuns(preparation.value.budget.minimumRuns === preparation.value.budget.maximumRuns ? preparation.value.budget.maximumRuns : `${preparation.value.budget.minimumRuns}–${preparation.value.budget.maximumRuns}`) : m.checkSettings}</div></div>
+    <details className="ql-advanced"><summary>{ex.advancedSeeds}</summary><NumberField label={m.firstSeed} contextKey={`${project.id}:experiment:seed`} value={firstSeed} min={Number.MIN_SAFE_INTEGER} max={Number.MAX_SAFE_INTEGER} step={1} disabled={running} onChange={setFirstSeed} /><p className="lab-small">{ex.seedList}: {Array.from({length:Math.max(0,Math.min(100,count))},(_,i)=>firstSeed+i).join(', ')}</p></details>
     {tab === 'paired' && <div className="lab-note"><FlaskConical size={17} /><span>{baseline ? m.pairedBaselineScope(baseline.modelHash) : m.runAModelAndPreserveABaselineBeforeComparing}</span></div>}
-    {tab === 'search' && <><div className="lab-settings"><label>{m.resourcePool}<select value={poolId} disabled={running} onChange={e => setPoolId(e.target.value)}>{project.model.resources.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label><label>{m.candidateCapacities}<input value={capacities} disabled={running} onChange={e => setCapacities(e.target.value)} placeholder="1, 2, 3, 4" /></label></div><div className="lab-settings"><label>{m.minimumMeanCompleted}<input type="number" min="0" disabled={running} value={target} onChange={e => setTarget(e.target.value)} placeholder={m.noConstraint} /></label><label>{m.maximumMeanWaitSeconds}<input type="number" min="0" disabled={running} value={maxWait} onChange={e => setMaxWait(e.target.value)} placeholder={m.noConstraint} /></label></div><p className="lab-small">{m.capacitySearchScope(currentPool?.installedCapacity ?? '—')}</p></>}
+    {tab === 'search' && <><div className="lab-settings"><label>{m.resourcePool}<select value={poolId} disabled={running} onChange={e => setPoolId(e.target.value)}>{project.model.resources.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label><label>{ex.candidateMode}<select value={candidateMode} disabled={running} onChange={event=>setCandidateMode(event.currentTarget.value as 'list'|'range')}><option value="list">{ex.list}</option><option value="range">{ex.range}</option></select></label>{candidateMode==='list'?<label>{m.candidateCapacities}<input value={capacities} disabled={running} onChange={e => setCapacities(e.target.value)} placeholder="1, 2, 3, 4" /></label>:<><NumberField label={ex.start} contextKey={`${project.id}:range-start`} value={rangeStart} min={0} max={1000} step={1} disabled={running} onChange={setRangeStart}/><NumberField label={ex.end} contextKey={`${project.id}:range-end`} value={rangeEnd} min={0} max={1000} step={1} disabled={running} onChange={setRangeEnd}/><NumberField label={ex.step} contextKey={`${project.id}:range-step`} value={rangeStep} min={1} max={1000} step={1} disabled={running} onChange={setRangeStep}/></>}</div><div className="lab-settings"><label>{m.minimumMeanCompleted}<input type="number" min="0" disabled={running} value={target} onChange={e => setTarget(e.target.value)} placeholder={m.noConstraint} /></label><label>{m.maximumMeanWaitSeconds}<input type="number" min="0" disabled={running} value={maxWait} onChange={e => setMaxWait(e.target.value)} placeholder={m.noConstraint} /></label></div><p className="lab-small">{m.capacitySearchScope(currentPool?.installedCapacity ?? '—')}</p><ul className="lab-small ease-search-scope">{capacitySearchNotes(project.model,poolId,preparation.value?.request.kind === 'search' ? preparation.value.request.spec.capacities : []).map((note,i)=><li key={i}>{note}</li>)}</ul>{preparation.value?.request.kind==='search'&&<p className="lab-note">{ex.preview}: {preparation.value.request.spec.capacities.join(', ')}</p>}</>}
     {preparation.value ? <details className="lab-preflight"><summary>{m.beforeRunningWorkEstimateLimits}</summary><CalculationBudget budget={preparation.value.budget} /></details> : <p className="lab-error" role="alert">{preparation.error}</p>}
-    <div className="lab-actions"><button className="primary-button" disabled={running || invalid || !preparation.value} onClick={submit}>{running ? <LoaderCircle size={15} className="spin" /> : <Play size={14} />} {running ? m.progress(Math.round(progress * 100)) : tab === 'search' ? m.evaluateCandidates : m.runExperiment}</button>{running && <button className="secondary-button" onClick={cancel}><X size={14} />{m.cancelExperiment}</button>}</div>
+    <div className="lab-actions"><button className="primary-button" disabled={running || invalid || draftPending || !preparation.value} onClick={submit}>{running ? <LoaderCircle size={15} className="spin" /> : <Play size={14} />} {running ? m.progress(Math.round(progress * 100)) : tab === 'search' ? m.evaluateCandidates : m.runExperiment}</button>{running && <button className="secondary-button" onClick={cancel}><X size={14} />{m.cancelExperiment}</button>}</div>
     {running && <progress className="lab-progress" max="1" value={progress} aria-label={m.experimentProgress} />}
     {error && <p role="alert" className="lab-error">{error}</p>}
     {stale && <p className="lab-note">{m.thisExperimentBelongsToAnEarlierModelSnapshotRun}</p>}

@@ -47,7 +47,14 @@ export async function runPlan(page) {
 }
 
 export function headerProjectInput(page) {
-  return page.getByLabel('Open project file', { exact: true });
+  return { async setInputFiles(files) {
+    const dialog = page.getByRole('dialog', { name: panelNames.data, exact: true });
+    if (!await dialog.count()) await openPanel(page, 'data');
+    await page.getByRole('tab', { name: 'Projects', exact: true }).click();
+    await page.getByLabel('Open project JSON file', { exact: true }).setInputFiles(files);
+    await page.getByRole('button', { name: 'Open this project', exact: true }).click();
+    await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  } };
 }
 
 /** Pan the real canvas; object-caption buttons have their own selection behavior. */

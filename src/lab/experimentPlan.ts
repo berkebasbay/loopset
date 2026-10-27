@@ -1,4 +1,5 @@
 import { experimentPlanMessages as m } from '../ui/messages/experimentPlan';
+import { capacityList } from './capacityCandidates';
 import { capacitySearchPlan } from '../experiments';
 import { calculationBudget } from '../model/workBudget';
 import type { RunResult, SimulationModel } from '../model/types';
@@ -24,7 +25,7 @@ export function prepareExperiment(settings: Settings) {
     request = { ...envelope, kind, baseline: baseline.model, model, seeds };
   } else {
     if (!capacities.trim() || capacities.split(',').some(value => !value.trim())) throw new Error(m.enterCommaSeparatedIntegerCapacitiesWithoutEmptyValues);
-    request = { ...envelope, kind, model, spec: { poolId, capacities: capacities.split(',').map(value => Number(value.trim())), trainingSeeds: seeds,
+    request = { ...envelope, kind, model, spec: { poolId, capacities: capacityList(capacities), trainingSeeds: seeds,
       verificationSeeds: Array.from({ length: count }, (_, i) => firstSeed + 1_000_000 + i), maxRuns: 256,
       targetCompleted: target.trim() ? Number(target) : undefined, maxMeanWait: maxWait.trim() ? Number(maxWait) : undefined } };
     capacitySearchPlan(model, request.spec);

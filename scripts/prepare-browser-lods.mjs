@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, realpath } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { gzipSync, gunzipSync } from 'node:zlib';
@@ -14,11 +14,7 @@ const gzipPublic = args.length === 1 && args[0] === '--gzip-public';
 if (!gzipPublic && args.length && (args.length !== 2 || args[0] !== '--output-dir')) throw new Error('Usage: node scripts/prepare-browser-lods.mjs [--output-dir private-candidate-directory | --gzip-public]');
 const outputRoot = resolve(root, args[1] ?? candidateRoot);
 if (outputRoot !== candidateRoot && !outputRoot.startsWith(candidateRoot + sep)) throw new Error('Output must remain inside .private/audits/browser-lod-candidates');
-if (root.startsWith('<workspace-volume>/')) {
-  const info = spawnSync('diskutil', ['info', '-plist', '<workspace-volume>'], { encoding: 'utf8' });
-  if (info.status !== 0 || !/<key>VolumeUUID<\/key>\s*<string>76EC491C-C108-41DA-89B9-4B69C79AED19<\/string>/.test(info.stdout)) throw new Error('Expected WorkSSD volume is not mounted');
-  if (!(await realpath(root)).startsWith('<workspace>')) throw new Error('Unexpected canonical checkout');
-}
+
 await mkdir(outputRoot, { recursive: true });
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const selectedClips = new Set(['idle', 'walk', 'interact']);
