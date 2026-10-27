@@ -1,11 +1,18 @@
 name: Local-release checks
 
-# Manual until the owner reviews private-repository Actions usage and billing.
+# Check every PR revision, including drafts; keep manual dispatch available.
 on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: queuelab-ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   verify:
@@ -16,6 +23,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Record tested revision
+        env:
+          QUEUELAB_EVENT: ${{ github.event_name }}
+          QUEUELAB_PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          printf 'event=%s\n' "$QUEUELAB_EVENT"
+          printf 'pr_head=%s\n' "$QUEUELAB_PR_HEAD"
+          git log -1 --format='checkout=%H'
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
