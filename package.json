@@ -15,7 +15,10 @@
     "simulate": "node scripts/simulate.mjs",
     "examples:export": "npm run build:engine && node scripts/export-examples.mjs",
     "test:headless": "npm run build:engine && node examples/verify.mjs",
-    "test:ux": "node scripts/ux-smoke.mjs"
+    "test:ux": "node scripts/ux-smoke.mjs",
+    "setup:hooks": "node scripts/setup-hooks.mjs",
+    "check:publication": "node scripts/check-publication.mjs",
+    "test:publication": "node --test tests/publication-guard.test.mjs"
   },
   "dependencies": {
     "lucide-react": "1.60.0",

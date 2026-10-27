@@ -8,10 +8,21 @@ Use Node.js 24 and the committed npm lockfile:
 
 ```sh
 npm ci
+npm run setup:hooks
 npm run dev
 ```
 
 No backend, account or API key is required. Use invented data in issues, tests, screenshots and examples. Keep customer files, personal information, credentials, browser profiles and raw local logs out of contributions.
+
+## Keep public history clean
+
+Every pushed branch and intermediate commit is public. Use synthetic examples and stage explicit reviewed files. Private notes, credentials, personal models, browser data, machine paths, raw traces and generated archives belong outside tracked source.
+
+The optional local hooks inspect the staged snapshot before a commit and all outgoing commit snapshots before a push. Set them up with `npm run setup:hooks`; if you already use a custom hooks path, integrate `.githooks` into it rather than replacing it. Fresh clones need this explicit setup. Setup also enables repository-local `user.useConfigOnly`: configure your intended Git identity instead of letting Git derive one from your device. Choose a GitHub noreply address if you want to keep your contact address private. GitHub secret scanning and push protection provide a separate provider-token check.
+
+Run `npm run check:publication` to inspect the committed tree, or `node scripts/check-publication.mjs --staged` for the current index. A rejected push must be repaired before publication; deleting the file in a later commit does not remove it from history. Never bypass a warning to publish private material. Review the diff, commit text, images and licenses yourself: automated checks do not understand every kind of private information.
+
+Use focused branches and PRs, with meaningful commits and relevant checks. Keep public documentation about the product and contributions; personal delivery or session notes stay local.
 
 ## Keep the boundaries clear
 
