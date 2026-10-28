@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 // explicit product paths: missing controls fail instead of trying older UIs.
 const toolPanels = new Set(['model', 'experiments', 'budget', 'history', 'worlds', 'help']);
 const panelNames = {
-  model: 'Model editor', experiments: 'Run experiments.', budget: 'Run limits',
+  model: 'Model editor', experiments: 'Run experiments', budget: 'Run limits',
   history: 'Action history', worlds: 'Choose a world', help: 'Help',
   insights: 'Run insights', compare: 'Compare plans', data: 'Files & reports',
 };

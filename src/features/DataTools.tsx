@@ -1,3 +1,4 @@
+import { interfaceMessages as ui } from '../ui/messages/interface';
 import { dataToolsMessages as m } from '../ui/messages/DataTools';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { duplicateProject, mutateProject } from '../model/commands';
@@ -173,8 +174,8 @@ export function DataTools({ project, result, latestAttempt = null, onImport, onS
 
     <div role="tabpanel" id={`${tabId}-panel-projects`} aria-labelledby={`${tabId}-tab-projects`} hidden={tab !== 'projects'}>
       <section className="ql-data-section" aria-label={m.projectFiles}>
-        <h3>{m.projectFiles}</h3><p className="ql-help">{m.portableProjectHelp}</p>
-        <div className="ql-actions">
+        <h3>{m.projectFiles}</h3><p className="ql-help">{ui.fileSummary}</p>
+        <div className="ql-actions file-actions">
           <button ref={saveButton} className="ql-button ql-primary" disabled={busy} type="button" onClick={() => void perform(async () => {
             const snapshot = structuredClone(project); const ack = await onSave(snapshot);
             notify(m.savedProject(snapshot.name, ack.revision, new Date(ack.savedAt).toLocaleTimeString(), current.current.id !== ack.projectId || current.current.revision !== ack.revision));
@@ -186,6 +187,7 @@ export function DataTools({ project, result, latestAttempt = null, onImport, onS
           <button className="ql-button" disabled={busy} type="button" onClick={() => void perform(() => { serializeProject(project); applyImport(duplicateProject(project)); notify(m.createdANewLocalProjectIdentityYourPreviousSaved); }, { allowProjectChange: true })}>{m.duplicateProject}</button>
           <button className="ql-button" disabled={busy} type="button" onClick={() => void browse()}>{m.browseLocalProjects}</button>
         </div>
+        <details className="file-format"><summary>{ui.fileFormat}</summary><p className="ql-help">{m.portableProjectHelp}</p></details>
         <input ref={jsonInput} hidden type="file" accept=".json,application/json" aria-label={m.openProjectJsonFile} onChange={event => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void openFile(file); }} />
         <details className="ql-advanced" open={validateProject(project).some(issue => issue.severity === 'error') || undefined}>
           <summary>{f.repairTools}</summary>

@@ -1,3 +1,6 @@
+import { History } from 'lucide-react';
+import { EmptyState } from '../ui/EmptyState';
+import { interfaceMessages as ui } from '../ui/messages/interface';
 import { actionHistoryMessages as m } from '../ui/messages/ActionHistory';
 import { HISTORY_ACTION_LIMIT, HISTORY_BYTE_LIMIT, type EditorHistory } from './editorHistory';
 import './editorControls.css';
@@ -6,13 +9,15 @@ interface Props { history: EditorHistory; revision: number; onUndo: () => void; 
 export function ActionHistory({ history, revision, onUndo, onRedo }: Props) {
   const undo = history.past.at(-1), redo = history.future[0];
   return <section className="action-history" aria-label={m.projectActionHistory}>
-    <p>{m.editsBelongToThisOpenProjectUndoAndRedo}</p>
+    <p>{ui.historyScope}</p>
     <div className="history-actions"><button className="secondary-button" disabled={!undo} onClick={onUndo} aria-label={m.actionName('undo', undo?.label)}>{m.actionButton('undo', undo?.label)}</button><button className="secondary-button" disabled={!redo} onClick={onRedo} aria-label={m.actionName('redo', redo?.label)}>{m.actionButton('redo', redo?.label)}</button></div>
     <div className="history-evidence" role="region" aria-label={m.recentProjectActionsScrollToInspect} tabIndex={0}>
-      {history.past.length + history.future.length ? <ol>{[...history.past.map(entry => ({ entry, applied: true })), ...history.future.map(entry => ({ entry, applied: false }))].map(({ entry, applied }) => <li key={entry.id} className={applied ? '' : 'history-undone'}><span>{entry.label}</span><small>{applied ? entry === undo ? m.latestEdit : m.applied : entry === redo ? m.nextRedo : m.undone}</small></li>)}</ol> : <p>{m.noRetainedEditsInThisProject}</p>}
+      {history.past.length + history.future.length ? <ol>{[...history.past.map(entry => ({ entry, applied: true })), ...history.future.map(entry => ({ entry, applied: false }))].map(({ entry, applied }) => <li key={entry.id} className={applied ? '' : 'history-undone'}><span>{entry.label}</span><small>{applied ? entry === undo ? m.latestEdit : m.applied : entry === redo ? m.nextRedo : m.undone}</small></li>)}</ol> : <EmptyState icon={History} title={ui.historyTitle} description={ui.historyDescription} />}
     </div>
+    <details className="history-details"><summary>{ui.retentionDetails}</summary>
     <p className="history-budget">{m.budgetSummary(revision, history.past.length + history.future.length, HISTORY_ACTION_LIMIT, (history.estimatedBytes / 1024 / 1024).toFixed(2), HISTORY_BYTE_LIMIT / 1024 / 1024)}</p>
     <p className="history-budget">{m.oldestHistoryEntriesExpireAtTheseLimitsProjectData}</p>
+    </details>
     {history.discarded > 0 && <p className="history-notice" role="status">{m.expiredEntries(history.discarded)}</p>}
     {history.estimateUnavailable && <p className="history-notice" role="status">{m.historyEstimateUnavailable}</p>}
   </section>;

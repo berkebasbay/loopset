@@ -1,0 +1,16 @@
+export const interfaceMessages = {
+  editingGuide: 'Editing guide',
+  historyTitle: 'Your changes will appear here',
+  historyDescription: 'Edit a step or arrange the facility to start an undoable history.',
+  retentionDetails: 'History limits and storage',
+  historyScope: 'Undo and Redo apply to this open project. Camera, selection and replay stay outside history.',
+  scenarioTitle: 'No saved scenarios yet',
+  resultsTitle: 'No results yet',
+  resultsDescription: 'Run a plan to see completed work, waiting times and resource use.',
+  fileSummary: 'Save a reusable copy, open a project or continue work from another device.',
+  fileFormat: 'File format and compatibility',
+  selectedStep: 'Selected process step',
+  manageSteps: 'Manage steps',
+  hideSteps: 'Hide step list',
+  chooseStep: 'Choose a step',
+} as const;

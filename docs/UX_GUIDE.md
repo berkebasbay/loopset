@@ -14,6 +14,8 @@ Select an object in the world, or open **Steps** and search its name or type. So
 
 **Find a setting or action** searches a small set of real workspace actions. Typing does not calculate, download or create a model; selecting an action opens or performs it. **Help → Quick guide** is optional and can be reopened. View detail and reduced motion are available directly under **View**.
 
+On narrow screens, the full model editor opens the selected step's settings directly. Use **Selected process step** to switch quickly, or **Manage steps** to reveal the complete list, group selection and step creation. Validation links open the relevant controls automatically.
+
 ## Edit deliberately
 
 Number fields retain incomplete typing outside the model. Enter or leaving a valid field applies it; Escape cancels the unfinished field. Model commands use Undo/Redo and **Action history**. View units, camera, layout and playback are separate from numerical inputs.

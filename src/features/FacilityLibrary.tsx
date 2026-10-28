@@ -1,5 +1,5 @@
 import { useMemo, useState, type DragEvent } from 'react';
-import { Plus, Users, X, Clock3, Search, ChevronLeft, ChevronRight, Box, ArrowDownToLine } from 'lucide-react';
+import { Plus, Users, X, Check, Clock3, Search, ChevronLeft, ChevronRight, Box, ArrowDownToLine } from 'lucide-react';
 import { assetURL } from '../assetUrl';
 import type { Point, Project, World } from '../model/types';
 import { buildPrefabsFor } from '../scene/catalogAssets';
@@ -65,7 +65,7 @@ export function BuildTray(props: Props) {
       {tab === 'cells' && <><p className="library-scope">{f.cellScope}</p><div className="library-cell-list">{processCells.map(item => { const art = libraryAssets.find(asset => asset.id === item.assetId); return <button type="button" aria-pressed={cellId === item.id} key={item.id} draggable={canCell} onDragStart={event => drag(event, item.assetId, 'process', item.id, cellId === item.id ? settings.seconds : item.seconds)} onClick={() => { setCellId(item.id); setSeconds(String(item.seconds)); }}><img src={assetURL(art?.thumbnail ?? '')} alt="" width="64" height="64" loading="lazy" /><span>{item.name}</span><ChevronRight size={15} /></button>; })}</div></>}
       {tab === 'objects' && <><div className="library-grid">{matches.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE).map(asset => {
         const dropMode = chosen === asset.id ? mode : 'visual';
-        return <button type="button" key={asset.id} className="library-tile" aria-pressed={chosen === asset.id} aria-label={asset.name} draggable={!disabled && !(dropMode === 'process' ? processLimit || teamLimit || !validTime || !insertionLabel : objectLimit)} onClick={() => choose(asset)} onDragStart={event => drag(event, asset.id, dropMode)} title={f.drag(asset.name)}><img src={assetURL(asset.thumbnail)} alt="" width="144" height="110" loading="lazy" /><span>{asset.name}</span></button>;
+        return <button type="button" key={asset.id} className="library-tile" aria-pressed={chosen === asset.id} aria-label={asset.name} draggable={!disabled && !(dropMode === 'process' ? processLimit || teamLimit || !validTime || !insertionLabel : objectLimit)} onClick={() => choose(asset)} onDragStart={event => drag(event, asset.id, dropMode)} title={f.drag(asset.name)}><img src={assetURL(asset.thumbnail)} alt="" width="144" height="110" loading="lazy" /><span className="library-tile-label">{asset.name}</span>{chosen === asset.id && <span className="library-selected-mark" aria-hidden="true"><Check size={12} strokeWidth={2.5} /></span>}</button>;
       })}</div>{!matches.length && <p className="library-scope">{f.noMatches}</p>}</>}
     </div>
     {tab === 'objects' && pages > 1 && <div className="library-pagination"><button type="button" aria-label={f.previous} disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}><ChevronLeft size={17} /></button><span>{f.page(currentPage + 1, pages)}</span><button type="button" aria-label={f.next} disabled={currentPage >= pages - 1} onClick={() => setPage(currentPage + 1)}><ChevronRight size={17} /></button></div>}
