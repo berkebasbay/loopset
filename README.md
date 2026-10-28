@@ -8,7 +8,7 @@ Free, client-side and account-free. Simulations run in your browser without a pa
 
 **[Try Loopset in your browser →](https://berkebasbay.github.io/loopset/)** · [Watch the demo](docs/media/loopset-demo.mp4)
 
-Start with an editable workshop, place models from the library, then define the process and compare plans. Choose **Templates** for Workshop, Factory, Festival, Service or a completely blank site. Save your own starting points in **My templates**. No installation needed.
+Choose from **12 editable templates** across production, logistics, service and events, or start with **Blank**. Each ready-made facility includes an original plan and two experiments. Save your own starting points in **My templates**. No installation needed.
 
 [![Loopset facility workspace: searchable model library, editable workshop and recorded outcomes](docs/media/loopset-facility.png)](https://berkebasbay.github.io/loopset/)
 
@@ -39,7 +39,7 @@ npm run dev
 
 Open the local address printed by Vite. There are no account credentials, API keys or application-server settings to configure.
 
-## One engine, three worlds
+## Three original reference examples
 
 | World | Question to explore |
 | --- | --- |
@@ -47,7 +47,7 @@ Open the local address printed by Vite. There are no account credentials, API ke
 | Festival Gate | How do arrival waves, checkpoints and visitor patience affect the entrance queue? |
 | Service Studio | What happens when priority requests and multiple stages share the same specialists? |
 
-Start with an example or create a small **New model**. Every example uses synthetic data and the same discrete-event engine.
+These original numerical examples remain unchanged. The [twelve-template collection](docs/TEMPLATES.md) adds shared work cells, rework, packing, fulfillment, returns, parcel handling, repair and 3D printing. Every template uses synthetic data and the same discrete-event engine.
 
 ## From a question to a comparison
 
@@ -76,7 +76,11 @@ The workspace separates **Build facility**, **Define process** and **Review resu
 
 Facilities and their saved scenarios travel in project JSON. Artwork and arrangement remain separate from numerical behavior; a machine model does not supply real processing measurements or physical transport rules. See the [facility guide](docs/FACILITY_GUIDE.md) for building, comparing and reopening a complete project.
 
-Choose **Templates → Workshop** to open this layout, or use its [portable project JSON](examples/facility.json).
+Choose **Templates → Little Factory** to open the enhanced Factory layout, or use its [portable project JSON](examples/facility.json). **Workshop** is a separate shared-operator and curing example.
+
+**Project brief** explains the starting assumptions and offers two saved alternatives. Apply a plan, calculate it and compare; Undo restores the previous draft. Explore the [template guide](docs/TEMPLATES.md).
+
+![Loopset starter gallery with editable facilities, real previews and saved experiments](docs/media/loopset-templates.png)
 
 Use **How it works** in the world for the optional three-step guide. Common edits preserve distribution shapes, separate stations from teams, and keep calendar changes explicit.
 

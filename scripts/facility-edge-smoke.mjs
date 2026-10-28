@@ -14,7 +14,7 @@ let installed = true; try { await fs.access(chromium.executablePath()); } catch 
 const browser = await chromium.launch({ headless: true, ...(installed ? { executablePath: chromium.executablePath() } : { channel: 'chrome' }) });
 const errors = [], checks = [], profiles = [];
 const state = page => page.evaluate(() => JSON.parse(window.render_game_to_text()));
-const ready = page => page.waitForFunction(() => { const state = JSON.parse(window.render_game_to_text?.() || '{}'); return !state.running && state.result?.status === 'completed' && !state.result.stale; });
+const ready = page => page.waitForFunction(() => { const state = JSON.parse(window.render_game_to_text?.() || '{}'); return !document.querySelector('.studio-world-picker select')?.disabled && !state.running && state.result?.status === 'completed' && !state.result.stale; });
 async function fresh(width = 1440) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
   const page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
@@ -44,10 +44,10 @@ let currentPage;
 try {
   if (phase === 'all' || phase === 'showcase') {
     const { context, page } = await fresh(); currentPage = page;
-    const tray = await openLibrary(page); await tray.getByRole('button', { name: 'Templates', exact: true }).click(); await page.locator('.template-starter').filter({ has: page.getByRole('heading', { name: 'Workshop', exact: true }) }).click(); await ready(page);
+    const tray = await openLibrary(page); await tray.getByRole('button', { name: 'Templates', exact: true }).click(); await page.locator('[data-starter-id=workshop]').click(); await page.getByRole('button', { name: 'Open this template', exact: true }).click(); await ready(page);
     await page.waitForFunction(() => document.querySelector('.world-scene')?.getAttribute('data-status') === 'ready');
-    const project = await download(page, 'workshop-example.json'); assert.equal(project.facility.objects.length, 57); assert.equal(project.facility.scenery, false);
-    await page.screenshot({ path: path.join(out, 'workshop-example.png') }); checks.push('One-click attributed workshop example opens, calculates and renders a complete editable facility'); await context.close();
+    const project = await download(page, 'workshop-example.json'), expected = JSON.parse(await fs.readFile('public/templates/workshop.json', 'utf8')); assert.deepEqual(project.facility, expected.facility); assert.deepEqual(project.model, expected.model); assert.notEqual(project.id, expected.id); assert.equal(project.facility.scenery, false);
+    await page.screenshot({ path: path.join(out, 'workshop-example.png') }); checks.push('Previewed attributed workshop template opens, calculates and renders a complete editable facility'); await context.close();
   }
   if (phase === 'all' || phase === 'mapping') {
     const { context, page } = await fresh(); currentPage = page;

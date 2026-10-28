@@ -14,7 +14,7 @@ let installed = true; try { await fs.access(executable); } catch { installed = f
 const browser = await chromium.launch({ headless: true, ...(process.env.QUEUELAB_SYSTEM_CHROME || !installed ? { channel: 'chrome' } : { executablePath: executable }) });
 const errors = [], checks = [];
 const state = page => page.evaluate(() => JSON.parse(window.render_game_to_text()));
-const ready = page => page.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !s.running && s.result?.status === 'completed' && !s.result.stale; });
+const ready = page => page.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !document.querySelector('.studio-world-picker select')?.disabled && !s.running && s.result?.status === 'completed' && !s.result.stale; });
 async function fresh(width = 1440) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
   const page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
@@ -40,7 +40,7 @@ async function library(page) {
 let page;
 try {
   const first = await fresh(); page = first.page;
-  const original = await download(page, 'original.json'), baseline = await state(page);
+  const original = await download(page, 'original.json'), baseline = await state(page), originalObjects = original.facility?.objects ?? [], originalCount = originalObjects.length;
   await page.screenshot({ path: path.join(out, '01-start.png') });
   const tray = await library(page); await tray.locator('.library-tabs').getByRole('button', { name: '3D models', exact: true }).click();
   await page.screenshot({ path: path.join(out, '02-library.png') });
@@ -50,26 +50,26 @@ try {
   await page.screenshot({ path: path.join(out, '03-choice.png') });
   await tray.getByRole('button', { name: 'Place object', exact: true }).click();
   await field(page, 'Rotation (degrees)', 90); await field(page, 'Scale', 2); await field(page, 'Elevation', 1.2);
-  await page.waitForFunction(() => { const s = JSON.parse(document.querySelector('.world-scene')?.getAttribute('data-facility') || '{}'); return s.objects === 1 && !s.pending; });
+  await page.waitForFunction(count => { const s = JSON.parse(document.querySelector('.world-scene')?.getAttribute('data-facility') || '{}'); return s.objects === count && !s.pending; }, originalCount + 1);
   const placed = await download(page, 'placed.json');
-  assert.equal(placed.facility.objects.length, 1); assert.equal(placed.facility.objects[0].rotation, 90); assert.equal(placed.facility.objects[0].scale, 2); assert.equal(placed.facility.objects[0].y, 1.2);
+  assert.equal(placed.facility.objects.length, originalCount + 1); assert.deepEqual(placed.facility.objects.slice(0, originalCount), originalObjects); assert.equal(placed.facility.objects.at(-1).rotation, 90); assert.equal(placed.facility.objects.at(-1).scale, 2); assert.equal(placed.facility.objects.at(-1).y, 1.2);
   assert.deepEqual(placed.model, original.model); assert.equal((await state(page)).result.hash, baseline.result.hash); assert.equal((await state(page)).result.stale, false);
   await page.screenshot({ path: path.join(out, '04-placed.png') }); checks.push('Real placement, transform, download and unchanged numerical snapshot');
   if (!process.argv.includes('--capture')) {
     await page.getByRole('button', { name: 'Duplicate object', exact: true }).click();
-    assert.equal((await download(page, 'duplicate.json')).facility.objects.length, 2);
+    assert.equal((await download(page, 'duplicate.json')).facility.objects.length, originalCount + 2);
     await page.getByRole('button', { name: 'Remove object', exact: true }).click();
-    assert.equal((await download(page, 'removed.json')).facility.objects.length, 1);
-    await page.getByRole('button', { name: /^Undo / }).click(); assert.equal((await download(page, 'undo-remove.json')).facility.objects.length, 2);
-    await page.getByRole('button', { name: /^Redo / }).click(); assert.equal((await download(page, 'redo-remove.json')).facility.objects.length, 1);
+    assert.equal((await download(page, 'removed.json')).facility.objects.length, originalCount + 1);
+    await page.getByRole('button', { name: /^Undo / }).click(); assert.equal((await download(page, 'undo-remove.json')).facility.objects.length, originalCount + 2);
+    await page.getByRole('button', { name: /^Redo / }).click(); assert.equal((await download(page, 'redo-remove.json')).facility.objects.length, originalCount + 1);
     checks.push('Object duplication/removal and logical Undo/Redo');
     await library(page); await tray.locator('.library-tabs').getByRole('button', { name: '3D models', exact: true }).click();
     await tray.getByRole('searchbox', { name: 'Search equipment and objects', exact: true }).fill('Rack bulk storage');
     const rack = tray.getByRole('button', { name: 'Rack bulk storage · A03', exact: true });
     const canvas = page.locator('.world-scene canvas');
     await rack.dragTo(canvas, { targetPosition: await canvasDropPoint(canvas) });
-    await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).facility?.objects.length === 2);
-    const dragged = await download(page, 'dragged.json'); assert.equal(dragged.facility.objects.length, 2); assert.deepEqual(dragged.model, original.model);
+    await page.waitForFunction(count => JSON.parse(window.render_game_to_text()).facility?.objects.length === count, originalCount + 2);
+    const dragged = await download(page, 'dragged.json'); assert.equal(dragged.facility.objects.length, originalCount + 2); assert.deepEqual(dragged.model, original.model);
     checks.push('Native HTML drag/drop from the library onto the actual camera plane');
     await library(page); await tray.locator('.library-tabs').getByRole('button', { name: 'Process cells', exact: true }).click();
     await tray.getByRole('button', { name: 'Inspection cell', exact: true }).click();
@@ -77,7 +77,7 @@ try {
     const cell = await download(page, 'cell.json'); assert.equal(cell.model.nodes.length, original.model.nodes.length + 2); assert.equal(cell.model.resources.length, original.model.resources.length + 1);
     await tray.getByRole('button', { name: 'Close asset library', exact: true }).click(); await runPlan(page);
     await openPanel(page, 'compare'); await page.getByRole('textbox', { name: 'Scenario name', exact: true }).fill('Original facility'); await page.getByRole('button', { name: 'Save baseline', exact: true }).click(); await page.getByRole('textbox', { name: 'Scenario name', exact: true }).fill('Synthetic facility'); await page.getByRole('button', { name: 'Save current plan', exact: true }).click(); await page.keyboard.press('Escape');
-    const portable = await download(page, 'portable.json'); assert.deepEqual(portable.scenarios.at(-1).facility, portable.facility); assert.equal(portable.scenarios.find(s => s.name === 'Original facility').facility, undefined); checks.push('Functional cell, explicit team, real calculation/comparison and facility scenario');
+    const portable = await download(page, 'portable.json'); assert.deepEqual(portable.scenarios.at(-1).facility, portable.facility); assert.deepEqual(portable.scenarios.find(s => s.name === 'Original facility').facility, original.facility); checks.push('Functional cell, explicit team, real calculation/comparison and facility scenario');
     const reopened = await fresh();
     await headerProjectInput(reopened.page).setInputFiles({ name: 'portable.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(portable)) }); await ready(reopened.page);
     const actual = await download(reopened.page, 'reopened.json'); assert.deepEqual(actual.facility, portable.facility); assert.deepEqual(actual.model, portable.model); assert.deepEqual(actual.scenarios, portable.scenarios);

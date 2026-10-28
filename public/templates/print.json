@@ -1,0 +1,3419 @@
+{
+  "schemaVersion": 1,
+  "id": "starter-print",
+  "name": "3D Print Studio",
+  "world": "factory",
+  "revision": 0,
+  "description": "Mixed-duration print jobs meet a finishing queue.\n\nHow does variability affect flow when the average print time is unchanged?\n\nStarting assumptions\n• An eight-hour shift with an illustrative mix of 5–60 minute print jobs.\n• Two printers operate without a shared operator requirement; finishing needs one worker.\n• Print duration samples are invented. Geometry, material use, thermal behavior and batch packing are excluded.\n\nSynthetic teaching models. Timings, demand and staffing are illustrative; layout does not add travel time.",
+  "layout": {
+    "arrivals": {
+      "x": -12,
+      "z": 3
+    },
+    "q-prepare": {
+      "x": -8,
+      "z": 2
+    },
+    "prepare": {
+      "x": -6,
+      "z": -1
+    },
+    "q-print": {
+      "x": -1,
+      "z": 2
+    },
+    "print": {
+      "x": 1,
+      "z": -1
+    },
+    "q-finish": {
+      "x": 6,
+      "z": 2
+    },
+    "finish": {
+      "x": 8,
+      "z": -1
+    },
+    "exit": {
+      "x": 12,
+      "z": 3
+    }
+  },
+  "model": {
+    "id": "print-model",
+    "name": "3D Print Studio",
+    "horizon": 28800,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 600,
+    "currency": "USD",
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "print-arrivals",
+        "label": "Incoming jobs",
+        "kind": "source",
+        "next": "q-prepare",
+        "arrival": {
+          "kind": "fixed",
+          "perHour": 6
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 1
+          }
+        ]
+      },
+      {
+        "id": "q-prepare",
+        "samplingId": "print-q-prepare",
+        "label": "Job preparation queue",
+        "kind": "queue",
+        "next": "prepare",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "prepare",
+        "samplingId": "print-prepare",
+        "label": "Prepare print job",
+        "kind": "service",
+        "next": "q-print",
+        "duration": {
+          "kind": "constant",
+          "value": 225
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "designers",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "q-print",
+        "samplingId": "print-q-print",
+        "label": "Print queue",
+        "kind": "queue",
+        "next": "print",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "print",
+        "samplingId": "print-print",
+        "label": "3D printing",
+        "kind": "service",
+        "next": "q-finish",
+        "duration": {
+          "kind": "empirical",
+          "values": [
+            300,
+            300,
+            600,
+            1200,
+            3600
+          ]
+        },
+        "servers": 2,
+        "resources": []
+      },
+      {
+        "id": "q-finish",
+        "samplingId": "print-q-finish",
+        "label": "Finishing queue",
+        "kind": "queue",
+        "next": "finish",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "finish",
+        "samplingId": "print-finish",
+        "label": "Finish and inspect",
+        "kind": "service",
+        "next": "exit",
+        "duration": {
+          "kind": "triangular",
+          "min": 500,
+          "mode": 650,
+          "max": 800
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "finishers",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "print-exit",
+        "label": "Finished print jobs",
+        "kind": "sink"
+      }
+    ],
+    "resources": [
+      {
+        "id": "designers",
+        "label": "Job preparation",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 28,
+        "overtimeCostPerHour": 42
+      },
+      {
+        "id": "finishers",
+        "label": "Finishing team",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 26,
+        "overtimeCostPerHour": 39
+      }
+    ]
+  },
+  "facility": {
+    "version": 1,
+    "scenery": false,
+    "objects": [
+      {
+        "id": "print-object-1",
+        "name": "Back wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -16.8,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-2",
+        "name": "Back wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -14.6,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-3",
+        "name": "Back wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -12.4,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-4",
+        "name": "Back wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -10.2,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-5",
+        "name": "Back wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -8,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-6",
+        "name": "Back wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -5.8,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-7",
+        "name": "Back wall 7",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -3.6,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-8",
+        "name": "Back wall 8",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -1.4,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-9",
+        "name": "Back wall 9",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 0.8,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-10",
+        "name": "Back wall 10",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 3,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-11",
+        "name": "Back wall 11",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 5.2,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-12",
+        "name": "Back wall 12",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 7.4,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-13",
+        "name": "Back wall 13",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 9.6,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-14",
+        "name": "Back wall 14",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 11.8,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-15",
+        "name": "Back wall 15",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 14,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-16",
+        "name": "Back wall 16",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 16.2,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-17",
+        "name": "Back wall 17",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 18.4,
+        "z": -10,
+        "y": 0
+      },
+      {
+        "id": "print-object-18",
+        "name": "Side wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -17.9,
+        "z": -8.9,
+        "y": 0
+      },
+      {
+        "id": "print-object-19",
+        "name": "Side wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -17.9,
+        "z": -6.7,
+        "y": 0
+      },
+      {
+        "id": "print-object-20",
+        "name": "Side wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -17.9,
+        "z": -4.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-21",
+        "name": "Side wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -17.9,
+        "z": -2.3,
+        "y": 0
+      },
+      {
+        "id": "print-object-22",
+        "name": "Side wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -17.9,
+        "z": -0.1,
+        "y": 0
+      },
+      {
+        "id": "print-object-23",
+        "name": "Side wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -17.9,
+        "z": 2.1,
+        "y": 0
+      },
+      {
+        "id": "print-object-24",
+        "name": "Material library 1",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -12.6,
+        "z": -7.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-25",
+        "name": "Material library 1 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -12.6,
+        "z": -7.5,
+        "y": 0.5
+      },
+      {
+        "id": "print-object-26",
+        "name": "Material library 1 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -12.6,
+        "z": -7.5,
+        "y": 1.15
+      },
+      {
+        "id": "print-object-27",
+        "name": "Material library 1 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -12.6,
+        "z": -7.5,
+        "y": 1.8
+      },
+      {
+        "id": "print-object-28",
+        "name": "Material library 2",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.2,
+        "z": -7.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-29",
+        "name": "Material library 2 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.2,
+        "z": -7.5,
+        "y": 0.5
+      },
+      {
+        "id": "print-object-30",
+        "name": "Material library 2 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.2,
+        "z": -7.5,
+        "y": 1.15
+      },
+      {
+        "id": "print-object-31",
+        "name": "Material library 2 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.2,
+        "z": -7.5,
+        "y": 1.8
+      },
+      {
+        "id": "print-object-32",
+        "name": "Material library 3",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -2.36,
+        "z": -7.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-33",
+        "name": "Material library 3 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -2.36,
+        "z": -7.5,
+        "y": 0.5
+      },
+      {
+        "id": "print-object-34",
+        "name": "Material library 3 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -2.36,
+        "z": -7.5,
+        "y": 1.15
+      },
+      {
+        "id": "print-object-35",
+        "name": "Material library 3 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -2.36,
+        "z": -7.5,
+        "y": 1.8
+      },
+      {
+        "id": "print-object-36",
+        "name": "Material library 4",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 6.504,
+        "z": -7.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-37",
+        "name": "Material library 4 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 6.504,
+        "z": -7.5,
+        "y": 0.5
+      },
+      {
+        "id": "print-object-38",
+        "name": "Material library 4 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 6.504,
+        "z": -7.5,
+        "y": 1.15
+      },
+      {
+        "id": "print-object-39",
+        "name": "Material library 4 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 6.504,
+        "z": -7.5,
+        "y": 1.8
+      },
+      {
+        "id": "print-object-40",
+        "name": "Material library 5",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 12.2,
+        "z": -7.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-41",
+        "name": "Material library 5 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 12.2,
+        "z": -7.5,
+        "y": 0.5
+      },
+      {
+        "id": "print-object-42",
+        "name": "Material library 5 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 12.2,
+        "z": -7.5,
+        "y": 1.15
+      },
+      {
+        "id": "print-object-43",
+        "name": "Material library 5 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 12.2,
+        "z": -7.5,
+        "y": 1.8
+      },
+      {
+        "id": "print-object-44",
+        "name": "Printer-zone rail 1",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -5.6,
+        "z": -4.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-45",
+        "name": "Printer-zone rail 2",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -3.984,
+        "z": -4.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-46",
+        "name": "Printer-zone rail 3",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -0.568,
+        "z": -4.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-47",
+        "name": "Printer-zone rail 4",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 2.135,
+        "z": -4.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-48",
+        "name": "Design review desk",
+        "assetId": "desk_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 1.4,
+        "x": -12.6,
+        "z": 5.5,
+        "y": 0
+      },
+      {
+        "id": "print-object-49",
+        "name": "Design review screen",
+        "assetId": "computer_monitor_office_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 1.3,
+        "x": -12.6,
+        "z": 5.5,
+        "y": 1.064
+      },
+      {
+        "id": "print-object-50",
+        "name": "Designer chair",
+        "assetId": "chair_office_amf_black_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.3,
+        "x": -12.6,
+        "z": 7,
+        "y": 0
+      },
+      {
+        "id": "print-object-51",
+        "name": "Finished prints",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 12.6,
+        "z": 6,
+        "y": 0
+      },
+      {
+        "id": "print-object-52",
+        "name": "Finished prints · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 12.38,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "print-object-53",
+        "name": "Finished prints · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 12.82,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "print-object-54",
+        "name": "Wall-side fire extinguisher",
+        "assetId": "fireProtection_extinguisher_portable_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5,
+        "x": -17.6,
+        "z": 2,
+        "y": 0
+      },
+      {
+        "id": "print-object-55",
+        "name": "Waste collection",
+        "assetId": "furniture_trashBin_lid_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -16.7,
+        "z": 2,
+        "y": 0
+      },
+      {
+        "id": "print-object-56",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": -9.6,
+        "z": -1,
+        "y": 3.9
+      },
+      {
+        "id": "print-object-57",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 1,
+        "z": -1,
+        "y": 3.9
+      },
+      {
+        "id": "print-object-58",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 11.6,
+        "z": -1,
+        "y": 3.9
+      }
+    ],
+    "nodeAssets": {
+      "prepare": {
+        "assetId": "desk_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 1.5
+      },
+      "print": {
+        "assetId": "equipment_3d_printer_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.7
+      },
+      "finish": {
+        "assetId": "table_metal_stainless_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.6
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "id": "print-original",
+      "name": "Original plan",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "print-model",
+        "name": "3D Print Studio",
+        "horizon": 28800,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "print-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-prepare",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 6
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-prepare",
+            "samplingId": "print-q-prepare",
+            "label": "Job preparation queue",
+            "kind": "queue",
+            "next": "prepare",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "prepare",
+            "samplingId": "print-prepare",
+            "label": "Prepare print job",
+            "kind": "service",
+            "next": "q-print",
+            "duration": {
+              "kind": "constant",
+              "value": 225
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "designers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-print",
+            "samplingId": "print-q-print",
+            "label": "Print queue",
+            "kind": "queue",
+            "next": "print",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "print",
+            "samplingId": "print-print",
+            "label": "3D printing",
+            "kind": "service",
+            "next": "q-finish",
+            "duration": {
+              "kind": "empirical",
+              "values": [
+                300,
+                300,
+                600,
+                1200,
+                3600
+              ]
+            },
+            "servers": 2,
+            "resources": []
+          },
+          {
+            "id": "q-finish",
+            "samplingId": "print-q-finish",
+            "label": "Finishing queue",
+            "kind": "queue",
+            "next": "finish",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "finish",
+            "samplingId": "print-finish",
+            "label": "Finish and inspect",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "triangular",
+              "min": 500,
+              "mode": 650,
+              "max": 800
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "finishers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "print-exit",
+            "label": "Finished print jobs",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "designers",
+            "label": "Job preparation",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "finishers",
+            "label": "Finishing team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 26,
+            "overtimeCostPerHour": 39
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -12,
+          "z": 3
+        },
+        "q-prepare": {
+          "x": -8,
+          "z": 2
+        },
+        "prepare": {
+          "x": -6,
+          "z": -1
+        },
+        "q-print": {
+          "x": -1,
+          "z": 2
+        },
+        "print": {
+          "x": 1,
+          "z": -1
+        },
+        "q-finish": {
+          "x": 6,
+          "z": 2
+        },
+        "finish": {
+          "x": 8,
+          "z": -1
+        },
+        "exit": {
+          "x": 12,
+          "z": 3
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "print-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 18.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-18",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -8.9,
+            "y": 0
+          },
+          {
+            "id": "print-object-19",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -6.7,
+            "y": 0
+          },
+          {
+            "id": "print-object-20",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-21",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -2.3,
+            "y": 0
+          },
+          {
+            "id": "print-object-22",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -0.1,
+            "y": 0
+          },
+          {
+            "id": "print-object-23",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": 2.1,
+            "y": 0
+          },
+          {
+            "id": "print-object-24",
+            "name": "Material library 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-25",
+            "name": "Material library 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-26",
+            "name": "Material library 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-27",
+            "name": "Material library 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-28",
+            "name": "Material library 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.2,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-29",
+            "name": "Material library 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.2,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-30",
+            "name": "Material library 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.2,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-31",
+            "name": "Material library 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.2,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-32",
+            "name": "Material library 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.36,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-33",
+            "name": "Material library 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.36,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-34",
+            "name": "Material library 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.36,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-35",
+            "name": "Material library 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.36,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-36",
+            "name": "Material library 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.504,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-37",
+            "name": "Material library 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.504,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-38",
+            "name": "Material library 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.504,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-39",
+            "name": "Material library 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.504,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-40",
+            "name": "Material library 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.2,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-41",
+            "name": "Material library 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.2,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-42",
+            "name": "Material library 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.2,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-43",
+            "name": "Material library 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.2,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-44",
+            "name": "Printer-zone rail 1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5.6,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-45",
+            "name": "Printer-zone rail 2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.984,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-46",
+            "name": "Printer-zone rail 3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -0.568,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-47",
+            "name": "Printer-zone rail 4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 2.135,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-48",
+            "name": "Design review desk",
+            "assetId": "desk_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": -12.6,
+            "z": 5.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-49",
+            "name": "Design review screen",
+            "assetId": "computer_monitor_office_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.3,
+            "x": -12.6,
+            "z": 5.5,
+            "y": 1.064
+          },
+          {
+            "id": "print-object-50",
+            "name": "Designer chair",
+            "assetId": "chair_office_amf_black_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.3,
+            "x": -12.6,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "print-object-51",
+            "name": "Finished prints",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "print-object-52",
+            "name": "Finished prints · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 12.38,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "print-object-53",
+            "name": "Finished prints · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 12.82,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "print-object-54",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -17.6,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "print-object-55",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.7,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "print-object-56",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -9.6,
+            "z": -1,
+            "y": 3.9
+          },
+          {
+            "id": "print-object-57",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 1,
+            "z": -1,
+            "y": 3.9
+          },
+          {
+            "id": "print-object-58",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 11.6,
+            "z": -1,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "prepare": {
+            "assetId": "desk_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.5
+          },
+          "print": {
+            "assetId": "equipment_3d_printer_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.7
+          },
+          "finish": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.6
+          }
+        }
+      }
+    },
+    {
+      "id": "print-trial-1",
+      "name": "Same mean, steady jobs",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "print-model",
+        "name": "3D Print Studio",
+        "horizon": 28800,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "print-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-prepare",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 6
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-prepare",
+            "samplingId": "print-q-prepare",
+            "label": "Job preparation queue",
+            "kind": "queue",
+            "next": "prepare",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "prepare",
+            "samplingId": "print-prepare",
+            "label": "Prepare print job",
+            "kind": "service",
+            "next": "q-print",
+            "duration": {
+              "kind": "constant",
+              "value": 225
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "designers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-print",
+            "samplingId": "print-q-print",
+            "label": "Print queue",
+            "kind": "queue",
+            "next": "print",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "print",
+            "samplingId": "print-print",
+            "label": "3D printing",
+            "kind": "service",
+            "next": "q-finish",
+            "duration": {
+              "kind": "constant",
+              "value": 1200
+            },
+            "servers": 2,
+            "resources": []
+          },
+          {
+            "id": "q-finish",
+            "samplingId": "print-q-finish",
+            "label": "Finishing queue",
+            "kind": "queue",
+            "next": "finish",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "finish",
+            "samplingId": "print-finish",
+            "label": "Finish and inspect",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "triangular",
+              "min": 500,
+              "mode": 650,
+              "max": 800
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "finishers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "print-exit",
+            "label": "Finished print jobs",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "designers",
+            "label": "Job preparation",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "finishers",
+            "label": "Finishing team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 26,
+            "overtimeCostPerHour": 39
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -12,
+          "z": 3
+        },
+        "q-prepare": {
+          "x": -8,
+          "z": 2
+        },
+        "prepare": {
+          "x": -6,
+          "z": -1
+        },
+        "q-print": {
+          "x": -1,
+          "z": 2
+        },
+        "print": {
+          "x": 1,
+          "z": -1
+        },
+        "q-finish": {
+          "x": 6,
+          "z": 2
+        },
+        "finish": {
+          "x": 8,
+          "z": -1
+        },
+        "exit": {
+          "x": 12,
+          "z": 3
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "print-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 18.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-18",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -8.9,
+            "y": 0
+          },
+          {
+            "id": "print-object-19",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -6.7,
+            "y": 0
+          },
+          {
+            "id": "print-object-20",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-21",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -2.3,
+            "y": 0
+          },
+          {
+            "id": "print-object-22",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -0.1,
+            "y": 0
+          },
+          {
+            "id": "print-object-23",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": 2.1,
+            "y": 0
+          },
+          {
+            "id": "print-object-24",
+            "name": "Material library 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-25",
+            "name": "Material library 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-26",
+            "name": "Material library 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-27",
+            "name": "Material library 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-28",
+            "name": "Material library 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.2,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-29",
+            "name": "Material library 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.2,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-30",
+            "name": "Material library 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.2,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-31",
+            "name": "Material library 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.2,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-32",
+            "name": "Material library 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.36,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-33",
+            "name": "Material library 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.36,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-34",
+            "name": "Material library 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.36,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-35",
+            "name": "Material library 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.36,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-36",
+            "name": "Material library 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.504,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-37",
+            "name": "Material library 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.504,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-38",
+            "name": "Material library 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.504,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-39",
+            "name": "Material library 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.504,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-40",
+            "name": "Material library 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.2,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-41",
+            "name": "Material library 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.2,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-42",
+            "name": "Material library 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.2,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-43",
+            "name": "Material library 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.2,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-44",
+            "name": "Printer-zone rail 1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5.6,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-45",
+            "name": "Printer-zone rail 2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.984,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-46",
+            "name": "Printer-zone rail 3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -0.568,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-47",
+            "name": "Printer-zone rail 4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 2.135,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-48",
+            "name": "Design review desk",
+            "assetId": "desk_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": -12.6,
+            "z": 5.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-49",
+            "name": "Design review screen",
+            "assetId": "computer_monitor_office_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.3,
+            "x": -12.6,
+            "z": 5.5,
+            "y": 1.064
+          },
+          {
+            "id": "print-object-50",
+            "name": "Designer chair",
+            "assetId": "chair_office_amf_black_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.3,
+            "x": -12.6,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "print-object-51",
+            "name": "Finished prints",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "print-object-52",
+            "name": "Finished prints · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 12.38,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "print-object-53",
+            "name": "Finished prints · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 12.82,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "print-object-54",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -17.6,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "print-object-55",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.7,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "print-object-56",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -9.6,
+            "z": -1,
+            "y": 3.9
+          },
+          {
+            "id": "print-object-57",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 1,
+            "z": -1,
+            "y": 3.9
+          },
+          {
+            "id": "print-object-58",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 11.6,
+            "z": -1,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "prepare": {
+            "assetId": "desk_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.5
+          },
+          "print": {
+            "assetId": "equipment_3d_printer_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.7
+          },
+          "finish": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.6
+          }
+        }
+      }
+    },
+    {
+      "id": "print-trial-2",
+      "name": "Second finishing bench",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "print-model",
+        "name": "3D Print Studio",
+        "horizon": 28800,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "print-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-prepare",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 6
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-prepare",
+            "samplingId": "print-q-prepare",
+            "label": "Job preparation queue",
+            "kind": "queue",
+            "next": "prepare",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "prepare",
+            "samplingId": "print-prepare",
+            "label": "Prepare print job",
+            "kind": "service",
+            "next": "q-print",
+            "duration": {
+              "kind": "constant",
+              "value": 225
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "designers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-print",
+            "samplingId": "print-q-print",
+            "label": "Print queue",
+            "kind": "queue",
+            "next": "print",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "print",
+            "samplingId": "print-print",
+            "label": "3D printing",
+            "kind": "service",
+            "next": "q-finish",
+            "duration": {
+              "kind": "empirical",
+              "values": [
+                300,
+                300,
+                600,
+                1200,
+                3600
+              ]
+            },
+            "servers": 2,
+            "resources": []
+          },
+          {
+            "id": "q-finish",
+            "samplingId": "print-q-finish",
+            "label": "Finishing queue",
+            "kind": "queue",
+            "next": "finish",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "finish",
+            "samplingId": "print-finish",
+            "label": "Finish and inspect",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "triangular",
+              "min": 500,
+              "mode": 650,
+              "max": 800
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "finishers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "print-exit",
+            "label": "Finished print jobs",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "designers",
+            "label": "Job preparation",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "finishers",
+            "label": "Finishing team",
+            "installedCapacity": 6,
+            "capacity": 2,
+            "calendar": [],
+            "costPerHour": 26,
+            "overtimeCostPerHour": 39
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -12,
+          "z": 3
+        },
+        "q-prepare": {
+          "x": -8,
+          "z": 2
+        },
+        "prepare": {
+          "x": -6,
+          "z": -1
+        },
+        "q-print": {
+          "x": -1,
+          "z": 2
+        },
+        "print": {
+          "x": 1,
+          "z": -1
+        },
+        "q-finish": {
+          "x": 6,
+          "z": 2
+        },
+        "finish": {
+          "x": 8,
+          "z": -1
+        },
+        "exit": {
+          "x": 12,
+          "z": 3
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "print-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -20.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -18.2,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -13.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -11.6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -9.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -7.2,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -2.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -0.6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 1.6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 8.2,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 10.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 12.6,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14.8,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-18",
+            "name": "Back wall 18",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 17,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-19",
+            "name": "Back wall 19",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 19.2,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-20",
+            "name": "Back wall 20",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 21.4,
+            "z": -10,
+            "y": 0
+          },
+          {
+            "id": "print-object-21",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -8.9,
+            "y": 0
+          },
+          {
+            "id": "print-object-22",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -6.7,
+            "y": 0
+          },
+          {
+            "id": "print-object-23",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-24",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -2.3,
+            "y": 0
+          },
+          {
+            "id": "print-object-25",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -0.1,
+            "y": 0
+          },
+          {
+            "id": "print-object-26",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": 2.1,
+            "y": 0
+          },
+          {
+            "id": "print-object-27",
+            "name": "Material library 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-28",
+            "name": "Material library 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-29",
+            "name": "Material library 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-30",
+            "name": "Material library 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-31",
+            "name": "Material library 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.8,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-32",
+            "name": "Material library 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.8,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-33",
+            "name": "Material library 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.8,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-34",
+            "name": "Material library 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.8,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-35",
+            "name": "Material library 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5.96,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-36",
+            "name": "Material library 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5.96,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-37",
+            "name": "Material library 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5.96,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-38",
+            "name": "Material library 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5.96,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-39",
+            "name": "Material library 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 2.904,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-40",
+            "name": "Material library 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 2.904,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-41",
+            "name": "Material library 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 2.904,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-42",
+            "name": "Material library 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 2.904,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-43",
+            "name": "Material library 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.74,
+            "z": -7.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-44",
+            "name": "Material library 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.74,
+            "z": -7.5,
+            "y": 0.5
+          },
+          {
+            "id": "print-object-45",
+            "name": "Material library 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.74,
+            "z": -7.5,
+            "y": 1.15
+          },
+          {
+            "id": "print-object-46",
+            "name": "Material library 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.74,
+            "z": -7.5,
+            "y": 1.8
+          },
+          {
+            "id": "print-object-47",
+            "name": "Printer-zone rail 1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9.2,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-48",
+            "name": "Printer-zone rail 2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.584,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-49",
+            "name": "Printer-zone rail 3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -4.168,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-50",
+            "name": "Printer-zone rail 4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1.465,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-51",
+            "name": "Design review desk",
+            "assetId": "desk_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": -16.2,
+            "z": 5.5,
+            "y": 0
+          },
+          {
+            "id": "print-object-52",
+            "name": "Design review screen",
+            "assetId": "computer_monitor_office_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.3,
+            "x": -16.2,
+            "z": 5.5,
+            "y": 1.064
+          },
+          {
+            "id": "print-object-53",
+            "name": "Designer chair",
+            "assetId": "chair_office_amf_black_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.3,
+            "x": -16.2,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "print-object-54",
+            "name": "Finished prints",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.5,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "print-object-55",
+            "name": "Finished prints · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.082,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "print-object-56",
+            "name": "Finished prints · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.918,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "print-object-57",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -21.2,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "print-object-58",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -20.3,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "print-object-59",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -13.2,
+            "z": -1,
+            "y": 3.9
+          },
+          {
+            "id": "print-object-60",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -2.6,
+            "z": -1,
+            "y": 3.9
+          },
+          {
+            "id": "print-object-61",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 11.6,
+            "z": -1,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "prepare": {
+            "assetId": "desk_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.5
+          },
+          "print": {
+            "assetId": "equipment_3d_printer_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.7
+          },
+          "finish": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.6
+          }
+        }
+      }
+    }
+  ]
+}

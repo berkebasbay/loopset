@@ -1,0 +1,2860 @@
+{
+  "schemaVersion": 1,
+  "id": "starter-quality",
+  "name": "Quality & Rework",
+  "world": "factory",
+  "revision": 0,
+  "description": "Inspection sends some items back for repair.\n\nDoes more inspection capacity help as much as reducing rework?\n\nStarting assumptions\n• Two hours of fixed releases into a repeatable inspection loop.\n• Each inspection independently sends 12% of items to repair and reinspection.\n• Repair time is positive; the model has no physical defect or measurement simulation.\n\nSynthetic teaching models. Timings, demand and staffing are illustrative; layout does not add travel time.",
+  "layout": {
+    "arrivals": {
+      "x": -11,
+      "z": 4
+    },
+    "q-inspect": {
+      "x": -7,
+      "z": 1
+    },
+    "inspect": {
+      "x": -3,
+      "z": 0
+    },
+    "verdict": {
+      "x": 2,
+      "z": 1
+    },
+    "q-repair": {
+      "x": 6,
+      "z": -3
+    },
+    "repair": {
+      "x": 1,
+      "z": -6
+    },
+    "exit": {
+      "x": 8,
+      "z": 4
+    }
+  },
+  "model": {
+    "id": "quality-model",
+    "name": "Quality & Rework",
+    "horizon": 7200,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 600,
+    "currency": "USD",
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "quality-arrivals",
+        "label": "Incoming jobs",
+        "kind": "source",
+        "next": "q-inspect",
+        "arrival": {
+          "kind": "fixed",
+          "perHour": 48
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 1
+          }
+        ]
+      },
+      {
+        "id": "q-inspect",
+        "samplingId": "quality-q-inspect",
+        "label": "Inspection queue",
+        "kind": "queue",
+        "next": "inspect",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "inspect",
+        "samplingId": "quality-inspect",
+        "label": "Inspection",
+        "kind": "service",
+        "next": "verdict",
+        "duration": {
+          "kind": "constant",
+          "value": 85
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "inspectors",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "verdict",
+        "samplingId": "quality-verdict",
+        "label": "Inspection outcome",
+        "kind": "route",
+        "branches": [
+          {
+            "to": "exit",
+            "probability": 0.88
+          },
+          {
+            "to": "q-repair",
+            "probability": 0.12
+          }
+        ]
+      },
+      {
+        "id": "q-repair",
+        "samplingId": "quality-q-repair",
+        "label": "Rework queue",
+        "kind": "queue",
+        "next": "repair",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "repair",
+        "samplingId": "quality-repair",
+        "label": "Repair and recheck",
+        "kind": "service",
+        "next": "q-inspect",
+        "duration": {
+          "kind": "triangular",
+          "min": 120,
+          "mode": 180,
+          "max": 240
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "repairers",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "quality-exit",
+        "label": "Accepted parts",
+        "kind": "sink"
+      }
+    ],
+    "resources": [
+      {
+        "id": "inspectors",
+        "label": "Inspection team",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 28,
+        "overtimeCostPerHour": 42
+      },
+      {
+        "id": "repairers",
+        "label": "Rework team",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 30,
+        "overtimeCostPerHour": 45
+      }
+    ]
+  },
+  "facility": {
+    "version": 1,
+    "scenery": false,
+    "objects": [
+      {
+        "id": "quality-object-1",
+        "name": "Back wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -13.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-2",
+        "name": "Back wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -11,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-3",
+        "name": "Back wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -8.8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-4",
+        "name": "Back wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -6.6,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-5",
+        "name": "Back wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -4.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-6",
+        "name": "Back wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -2.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-7",
+        "name": "Back wall 7",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 0,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-8",
+        "name": "Back wall 8",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 2.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-9",
+        "name": "Back wall 9",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 4.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-10",
+        "name": "Back wall 10",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 6.6,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-11",
+        "name": "Back wall 11",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 8.8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-12",
+        "name": "Back wall 12",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 11,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-13",
+        "name": "Back wall 13",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 13.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "quality-object-14",
+        "name": "Side wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -14.3,
+        "z": -10.9,
+        "y": 0
+      },
+      {
+        "id": "quality-object-15",
+        "name": "Side wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -14.3,
+        "z": -8.7,
+        "y": 0
+      },
+      {
+        "id": "quality-object-16",
+        "name": "Side wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -14.3,
+        "z": -6.5,
+        "y": 0
+      },
+      {
+        "id": "quality-object-17",
+        "name": "Side wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -14.3,
+        "z": -4.3,
+        "y": 0
+      },
+      {
+        "id": "quality-object-18",
+        "name": "Side wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -14.3,
+        "z": -2.1,
+        "y": 0
+      },
+      {
+        "id": "quality-object-19",
+        "name": "Quarantine rack 1",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -9,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "quality-object-20",
+        "name": "Quarantine rack 1 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -9,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "quality-object-21",
+        "name": "Quarantine rack 1 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -9,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "quality-object-22",
+        "name": "Quarantine rack 1 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -9,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "quality-object-23",
+        "name": "Quarantine rack 2",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -5,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "quality-object-24",
+        "name": "Quarantine rack 2 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -5,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "quality-object-25",
+        "name": "Quarantine rack 2 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -5,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "quality-object-26",
+        "name": "Quarantine rack 2 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -5,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "quality-object-27",
+        "name": "Quarantine rack 3",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -1,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "quality-object-28",
+        "name": "Quarantine rack 3 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -1,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "quality-object-29",
+        "name": "Quarantine rack 3 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -1,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "quality-object-30",
+        "name": "Quarantine rack 3 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -1,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "quality-object-31",
+        "name": "Reference instrument table",
+        "assetId": "table_metal_stainless_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.5,
+        "x": 7,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "quality-object-32",
+        "name": "Inspection camera kit",
+        "assetId": "serviceTool_camera_inspectionKit_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5,
+        "x": 7,
+        "z": -9,
+        "y": 1.275
+      },
+      {
+        "id": "quality-object-33",
+        "name": "Incoming sample",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": -11,
+        "z": 6,
+        "y": 0
+      },
+      {
+        "id": "quality-object-34",
+        "name": "Incoming sample · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -11.22,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "quality-object-35",
+        "name": "Incoming sample · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -10.78,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "quality-object-36",
+        "name": "Incoming sample · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -11.22,
+        "z": 6.22,
+        "y": 0.21
+      },
+      {
+        "id": "quality-object-37",
+        "name": "Accepted batch",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 9,
+        "z": 6,
+        "y": 0
+      },
+      {
+        "id": "quality-object-38",
+        "name": "Accepted batch · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 8.78,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "quality-object-39",
+        "name": "Accepted batch · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 9.22,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "quality-object-40",
+        "name": "Accepted batch · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 8.78,
+        "z": 6.22,
+        "y": 0.21
+      },
+      {
+        "id": "quality-object-41",
+        "name": "Rework tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.2,
+        "x": 9,
+        "z": -3,
+        "y": 0
+      },
+      {
+        "id": "quality-object-42",
+        "name": "Rework tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.2,
+        "x": 9,
+        "z": -2,
+        "y": 0
+      },
+      {
+        "id": "quality-object-43",
+        "name": "Rework tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.2,
+        "x": 9,
+        "z": -1,
+        "y": 0
+      },
+      {
+        "id": "quality-object-44",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": -3,
+        "z": 0,
+        "y": 3.9
+      },
+      {
+        "id": "quality-object-45",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 5,
+        "z": -6,
+        "y": 3.9
+      },
+      {
+        "id": "quality-object-46",
+        "name": "Wall-side fire extinguisher",
+        "assetId": "fireProtection_extinguisher_portable_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5,
+        "x": -14,
+        "z": 2,
+        "y": 0
+      },
+      {
+        "id": "quality-object-47",
+        "name": "Waste collection",
+        "assetId": "furniture_trashBin_lid_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -13.1,
+        "z": 2,
+        "y": 0
+      }
+    ],
+    "nodeAssets": {
+      "inspect": {
+        "assetId": "furniture_workbench_standard_e01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": -90,
+        "scale": 1.8
+      },
+      "repair": {
+        "assetId": "table_metal_stainless_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.8
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "id": "quality-original",
+      "name": "Original plan",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "quality-model",
+        "name": "Quality & Rework",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "quality-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-inspect",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 48
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-inspect",
+            "samplingId": "quality-q-inspect",
+            "label": "Inspection queue",
+            "kind": "queue",
+            "next": "inspect",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "inspect",
+            "samplingId": "quality-inspect",
+            "label": "Inspection",
+            "kind": "service",
+            "next": "verdict",
+            "duration": {
+              "kind": "constant",
+              "value": 85
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "inspectors",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "verdict",
+            "samplingId": "quality-verdict",
+            "label": "Inspection outcome",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "exit",
+                "probability": 0.88
+              },
+              {
+                "to": "q-repair",
+                "probability": 0.12
+              }
+            ]
+          },
+          {
+            "id": "q-repair",
+            "samplingId": "quality-q-repair",
+            "label": "Rework queue",
+            "kind": "queue",
+            "next": "repair",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "repair",
+            "samplingId": "quality-repair",
+            "label": "Repair and recheck",
+            "kind": "service",
+            "next": "q-inspect",
+            "duration": {
+              "kind": "triangular",
+              "min": 120,
+              "mode": 180,
+              "max": 240
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "repairers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "quality-exit",
+            "label": "Accepted parts",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "inspectors",
+            "label": "Inspection team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "repairers",
+            "label": "Rework team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 30,
+            "overtimeCostPerHour": 45
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -11,
+          "z": 4
+        },
+        "q-inspect": {
+          "x": -7,
+          "z": 1
+        },
+        "inspect": {
+          "x": -3,
+          "z": 0
+        },
+        "verdict": {
+          "x": 2,
+          "z": 1
+        },
+        "q-repair": {
+          "x": 6,
+          "z": -3
+        },
+        "repair": {
+          "x": 1,
+          "z": -6
+        },
+        "exit": {
+          "x": 8,
+          "z": 4
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "quality-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -13.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -11,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -6.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -4.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -2.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 2.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 4.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 6.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 8.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 13.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-14",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -14.3,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "quality-object-15",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -14.3,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "quality-object-16",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -14.3,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-17",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -14.3,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "quality-object-18",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -14.3,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "quality-object-19",
+            "name": "Quarantine rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-20",
+            "name": "Quarantine rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "quality-object-21",
+            "name": "Quarantine rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "quality-object-22",
+            "name": "Quarantine rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "quality-object-23",
+            "name": "Quarantine rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-24",
+            "name": "Quarantine rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "quality-object-25",
+            "name": "Quarantine rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "quality-object-26",
+            "name": "Quarantine rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "quality-object-27",
+            "name": "Quarantine rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-28",
+            "name": "Quarantine rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "quality-object-29",
+            "name": "Quarantine rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "quality-object-30",
+            "name": "Quarantine rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "quality-object-31",
+            "name": "Reference instrument table",
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.5,
+            "x": 7,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "quality-object-32",
+            "name": "Inspection camera kit",
+            "assetId": "serviceTool_camera_inspectionKit_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": 7,
+            "z": -9,
+            "y": 1.275
+          },
+          {
+            "id": "quality-object-33",
+            "name": "Incoming sample",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "quality-object-34",
+            "name": "Incoming sample · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -11.22,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-35",
+            "name": "Incoming sample · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -10.78,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-36",
+            "name": "Incoming sample · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -11.22,
+            "z": 6.22,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-37",
+            "name": "Accepted batch",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 9,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "quality-object-38",
+            "name": "Accepted batch · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.78,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-39",
+            "name": "Accepted batch · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 9.22,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-40",
+            "name": "Accepted batch · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.78,
+            "z": 6.22,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-41",
+            "name": "Rework tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 9,
+            "z": -3,
+            "y": 0
+          },
+          {
+            "id": "quality-object-42",
+            "name": "Rework tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 9,
+            "z": -2,
+            "y": 0
+          },
+          {
+            "id": "quality-object-43",
+            "name": "Rework tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 9,
+            "z": -1,
+            "y": 0
+          },
+          {
+            "id": "quality-object-44",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -3,
+            "z": 0,
+            "y": 3.9
+          },
+          {
+            "id": "quality-object-45",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 5,
+            "z": -6,
+            "y": 3.9
+          },
+          {
+            "id": "quality-object-46",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -14,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "quality-object-47",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.1,
+            "z": 2,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {
+          "inspect": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.8
+          },
+          "repair": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.8
+          }
+        }
+      }
+    },
+    {
+      "id": "quality-trial-1",
+      "name": "Second inspection team",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "quality-model",
+        "name": "Quality & Rework",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "quality-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-inspect",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 48
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-inspect",
+            "samplingId": "quality-q-inspect",
+            "label": "Inspection queue",
+            "kind": "queue",
+            "next": "inspect",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "inspect",
+            "samplingId": "quality-inspect",
+            "label": "Inspection",
+            "kind": "service",
+            "next": "verdict",
+            "duration": {
+              "kind": "constant",
+              "value": 85
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "inspectors",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "verdict",
+            "samplingId": "quality-verdict",
+            "label": "Inspection outcome",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "exit",
+                "probability": 0.88
+              },
+              {
+                "to": "q-repair",
+                "probability": 0.12
+              }
+            ]
+          },
+          {
+            "id": "q-repair",
+            "samplingId": "quality-q-repair",
+            "label": "Rework queue",
+            "kind": "queue",
+            "next": "repair",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "repair",
+            "samplingId": "quality-repair",
+            "label": "Repair and recheck",
+            "kind": "service",
+            "next": "q-inspect",
+            "duration": {
+              "kind": "triangular",
+              "min": 120,
+              "mode": 180,
+              "max": 240
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "repairers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "quality-exit",
+            "label": "Accepted parts",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "inspectors",
+            "label": "Inspection team",
+            "installedCapacity": 6,
+            "capacity": 2,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "repairers",
+            "label": "Rework team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 30,
+            "overtimeCostPerHour": 45
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -11,
+          "z": 4
+        },
+        "q-inspect": {
+          "x": -7,
+          "z": 1
+        },
+        "inspect": {
+          "x": -3,
+          "z": 0
+        },
+        "verdict": {
+          "x": 2,
+          "z": 1
+        },
+        "q-repair": {
+          "x": 6,
+          "z": -3
+        },
+        "repair": {
+          "x": 1,
+          "z": -6
+        },
+        "exit": {
+          "x": 8,
+          "z": 4
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "quality-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 18.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-18",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "quality-object-19",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "quality-object-20",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-21",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "quality-object-22",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -17.9,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "quality-object-23",
+            "name": "Quarantine rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-24",
+            "name": "Quarantine rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "quality-object-25",
+            "name": "Quarantine rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "quality-object-26",
+            "name": "Quarantine rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "quality-object-27",
+            "name": "Quarantine rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -6.8,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-28",
+            "name": "Quarantine rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -6.8,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "quality-object-29",
+            "name": "Quarantine rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -6.8,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "quality-object-30",
+            "name": "Quarantine rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -6.8,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "quality-object-31",
+            "name": "Quarantine rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0.8,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-32",
+            "name": "Quarantine rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0.8,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "quality-object-33",
+            "name": "Quarantine rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0.8,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "quality-object-34",
+            "name": "Quarantine rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0.8,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "quality-object-35",
+            "name": "Reference instrument table",
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.5,
+            "x": 10.6,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "quality-object-36",
+            "name": "Inspection camera kit",
+            "assetId": "serviceTool_camera_inspectionKit_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": 10.6,
+            "z": -9,
+            "y": 1.275
+          },
+          {
+            "id": "quality-object-37",
+            "name": "Incoming sample",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -14.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "quality-object-38",
+            "name": "Incoming sample · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -14.82,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-39",
+            "name": "Incoming sample · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -14.38,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-40",
+            "name": "Incoming sample · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -14.82,
+            "z": 6.22,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-41",
+            "name": "Accepted batch",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "quality-object-42",
+            "name": "Accepted batch · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 12.38,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-43",
+            "name": "Accepted batch · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 12.82,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-44",
+            "name": "Accepted batch · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 12.38,
+            "z": 6.22,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-45",
+            "name": "Rework tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 12.6,
+            "z": -3,
+            "y": 0
+          },
+          {
+            "id": "quality-object-46",
+            "name": "Rework tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 12.6,
+            "z": -2,
+            "y": 0
+          },
+          {
+            "id": "quality-object-47",
+            "name": "Rework tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 12.6,
+            "z": -1,
+            "y": 0
+          },
+          {
+            "id": "quality-object-48",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -3,
+            "z": 0,
+            "y": 3.9
+          },
+          {
+            "id": "quality-object-49",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 8.6,
+            "z": -6,
+            "y": 3.9
+          },
+          {
+            "id": "quality-object-50",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -17.6,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "quality-object-51",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.7,
+            "z": 2,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {
+          "inspect": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.8
+          },
+          "repair": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.8
+          }
+        }
+      }
+    },
+    {
+      "id": "quality-trial-2",
+      "name": "Lower rework study",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "quality-model",
+        "name": "Quality & Rework",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "quality-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-inspect",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 48
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-inspect",
+            "samplingId": "quality-q-inspect",
+            "label": "Inspection queue",
+            "kind": "queue",
+            "next": "inspect",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "inspect",
+            "samplingId": "quality-inspect",
+            "label": "Inspection",
+            "kind": "service",
+            "next": "verdict",
+            "duration": {
+              "kind": "constant",
+              "value": 85
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "inspectors",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "verdict",
+            "samplingId": "quality-verdict",
+            "label": "Inspection outcome",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "exit",
+                "probability": 0.96
+              },
+              {
+                "to": "q-repair",
+                "probability": 0.04
+              }
+            ]
+          },
+          {
+            "id": "q-repair",
+            "samplingId": "quality-q-repair",
+            "label": "Rework queue",
+            "kind": "queue",
+            "next": "repair",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "repair",
+            "samplingId": "quality-repair",
+            "label": "Repair and recheck",
+            "kind": "service",
+            "next": "q-inspect",
+            "duration": {
+              "kind": "triangular",
+              "min": 120,
+              "mode": 180,
+              "max": 240
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "repairers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "quality-exit",
+            "label": "Accepted parts",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "inspectors",
+            "label": "Inspection team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "repairers",
+            "label": "Rework team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 30,
+            "overtimeCostPerHour": 45
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -11,
+          "z": 4
+        },
+        "q-inspect": {
+          "x": -7,
+          "z": 1
+        },
+        "inspect": {
+          "x": -3,
+          "z": 0
+        },
+        "verdict": {
+          "x": 2,
+          "z": 1
+        },
+        "q-repair": {
+          "x": 6,
+          "z": -3
+        },
+        "repair": {
+          "x": 1,
+          "z": -6
+        },
+        "exit": {
+          "x": 8,
+          "z": 4
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "quality-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -13.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -11,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -6.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -4.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -2.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 2.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 4.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 6.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 8.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 13.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "quality-object-14",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -14.3,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "quality-object-15",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -14.3,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "quality-object-16",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -14.3,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-17",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -14.3,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "quality-object-18",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -14.3,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "quality-object-19",
+            "name": "Quarantine rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-20",
+            "name": "Quarantine rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "quality-object-21",
+            "name": "Quarantine rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "quality-object-22",
+            "name": "Quarantine rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "quality-object-23",
+            "name": "Quarantine rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-24",
+            "name": "Quarantine rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "quality-object-25",
+            "name": "Quarantine rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "quality-object-26",
+            "name": "Quarantine rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "quality-object-27",
+            "name": "Quarantine rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "quality-object-28",
+            "name": "Quarantine rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "quality-object-29",
+            "name": "Quarantine rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "quality-object-30",
+            "name": "Quarantine rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "quality-object-31",
+            "name": "Reference instrument table",
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.5,
+            "x": 7,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "quality-object-32",
+            "name": "Inspection camera kit",
+            "assetId": "serviceTool_camera_inspectionKit_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": 7,
+            "z": -9,
+            "y": 1.275
+          },
+          {
+            "id": "quality-object-33",
+            "name": "Incoming sample",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "quality-object-34",
+            "name": "Incoming sample · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -11.22,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-35",
+            "name": "Incoming sample · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -10.78,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-36",
+            "name": "Incoming sample · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -11.22,
+            "z": 6.22,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-37",
+            "name": "Accepted batch",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 9,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "quality-object-38",
+            "name": "Accepted batch · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.78,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-39",
+            "name": "Accepted batch · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 9.22,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-40",
+            "name": "Accepted batch · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.78,
+            "z": 6.22,
+            "y": 0.21
+          },
+          {
+            "id": "quality-object-41",
+            "name": "Rework tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 9,
+            "z": -3,
+            "y": 0
+          },
+          {
+            "id": "quality-object-42",
+            "name": "Rework tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 9,
+            "z": -2,
+            "y": 0
+          },
+          {
+            "id": "quality-object-43",
+            "name": "Rework tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 9,
+            "z": -1,
+            "y": 0
+          },
+          {
+            "id": "quality-object-44",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -3,
+            "z": 0,
+            "y": 3.9
+          },
+          {
+            "id": "quality-object-45",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 5,
+            "z": -6,
+            "y": 3.9
+          },
+          {
+            "id": "quality-object-46",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -14,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "quality-object-47",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.1,
+            "z": 2,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {
+          "inspect": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.8
+          },
+          "repair": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.8
+          }
+        }
+      }
+    }
+  ]
+}

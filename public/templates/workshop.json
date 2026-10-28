@@ -1,0 +1,3439 @@
+{
+  "schemaVersion": 1,
+  "id": "starter-workshop",
+  "name": "Workshop",
+  "world": "factory",
+  "revision": 0,
+  "description": "A U-shaped work cell with a timed curing stage.\n\nWould flexible staffing or a shorter curing stage make a bigger difference?\n\nStarting assumptions\n• Two hours of evenly released jobs.\n• Preparation and machining share two operators; finishing has one dedicated operator.\n• Curing is a resource-free delay with unlimited space, not a finite rack or a chemical model.\n\nSynthetic teaching models. Timings, demand and staffing are illustrative; layout does not add travel time.",
+  "layout": {
+    "arrivals": {
+      "x": -9,
+      "z": 4
+    },
+    "q-prepare": {
+      "x": -6,
+      "z": 1
+    },
+    "prepare": {
+      "x": -3,
+      "z": -3
+    },
+    "q-machine": {
+      "x": 1,
+      "z": 1
+    },
+    "machine": {
+      "x": 3,
+      "z": -3
+    },
+    "cure": {
+      "x": 8,
+      "z": 2
+    },
+    "q-finish": {
+      "x": 3,
+      "z": 5
+    },
+    "finish": {
+      "x": -3,
+      "z": 5
+    },
+    "exit": {
+      "x": -9,
+      "z": 6
+    }
+  },
+  "model": {
+    "id": "workshop-model",
+    "name": "Workshop",
+    "horizon": 7200,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 600,
+    "currency": "USD",
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "workshop-arrivals",
+        "label": "Incoming jobs",
+        "kind": "source",
+        "next": "q-prepare",
+        "arrival": {
+          "kind": "fixed",
+          "perHour": 30
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 1
+          }
+        ]
+      },
+      {
+        "id": "q-prepare",
+        "samplingId": "workshop-q-prepare",
+        "label": "Preparation queue",
+        "kind": "queue",
+        "next": "prepare",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "prepare",
+        "samplingId": "workshop-prepare",
+        "label": "Preparation",
+        "kind": "service",
+        "next": "q-machine",
+        "duration": {
+          "kind": "constant",
+          "value": 90
+        },
+        "servers": 2,
+        "resources": [
+          {
+            "poolId": "operators",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "q-machine",
+        "samplingId": "workshop-q-machine",
+        "label": "Machining queue",
+        "kind": "queue",
+        "next": "machine",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "machine",
+        "samplingId": "workshop-machine",
+        "label": "Machining",
+        "kind": "service",
+        "next": "cure",
+        "duration": {
+          "kind": "triangular",
+          "min": 140,
+          "mode": 180,
+          "max": 220
+        },
+        "servers": 2,
+        "resources": [
+          {
+            "poolId": "operators",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "cure",
+        "samplingId": "workshop-cure",
+        "label": "Timed cure",
+        "kind": "delay",
+        "duration": {
+          "kind": "constant",
+          "value": 300
+        },
+        "next": "q-finish"
+      },
+      {
+        "id": "q-finish",
+        "samplingId": "workshop-q-finish",
+        "label": "Finishing queue",
+        "kind": "queue",
+        "next": "finish",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "finish",
+        "samplingId": "workshop-finish",
+        "label": "Finishing",
+        "kind": "service",
+        "next": "exit",
+        "duration": {
+          "kind": "constant",
+          "value": 70
+        },
+        "servers": 2,
+        "resources": [
+          {
+            "poolId": "finishers",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "workshop-exit",
+        "label": "Finished jobs",
+        "kind": "sink"
+      }
+    ],
+    "resources": [
+      {
+        "id": "operators",
+        "label": "Shared workshop operators",
+        "installedCapacity": 6,
+        "capacity": 2,
+        "calendar": [],
+        "costPerHour": 26,
+        "overtimeCostPerHour": 39
+      },
+      {
+        "id": "finishers",
+        "label": "Finishing operator",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 26,
+        "overtimeCostPerHour": 39
+      }
+    ]
+  },
+  "facility": {
+    "version": 1,
+    "scenery": false,
+    "objects": [
+      {
+        "id": "workshop-object-1",
+        "name": "Back wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -20.4,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-2",
+        "name": "Back wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -18.2,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-3",
+        "name": "Back wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -16,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-4",
+        "name": "Back wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -13.8,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-5",
+        "name": "Back wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -11.6,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-6",
+        "name": "Back wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -9.4,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-7",
+        "name": "Back wall 7",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -7.2,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-8",
+        "name": "Back wall 8",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -5,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-9",
+        "name": "Back wall 9",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -2.8,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-10",
+        "name": "Back wall 10",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -0.6,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-11",
+        "name": "Back wall 11",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 1.6,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-12",
+        "name": "Back wall 12",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 3.8,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-13",
+        "name": "Back wall 13",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 6,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-14",
+        "name": "Back wall 14",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 8.2,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-15",
+        "name": "Back wall 15",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 10.4,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-16",
+        "name": "Back wall 16",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 12.6,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-17",
+        "name": "Back wall 17",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 14.8,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-18",
+        "name": "Back wall 18",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 17,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-19",
+        "name": "Back wall 19",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 19.2,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-20",
+        "name": "Back wall 20",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 21.4,
+        "z": -11,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-21",
+        "name": "Side wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -21.5,
+        "z": -9.9,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-22",
+        "name": "Side wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -21.5,
+        "z": -7.7,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-23",
+        "name": "Side wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -21.5,
+        "z": -5.5,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-24",
+        "name": "Side wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -21.5,
+        "z": -3.3,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-25",
+        "name": "Side wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -21.5,
+        "z": -1.1,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-26",
+        "name": "Side wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -21.5,
+        "z": 1.1,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-27",
+        "name": "Tool rack 1",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -16.2,
+        "z": -8.5,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-28",
+        "name": "Tool rack 1 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -16.2,
+        "z": -8.5,
+        "y": 0.5
+      },
+      {
+        "id": "workshop-object-29",
+        "name": "Tool rack 1 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -16.2,
+        "z": -8.5,
+        "y": 1.15
+      },
+      {
+        "id": "workshop-object-30",
+        "name": "Tool rack 1 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -16.2,
+        "z": -8.5,
+        "y": 1.8
+      },
+      {
+        "id": "workshop-object-31",
+        "name": "Tool rack 2",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.8,
+        "z": -8.5,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-32",
+        "name": "Tool rack 2 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.8,
+        "z": -8.5,
+        "y": 0.5
+      },
+      {
+        "id": "workshop-object-33",
+        "name": "Tool rack 2 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.8,
+        "z": -8.5,
+        "y": 1.15
+      },
+      {
+        "id": "workshop-object-34",
+        "name": "Tool rack 2 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.8,
+        "z": -8.5,
+        "y": 1.8
+      },
+      {
+        "id": "workshop-object-35",
+        "name": "Tool rack 3",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 1,
+        "z": -8.5,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-36",
+        "name": "Tool rack 3 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 1,
+        "z": -8.5,
+        "y": 0.5
+      },
+      {
+        "id": "workshop-object-37",
+        "name": "Tool rack 3 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 1,
+        "z": -8.5,
+        "y": 1.15
+      },
+      {
+        "id": "workshop-object-38",
+        "name": "Tool rack 3 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 1,
+        "z": -8.5,
+        "y": 1.8
+      },
+      {
+        "id": "workshop-object-39",
+        "name": "Tool rack 4",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 11.76,
+        "z": -8.5,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-40",
+        "name": "Tool rack 4 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 11.76,
+        "z": -8.5,
+        "y": 0.5
+      },
+      {
+        "id": "workshop-object-41",
+        "name": "Tool rack 4 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 11.76,
+        "z": -8.5,
+        "y": 1.15
+      },
+      {
+        "id": "workshop-object-42",
+        "name": "Tool rack 4 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 11.76,
+        "z": -8.5,
+        "y": 1.8
+      },
+      {
+        "id": "workshop-object-43",
+        "name": "Curing-zone shelf 1",
+        "assetId": "storage_shelf_basic_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.2,
+        "x": 17.2,
+        "z": -3,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-44",
+        "name": "Curing-zone shelf 2",
+        "assetId": "storage_shelf_basic_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.2,
+        "x": 17.2,
+        "z": -1,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-45",
+        "name": "Curing-zone shelf 3",
+        "assetId": "storage_shelf_basic_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.2,
+        "x": 17.2,
+        "z": 1,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-46",
+        "name": "Incoming material",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": -19.2,
+        "z": 7,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-47",
+        "name": "Incoming material · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -19.42,
+        "z": 6.78,
+        "y": 0.21
+      },
+      {
+        "id": "workshop-object-48",
+        "name": "Incoming material · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -18.98,
+        "z": 6.78,
+        "y": 0.21
+      },
+      {
+        "id": "workshop-object-49",
+        "name": "Incoming material · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -19.42,
+        "z": 7.22,
+        "y": 0.21
+      },
+      {
+        "id": "workshop-object-50",
+        "name": "Finished work",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": -13.2,
+        "z": 7,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-51",
+        "name": "Finished work · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -13.42,
+        "z": 6.78,
+        "y": 0.21
+      },
+      {
+        "id": "workshop-object-52",
+        "name": "Finished work · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -12.716,
+        "z": 6.78,
+        "y": 0.21
+      },
+      {
+        "id": "workshop-object-53",
+        "name": "Finished work · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -13.42,
+        "z": 7.22,
+        "y": 0.21
+      },
+      {
+        "id": "workshop-object-54",
+        "name": "Wall-side fire extinguisher",
+        "assetId": "fireProtection_extinguisher_portable_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5,
+        "x": -21.2,
+        "z": 2,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-55",
+        "name": "Waste collection",
+        "assetId": "furniture_trashBin_lid_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -20.3,
+        "z": 2,
+        "y": 0
+      },
+      {
+        "id": "workshop-object-56",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": -15.2,
+        "z": -3,
+        "y": 3.9
+      },
+      {
+        "id": "workshop-object-57",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": -2.8,
+        "z": -3,
+        "y": 3.9
+      },
+      {
+        "id": "workshop-object-58",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 11.76,
+        "z": -3,
+        "y": 3.9
+      }
+    ],
+    "nodeAssets": {
+      "prepare": {
+        "assetId": "furniture_workbench_standard_e01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": -90,
+        "scale": 1.7
+      },
+      "machine": {
+        "assetId": "serviceTool_brake_lathe_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8
+      },
+      "finish": {
+        "assetId": "table_metal_stainless_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.6
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "id": "workshop-original",
+      "name": "Original plan",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "workshop-model",
+        "name": "Workshop",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "workshop-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-prepare",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 30
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-prepare",
+            "samplingId": "workshop-q-prepare",
+            "label": "Preparation queue",
+            "kind": "queue",
+            "next": "prepare",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "prepare",
+            "samplingId": "workshop-prepare",
+            "label": "Preparation",
+            "kind": "service",
+            "next": "q-machine",
+            "duration": {
+              "kind": "constant",
+              "value": 90
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-machine",
+            "samplingId": "workshop-q-machine",
+            "label": "Machining queue",
+            "kind": "queue",
+            "next": "machine",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "machine",
+            "samplingId": "workshop-machine",
+            "label": "Machining",
+            "kind": "service",
+            "next": "cure",
+            "duration": {
+              "kind": "triangular",
+              "min": 140,
+              "mode": 180,
+              "max": 220
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "cure",
+            "samplingId": "workshop-cure",
+            "label": "Timed cure",
+            "kind": "delay",
+            "duration": {
+              "kind": "constant",
+              "value": 300
+            },
+            "next": "q-finish"
+          },
+          {
+            "id": "q-finish",
+            "samplingId": "workshop-q-finish",
+            "label": "Finishing queue",
+            "kind": "queue",
+            "next": "finish",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "finish",
+            "samplingId": "workshop-finish",
+            "label": "Finishing",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "constant",
+              "value": 70
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "finishers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "workshop-exit",
+            "label": "Finished jobs",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "operators",
+            "label": "Shared workshop operators",
+            "installedCapacity": 6,
+            "capacity": 2,
+            "calendar": [],
+            "costPerHour": 26,
+            "overtimeCostPerHour": 39
+          },
+          {
+            "id": "finishers",
+            "label": "Finishing operator",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 26,
+            "overtimeCostPerHour": 39
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -9,
+          "z": 4
+        },
+        "q-prepare": {
+          "x": -6,
+          "z": 1
+        },
+        "prepare": {
+          "x": -3,
+          "z": -3
+        },
+        "q-machine": {
+          "x": 1,
+          "z": 1
+        },
+        "machine": {
+          "x": 3,
+          "z": -3
+        },
+        "cure": {
+          "x": 8,
+          "z": 2
+        },
+        "q-finish": {
+          "x": 3,
+          "z": 5
+        },
+        "finish": {
+          "x": -3,
+          "z": 5
+        },
+        "exit": {
+          "x": -9,
+          "z": 6
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "workshop-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -20.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -18.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -13.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -11.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -9.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -7.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -2.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -0.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 1.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 8.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 10.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 12.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-18",
+            "name": "Back wall 18",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 17,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-19",
+            "name": "Back wall 19",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 19.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-20",
+            "name": "Back wall 20",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 21.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-21",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -9.9,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-22",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -7.7,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-23",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -5.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-24",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -3.3,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-25",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -1.1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-26",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": 1.1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-27",
+            "name": "Tool rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-28",
+            "name": "Tool rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-29",
+            "name": "Tool rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-30",
+            "name": "Tool rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-31",
+            "name": "Tool rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-32",
+            "name": "Tool rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-33",
+            "name": "Tool rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-34",
+            "name": "Tool rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-35",
+            "name": "Tool rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-36",
+            "name": "Tool rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-37",
+            "name": "Tool rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-38",
+            "name": "Tool rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-39",
+            "name": "Tool rack 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-40",
+            "name": "Tool rack 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-41",
+            "name": "Tool rack 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-42",
+            "name": "Tool rack 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-43",
+            "name": "Curing-zone shelf 1",
+            "assetId": "storage_shelf_basic_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 17.2,
+            "z": -3,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-44",
+            "name": "Curing-zone shelf 2",
+            "assetId": "storage_shelf_basic_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 17.2,
+            "z": -1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-45",
+            "name": "Curing-zone shelf 3",
+            "assetId": "storage_shelf_basic_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 17.2,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-46",
+            "name": "Incoming material",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -19.2,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-47",
+            "name": "Incoming material · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -19.42,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-48",
+            "name": "Incoming material · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -18.98,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-49",
+            "name": "Incoming material · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -19.42,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-50",
+            "name": "Finished work",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.2,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-51",
+            "name": "Finished work · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -13.42,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-52",
+            "name": "Finished work · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -12.716,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-53",
+            "name": "Finished work · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -13.42,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-54",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -21.2,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-55",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -20.3,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-56",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -15.2,
+            "z": -3,
+            "y": 3.9
+          },
+          {
+            "id": "workshop-object-57",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -2.8,
+            "z": -3,
+            "y": 3.9
+          },
+          {
+            "id": "workshop-object-58",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 11.76,
+            "z": -3,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "prepare": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.7
+          },
+          "machine": {
+            "assetId": "serviceTool_brake_lathe_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8
+          },
+          "finish": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.6
+          }
+        }
+      }
+    },
+    {
+      "id": "workshop-trial-1",
+      "name": "Cross-trained team",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "workshop-model",
+        "name": "Workshop",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "workshop-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-prepare",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 30
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-prepare",
+            "samplingId": "workshop-q-prepare",
+            "label": "Preparation queue",
+            "kind": "queue",
+            "next": "prepare",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "prepare",
+            "samplingId": "workshop-prepare",
+            "label": "Preparation",
+            "kind": "service",
+            "next": "q-machine",
+            "duration": {
+              "kind": "constant",
+              "value": 90
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-machine",
+            "samplingId": "workshop-q-machine",
+            "label": "Machining queue",
+            "kind": "queue",
+            "next": "machine",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "machine",
+            "samplingId": "workshop-machine",
+            "label": "Machining",
+            "kind": "service",
+            "next": "cure",
+            "duration": {
+              "kind": "triangular",
+              "min": 140,
+              "mode": 180,
+              "max": 220
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "cure",
+            "samplingId": "workshop-cure",
+            "label": "Timed cure",
+            "kind": "delay",
+            "duration": {
+              "kind": "constant",
+              "value": 300
+            },
+            "next": "q-finish"
+          },
+          {
+            "id": "q-finish",
+            "samplingId": "workshop-q-finish",
+            "label": "Finishing queue",
+            "kind": "queue",
+            "next": "finish",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "finish",
+            "samplingId": "workshop-finish",
+            "label": "Finishing",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "constant",
+              "value": 70
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "workshop-exit",
+            "label": "Finished jobs",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "operators",
+            "label": "Shared workshop operators",
+            "installedCapacity": 6,
+            "capacity": 3,
+            "calendar": [],
+            "costPerHour": 26,
+            "overtimeCostPerHour": 39
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -9,
+          "z": 4
+        },
+        "q-prepare": {
+          "x": -6,
+          "z": 1
+        },
+        "prepare": {
+          "x": -3,
+          "z": -3
+        },
+        "q-machine": {
+          "x": 1,
+          "z": 1
+        },
+        "machine": {
+          "x": 3,
+          "z": -3
+        },
+        "cure": {
+          "x": 8,
+          "z": 2
+        },
+        "q-finish": {
+          "x": 3,
+          "z": 5
+        },
+        "finish": {
+          "x": -3,
+          "z": 5
+        },
+        "exit": {
+          "x": -9,
+          "z": 6
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "workshop-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -20.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -18.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -13.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -11.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -9.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -7.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -2.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -0.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 1.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 8.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 10.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 12.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-18",
+            "name": "Back wall 18",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 17,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-19",
+            "name": "Back wall 19",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 19.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-20",
+            "name": "Back wall 20",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 21.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-21",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -9.9,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-22",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -7.7,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-23",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -5.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-24",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -3.3,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-25",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -1.1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-26",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": 1.1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-27",
+            "name": "Tool rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-28",
+            "name": "Tool rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-29",
+            "name": "Tool rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-30",
+            "name": "Tool rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-31",
+            "name": "Tool rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-32",
+            "name": "Tool rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-33",
+            "name": "Tool rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-34",
+            "name": "Tool rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-35",
+            "name": "Tool rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-36",
+            "name": "Tool rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-37",
+            "name": "Tool rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-38",
+            "name": "Tool rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-39",
+            "name": "Tool rack 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-40",
+            "name": "Tool rack 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-41",
+            "name": "Tool rack 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-42",
+            "name": "Tool rack 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-43",
+            "name": "Curing-zone shelf 1",
+            "assetId": "storage_shelf_basic_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 17.2,
+            "z": -3,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-44",
+            "name": "Curing-zone shelf 2",
+            "assetId": "storage_shelf_basic_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 17.2,
+            "z": -1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-45",
+            "name": "Curing-zone shelf 3",
+            "assetId": "storage_shelf_basic_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 17.2,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-46",
+            "name": "Incoming material",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -19.2,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-47",
+            "name": "Incoming material · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -19.42,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-48",
+            "name": "Incoming material · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -18.98,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-49",
+            "name": "Incoming material · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -19.42,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-50",
+            "name": "Finished work",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.2,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-51",
+            "name": "Finished work · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -13.42,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-52",
+            "name": "Finished work · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -12.716,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-53",
+            "name": "Finished work · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -13.42,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-54",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -21.2,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-55",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -20.3,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-56",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -15.2,
+            "z": -3,
+            "y": 3.9
+          },
+          {
+            "id": "workshop-object-57",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -2.8,
+            "z": -3,
+            "y": 3.9
+          },
+          {
+            "id": "workshop-object-58",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 11.76,
+            "z": -3,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "prepare": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.7
+          },
+          "machine": {
+            "assetId": "serviceTool_brake_lathe_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8
+          },
+          "finish": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.6
+          }
+        }
+      }
+    },
+    {
+      "id": "workshop-trial-2",
+      "name": "Shorter curing study",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "workshop-model",
+        "name": "Workshop",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "workshop-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-prepare",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 30
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-prepare",
+            "samplingId": "workshop-q-prepare",
+            "label": "Preparation queue",
+            "kind": "queue",
+            "next": "prepare",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "prepare",
+            "samplingId": "workshop-prepare",
+            "label": "Preparation",
+            "kind": "service",
+            "next": "q-machine",
+            "duration": {
+              "kind": "constant",
+              "value": 90
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-machine",
+            "samplingId": "workshop-q-machine",
+            "label": "Machining queue",
+            "kind": "queue",
+            "next": "machine",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "machine",
+            "samplingId": "workshop-machine",
+            "label": "Machining",
+            "kind": "service",
+            "next": "cure",
+            "duration": {
+              "kind": "triangular",
+              "min": 140,
+              "mode": 180,
+              "max": 220
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "cure",
+            "samplingId": "workshop-cure",
+            "label": "Timed cure",
+            "kind": "delay",
+            "duration": {
+              "kind": "constant",
+              "value": 120
+            },
+            "next": "q-finish"
+          },
+          {
+            "id": "q-finish",
+            "samplingId": "workshop-q-finish",
+            "label": "Finishing queue",
+            "kind": "queue",
+            "next": "finish",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "finish",
+            "samplingId": "workshop-finish",
+            "label": "Finishing",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "constant",
+              "value": 70
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "finishers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "workshop-exit",
+            "label": "Finished jobs",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "operators",
+            "label": "Shared workshop operators",
+            "installedCapacity": 6,
+            "capacity": 2,
+            "calendar": [],
+            "costPerHour": 26,
+            "overtimeCostPerHour": 39
+          },
+          {
+            "id": "finishers",
+            "label": "Finishing operator",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 26,
+            "overtimeCostPerHour": 39
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -9,
+          "z": 4
+        },
+        "q-prepare": {
+          "x": -6,
+          "z": 1
+        },
+        "prepare": {
+          "x": -3,
+          "z": -3
+        },
+        "q-machine": {
+          "x": 1,
+          "z": 1
+        },
+        "machine": {
+          "x": 3,
+          "z": -3
+        },
+        "cure": {
+          "x": 8,
+          "z": 2
+        },
+        "q-finish": {
+          "x": 3,
+          "z": 5
+        },
+        "finish": {
+          "x": -3,
+          "z": 5
+        },
+        "exit": {
+          "x": -9,
+          "z": 6
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "workshop-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -20.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -18.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -13.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -11.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -9.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -7.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -2.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -0.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 1.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 8.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 10.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 12.6,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14.8,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-18",
+            "name": "Back wall 18",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 17,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-19",
+            "name": "Back wall 19",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 19.2,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-20",
+            "name": "Back wall 20",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 21.4,
+            "z": -11,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-21",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -9.9,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-22",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -7.7,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-23",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -5.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-24",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -3.3,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-25",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": -1.1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-26",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -21.5,
+            "z": 1.1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-27",
+            "name": "Tool rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-28",
+            "name": "Tool rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-29",
+            "name": "Tool rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-30",
+            "name": "Tool rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -16.2,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-31",
+            "name": "Tool rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-32",
+            "name": "Tool rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-33",
+            "name": "Tool rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-34",
+            "name": "Tool rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.8,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-35",
+            "name": "Tool rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-36",
+            "name": "Tool rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-37",
+            "name": "Tool rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-38",
+            "name": "Tool rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-39",
+            "name": "Tool rack 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-40",
+            "name": "Tool rack 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 0.5
+          },
+          {
+            "id": "workshop-object-41",
+            "name": "Tool rack 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 1.15
+          },
+          {
+            "id": "workshop-object-42",
+            "name": "Tool rack 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.76,
+            "z": -8.5,
+            "y": 1.8
+          },
+          {
+            "id": "workshop-object-43",
+            "name": "Curing-zone shelf 1",
+            "assetId": "storage_shelf_basic_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 17.2,
+            "z": -3,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-44",
+            "name": "Curing-zone shelf 2",
+            "assetId": "storage_shelf_basic_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 17.2,
+            "z": -1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-45",
+            "name": "Curing-zone shelf 3",
+            "assetId": "storage_shelf_basic_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.2,
+            "x": 17.2,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-46",
+            "name": "Incoming material",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -19.2,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-47",
+            "name": "Incoming material · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -19.42,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-48",
+            "name": "Incoming material · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -18.98,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-49",
+            "name": "Incoming material · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -19.42,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-50",
+            "name": "Finished work",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.2,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-51",
+            "name": "Finished work · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -13.42,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-52",
+            "name": "Finished work · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -12.716,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-53",
+            "name": "Finished work · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -13.42,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "workshop-object-54",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -21.2,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-55",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -20.3,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "workshop-object-56",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -15.2,
+            "z": -3,
+            "y": 3.9
+          },
+          {
+            "id": "workshop-object-57",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -2.8,
+            "z": -3,
+            "y": 3.9
+          },
+          {
+            "id": "workshop-object-58",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 11.76,
+            "z": -3,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "prepare": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.7
+          },
+          "machine": {
+            "assetId": "serviceTool_brake_lathe_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8
+          },
+          "finish": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.6
+          }
+        }
+      }
+    }
+  ]
+}

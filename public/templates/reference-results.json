@@ -1,0 +1,2743 @@
+{
+  "version": 1,
+  "engineVersion": "0.1.2",
+  "rngVersion": "keyed-murmur32-v1",
+  "limits": {
+    "maxEvents": 1000000000,
+    "maxEntities": 10000000,
+    "maxMicrosteps": 1000000,
+    "maxTraceEntities": 4000,
+    "maxTraceEvents": 100000
+  },
+  "seeds": [
+    4207,
+    4208,
+    4209
+  ],
+  "templates": {
+    "factory": [
+      {
+        "id": "factory-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "c1fff310ea636f67",
+            "demandHash": "3bcc448067ffcf11",
+            "summary": {
+              "arrivals": 80,
+              "completed": 40,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 40,
+              "meanWait": 869.0816085934679,
+              "p50Wait": 757.2853126976956,
+              "p95Wait": 1616.7325384022213,
+              "meanSojourn": 1002.1637721071235,
+              "slaMet": 6,
+              "slaRate": 0.075,
+              "throughputPerHour": 40,
+              "cost": 74,
+              "waitSampleSize": 40,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "c1fff310ea636f67",
+            "demandHash": "67d37fd4411b44ca",
+            "summary": {
+              "arrivals": 80,
+              "completed": 39,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 41,
+              "meanWait": 667.6965455058198,
+              "p50Wait": 553.1555019110226,
+              "p95Wait": 1545.9267850308368,
+              "meanSojourn": 801.2860056444857,
+              "slaMet": 13,
+              "slaRate": 0.1625,
+              "throughputPerHour": 39,
+              "cost": 74,
+              "waitSampleSize": 39,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "c1fff310ea636f67",
+            "demandHash": "76b499bb9c0d13df",
+            "summary": {
+              "arrivals": 70,
+              "completed": 38,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 32,
+              "meanWait": 582.0912824859637,
+              "p50Wait": 537.3933293443424,
+              "p95Wait": 1339.7497830400835,
+              "meanSojourn": 718.563154446085,
+              "slaMet": 15,
+              "slaRate": 0.21428571428571427,
+              "throughputPerHour": 38,
+              "cost": 74,
+              "waitSampleSize": 38,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          }
+        ]
+      },
+      {
+        "id": "factory-trial-1",
+        "name": "Extra packing station",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "de0686aa16f49588",
+            "demandHash": "3bcc448067ffcf11",
+            "summary": {
+              "arrivals": 80,
+              "completed": 40,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 40,
+              "meanWait": 869.0816085934679,
+              "p50Wait": 757.2853126976956,
+              "p95Wait": 1616.7325384022213,
+              "meanSojourn": 1002.1637721071235,
+              "slaMet": 6,
+              "slaRate": 0.075,
+              "throughputPerHour": 40,
+              "cost": 74,
+              "waitSampleSize": 40,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "de0686aa16f49588",
+            "demandHash": "67d37fd4411b44ca",
+            "summary": {
+              "arrivals": 80,
+              "completed": 39,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 41,
+              "meanWait": 667.6965455058198,
+              "p50Wait": 553.1555019110226,
+              "p95Wait": 1545.9267850308368,
+              "meanSojourn": 801.2860056444857,
+              "slaMet": 13,
+              "slaRate": 0.1625,
+              "throughputPerHour": 39,
+              "cost": 74,
+              "waitSampleSize": 39,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "de0686aa16f49588",
+            "demandHash": "76b499bb9c0d13df",
+            "summary": {
+              "arrivals": 70,
+              "completed": 38,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 32,
+              "meanWait": 582.0912824859637,
+              "p50Wait": 537.3933293443424,
+              "p95Wait": 1339.7497830400835,
+              "meanSojourn": 718.563154446085,
+              "slaMet": 15,
+              "slaRate": 0.21428571428571427,
+              "throughputPerHour": 38,
+              "cost": 74,
+              "waitSampleSize": 38,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          }
+        ]
+      },
+      {
+        "id": "factory-trial-2",
+        "name": "Staff both stations",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "8e7b57cff57308e1",
+            "demandHash": "3bcc448067ffcf11",
+            "summary": {
+              "arrivals": 80,
+              "completed": 77,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 86.47197369778743,
+              "p50Wait": 83.1623499561806,
+              "p95Wait": 202.6682139917666,
+              "meanSojourn": 220.18250324654252,
+              "slaMet": 77,
+              "slaRate": 0.9625,
+              "throughputPerHour": 77,
+              "cost": 96,
+              "waitSampleSize": 77,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "8e7b57cff57308e1",
+            "demandHash": "67d37fd4411b44ca",
+            "summary": {
+              "arrivals": 80,
+              "completed": 71,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 9,
+              "meanWait": 263.5310484360524,
+              "p50Wait": 199.8309434957996,
+              "p95Wait": 563.234533868118,
+              "meanSojourn": 397.7443383795731,
+              "slaMet": 39,
+              "slaRate": 0.4875,
+              "throughputPerHour": 71,
+              "cost": 96,
+              "waitSampleSize": 71,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "8e7b57cff57308e1",
+            "demandHash": "76b499bb9c0d13df",
+            "summary": {
+              "arrivals": 70,
+              "completed": 66,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 4,
+              "meanWait": 107.52957162099823,
+              "p50Wait": 115.76976582759517,
+              "p95Wait": 227.6628566815666,
+              "meanSojourn": 243.75673277472953,
+              "slaMet": 66,
+              "slaRate": 0.9428571428571428,
+              "throughputPerHour": 66,
+              "cost": 96,
+              "waitSampleSize": 66,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          }
+        ]
+      }
+    ],
+    "workshop": [
+      {
+        "id": "workshop-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "b4fa0a8da2b2ffec",
+            "demandHash": "3df9247083e7926e",
+            "summary": {
+              "arrivals": 60,
+              "completed": 49,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 11,
+              "meanWait": 349.0459206752663,
+              "p50Wait": 348.1051794062132,
+              "p95Wait": 657.7841635464129,
+              "meanSojourn": 983.1600737798295,
+              "slaMet": 43,
+              "slaRate": 0.7166666666666667,
+              "throughputPerHour": 24.5,
+              "cost": 156,
+              "waitSampleSize": 49,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "b4fa0a8da2b2ffec",
+            "demandHash": "de0fb3d5a698c315",
+            "summary": {
+              "arrivals": 60,
+              "completed": 48,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 12,
+              "meanWait": 416.25414956487117,
+              "p50Wait": 406.027405748197,
+              "p95Wait": 851.3568815636854,
+              "meanSojourn": 1056.6787813242443,
+              "slaMet": 32,
+              "slaRate": 0.5333333333333333,
+              "throughputPerHour": 24,
+              "cost": 156,
+              "waitSampleSize": 48,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "b4fa0a8da2b2ffec",
+            "demandHash": "35f5517e95d19270",
+            "summary": {
+              "arrivals": 60,
+              "completed": 48,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 12,
+              "meanWait": 454.31781834490454,
+              "p50Wait": 464.488544212767,
+              "p95Wait": 879.5336729282462,
+              "meanSojourn": 1095.9809588845835,
+              "slaMet": 30,
+              "slaRate": 0.5,
+              "throughputPerHour": 24,
+              "cost": 156,
+              "waitSampleSize": 48,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "workshop-trial-1",
+        "name": "Cross-trained team",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "a54adcdac0b110e3",
+            "demandHash": "3df9247083e7926e",
+            "summary": {
+              "arrivals": 60,
+              "completed": 55,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 5,
+              "meanWait": 44.50291321911132,
+              "p50Wait": 31.492616262284173,
+              "p95Wait": 117.50532082221343,
+              "meanSojourn": 679.1334823781015,
+              "slaMet": 55,
+              "slaRate": 0.9166666666666666,
+              "throughputPerHour": 27.5,
+              "cost": 156.00000000000006,
+              "waitSampleSize": 55,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "a54adcdac0b110e3",
+            "demandHash": "de0fb3d5a698c315",
+            "summary": {
+              "arrivals": 60,
+              "completed": 54,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 6,
+              "meanWait": 53.514710355327594,
+              "p50Wait": 45.22251730555763,
+              "p95Wait": 131.41206090985543,
+              "meanSojourn": 693.4815357908585,
+              "slaMet": 54,
+              "slaRate": 0.9,
+              "throughputPerHour": 27,
+              "cost": 155.99999999999994,
+              "waitSampleSize": 54,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "a54adcdac0b110e3",
+            "demandHash": "35f5517e95d19270",
+            "summary": {
+              "arrivals": 60,
+              "completed": 55,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 5,
+              "meanWait": 62.25641244177241,
+              "p50Wait": 64.96875741036274,
+              "p95Wait": 124.69647740548862,
+              "meanSojourn": 704.1674727955875,
+              "slaMet": 55,
+              "slaRate": 0.9166666666666666,
+              "throughputPerHour": 27.5,
+              "cost": 155.99999999999994,
+              "waitSampleSize": 55,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "workshop-trial-2",
+        "name": "Shorter curing study",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "4c331f7b4eba0dc8",
+            "demandHash": "3df9247083e7926e",
+            "summary": {
+              "arrivals": 60,
+              "completed": 50,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 10,
+              "meanWait": 356.1895154894776,
+              "p50Wait": 348.1051794062132,
+              "p95Wait": 675.3895759549378,
+              "meanSojourn": 810.6208159983679,
+              "slaMet": 43,
+              "slaRate": 0.7166666666666667,
+              "throughputPerHour": 25,
+              "cost": 156,
+              "waitSampleSize": 50,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "4c331f7b4eba0dc8",
+            "demandHash": "de0fb3d5a698c315",
+            "summary": {
+              "arrivals": 60,
+              "completed": 49,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 11,
+              "meanWait": 425.82367547818376,
+              "p50Wait": 436.2952639747491,
+              "p95Wait": 875.9839439740663,
+              "meanSojourn": 885.9725422420399,
+              "slaMet": 32,
+              "slaRate": 0.5333333333333333,
+              "throughputPerHour": 24.5,
+              "cost": 156,
+              "waitSampleSize": 49,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "4c331f7b4eba0dc8",
+            "demandHash": "35f5517e95d19270",
+            "summary": {
+              "arrivals": 60,
+              "completed": 49,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 11,
+              "meanWait": 463.59639855175874,
+              "p50Wait": 468.9292290305766,
+              "p95Wait": 908.9682484807581,
+              "meanSojourn": 925.4640689582471,
+              "slaMet": 30,
+              "slaRate": 0.5,
+              "throughputPerHour": 24.5,
+              "cost": 156,
+              "waitSampleSize": 49,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      }
+    ],
+    "machining": [
+      {
+        "id": "machining-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "4241e24c65c89e29",
+            "demandHash": "db5a29719a906d0b",
+            "summary": {
+              "arrivals": 72,
+              "completed": 68,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 4,
+              "meanWait": 221.9899017332055,
+              "p50Wait": 211.16038047784377,
+              "p95Wait": 441.9275673450229,
+              "meanSojourn": 508.7657994076908,
+              "slaMet": 68,
+              "slaRate": 0.9444444444444444,
+              "throughputPerHour": 34,
+              "cost": 224,
+              "waitSampleSize": 68,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "4241e24c65c89e29",
+            "demandHash": "dc577a60ed75b0ae",
+            "summary": {
+              "arrivals": 72,
+              "completed": 61,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 11,
+              "meanWait": 381.68864172014486,
+              "p50Wait": 109.94701107104038,
+              "p95Wait": 1685.2433820226997,
+              "meanSojourn": 687.1234697589002,
+              "slaMet": 46,
+              "slaRate": 0.6388888888888888,
+              "throughputPerHour": 30.500000000000004,
+              "cost": 224,
+              "waitSampleSize": 61,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "4241e24c65c89e29",
+            "demandHash": "ffc9878268263ce5",
+            "summary": {
+              "arrivals": 72,
+              "completed": 65,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 7,
+              "meanWait": 217.02107277644524,
+              "p50Wait": 86.126551590296,
+              "p95Wait": 967.6029586762425,
+              "meanSojourn": 518.4958221168596,
+              "slaMet": 56,
+              "slaRate": 0.7777777777777778,
+              "throughputPerHour": 32.5,
+              "cost": 224,
+              "waitSampleSize": 65,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "machining-trial-1",
+        "name": "Duplicate the slow station",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "b3a98df11fbb2af6",
+            "demandHash": "db5a29719a906d0b",
+            "summary": {
+              "arrivals": 72,
+              "completed": 67,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 5,
+              "meanWait": 259.42161278154725,
+              "p50Wait": 298.3324464477778,
+              "p95Wait": 441.9275673450229,
+              "meanSojourn": 546.8174949483923,
+              "slaMet": 67,
+              "slaRate": 0.9305555555555556,
+              "throughputPerHour": 33.5,
+              "cost": 224,
+              "waitSampleSize": 67,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "b3a98df11fbb2af6",
+            "demandHash": "dc577a60ed75b0ae",
+            "summary": {
+              "arrivals": 72,
+              "completed": 65,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 7,
+              "meanWait": 323.77981482117536,
+              "p50Wait": 334.073725543627,
+              "p95Wait": 569.1073734532865,
+              "meanSojourn": 637.8370407086337,
+              "slaMet": 65,
+              "slaRate": 0.9027777777777778,
+              "throughputPerHour": 32.5,
+              "cost": 224,
+              "waitSampleSize": 65,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "b3a98df11fbb2af6",
+            "demandHash": "ffc9878268263ce5",
+            "summary": {
+              "arrivals": 72,
+              "completed": 66,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 6,
+              "meanWait": 186.08127899400182,
+              "p50Wait": 96.45367310415259,
+              "p95Wait": 570.5826961051989,
+              "meanSojourn": 493.06601752443,
+              "slaMet": 64,
+              "slaRate": 0.8888888888888888,
+              "throughputPerHour": 33,
+              "cost": 224,
+              "waitSampleSize": 66,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "machining-trial-2",
+        "name": "Staff the added station",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "c27e0ddbafd49b87",
+            "demandHash": "db5a29719a906d0b",
+            "summary": {
+              "arrivals": 72,
+              "completed": 68,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 4,
+              "meanWait": 183.63293700377804,
+              "p50Wait": 188.24326465741706,
+              "p95Wait": 455.7350534766979,
+              "meanSojourn": 470.4088346782634,
+              "slaMet": 68,
+              "slaRate": 0.9444444444444444,
+              "throughputPerHour": 34,
+              "cost": 284,
+              "waitSampleSize": 68,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "c27e0ddbafd49b87",
+            "demandHash": "dc577a60ed75b0ae",
+            "summary": {
+              "arrivals": 72,
+              "completed": 68,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 4,
+              "meanWait": 58.90418394621838,
+              "p50Wait": 59.148877495812485,
+              "p95Wait": 138.69844351467918,
+              "meanSojourn": 374.61001025135874,
+              "slaMet": 68,
+              "slaRate": 0.9444444444444444,
+              "throughputPerHour": 34,
+              "cost": 284,
+              "waitSampleSize": 68,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "c27e0ddbafd49b87",
+            "demandHash": "ffc9878268263ce5",
+            "summary": {
+              "arrivals": 72,
+              "completed": 68,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 4,
+              "meanWait": 53.84977576378157,
+              "p50Wait": 7.834348708855941,
+              "p95Wait": 239.95558543176958,
+              "meanSojourn": 361.8309767237207,
+              "slaMet": 68,
+              "slaRate": 0.9444444444444444,
+              "throughputPerHour": 34,
+              "cost": 284.00000000000006,
+              "waitSampleSize": 68,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      }
+    ],
+    "quality": [
+      {
+        "id": "quality-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "a64e104c6cb8a4f6",
+            "demandHash": "c27a827e13b7e2c1",
+            "summary": {
+              "arrivals": 96,
+              "completed": 74,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 22,
+              "meanWait": 815.5397640978462,
+              "p50Wait": 815,
+              "p95Wait": 1430,
+              "meanSojourn": 929.6621621621622,
+              "slaMet": 26,
+              "slaRate": 0.2708333333333333,
+              "throughputPerHour": 37,
+              "cost": 116,
+              "waitSampleSize": 74,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "a64e104c6cb8a4f6",
+            "demandHash": "facbc08b21ffddc4",
+            "summary": {
+              "arrivals": 96,
+              "completed": 72,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 24,
+              "meanWait": 838.7377921165529,
+              "p50Wait": 720,
+              "p95Wait": 1657.7161485219385,
+              "meanSojourn": 955.625,
+              "slaMet": 26,
+              "slaRate": 0.2708333333333333,
+              "throughputPerHour": 36,
+              "cost": 116,
+              "waitSampleSize": 72,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "a64e104c6cb8a4f6",
+            "demandHash": "6b4ef95f4970b183",
+            "summary": {
+              "arrivals": 96,
+              "completed": 77,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 19,
+              "meanWait": 616.7395917894003,
+              "p50Wait": 655,
+              "p95Wait": 1100,
+              "meanSojourn": 715,
+              "slaMet": 37,
+              "slaRate": 0.3854166666666667,
+              "throughputPerHour": 38.5,
+              "cost": 116,
+              "waitSampleSize": 77,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "quality-trial-1",
+        "name": "Second inspection team",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "e1af0455eadfe9cc",
+            "demandHash": "c27a827e13b7e2c1",
+            "summary": {
+              "arrivals": 96,
+              "completed": 94,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 2,
+              "meanWait": 3.617176242722464,
+              "p50Wait": 0,
+              "p95Wait": 10,
+              "meanSojourn": 121.09252177443476,
+              "slaMet": 94,
+              "slaRate": 0.9791666666666666,
+              "throughputPerHour": 47,
+              "cost": 172,
+              "waitSampleSize": 94,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "e1af0455eadfe9cc",
+            "demandHash": "facbc08b21ffddc4",
+            "summary": {
+              "arrivals": 96,
+              "completed": 92,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 4,
+              "meanWait": 7.508330037946967,
+              "p50Wait": 0,
+              "p95Wait": 10,
+              "meanSojourn": 135.57151733907523,
+              "slaMet": 92,
+              "slaRate": 0.9583333333333334,
+              "throughputPerHour": 46,
+              "cost": 172,
+              "waitSampleSize": 92,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "e1af0455eadfe9cc",
+            "demandHash": "6b4ef95f4970b183",
+            "summary": {
+              "arrivals": 96,
+              "completed": 95,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 1,
+              "meanWait": 0.7976659622016278,
+              "p50Wait": 0,
+              "p95Wait": 10,
+              "meanSojourn": 105.43213459541799,
+              "slaMet": 95,
+              "slaRate": 0.9895833333333334,
+              "throughputPerHour": 47.5,
+              "cost": 172,
+              "waitSampleSize": 95,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "quality-trial-2",
+        "name": "Lower rework study",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "86505a700b90bf44",
+            "demandHash": "c27a827e13b7e2c1",
+            "summary": {
+              "arrivals": 96,
+              "completed": 80,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 16,
+              "meanWait": 483.8979821541752,
+              "p50Wait": 390,
+              "p95Wait": 1035,
+              "meanSojourn": 583.0625,
+              "slaMet": 54,
+              "slaRate": 0.5625,
+              "throughputPerHour": 40,
+              "cost": 116,
+              "waitSampleSize": 80,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "86505a700b90bf44",
+            "demandHash": "facbc08b21ffddc4",
+            "summary": {
+              "arrivals": 96,
+              "completed": 80,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 16,
+              "meanWait": 561.0781464374813,
+              "p50Wait": 580,
+              "p95Wait": 1025,
+              "meanSojourn": 655.875,
+              "slaMet": 42,
+              "slaRate": 0.4375,
+              "throughputPerHour": 40,
+              "cost": 116,
+              "waitSampleSize": 80,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "86505a700b90bf44",
+            "demandHash": "6b4ef95f4970b183",
+            "summary": {
+              "arrivals": 96,
+              "completed": 83,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 13,
+              "meanWait": 482.92935867735633,
+              "p50Wait": 495,
+              "p95Wait": 865,
+              "meanSojourn": 570.7831325301205,
+              "slaMet": 52,
+              "slaRate": 0.5416666666666666,
+              "throughputPerHour": 41.5,
+              "cost": 116,
+              "waitSampleSize": 83,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      }
+    ],
+    "print": [
+      {
+        "id": "print-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "a424bfa7b707b3cd",
+            "demandHash": "5a86e341aa138ef0",
+            "summary": {
+              "arrivals": 48,
+              "completed": 39,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 9,
+              "meanWait": 1880.715298346125,
+              "p50Wait": 1452.0803324314857,
+              "p95Wait": 4143.963197027988,
+              "meanSojourn": 3969.680684413416,
+              "slaMet": 6,
+              "slaRate": 0.125,
+              "throughputPerHour": 4.875,
+              "cost": 432,
+              "waitSampleSize": 39,
+              "measurementStart": 0,
+              "measurementEnd": 28800
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "a424bfa7b707b3cd",
+            "demandHash": "456b530d8607e24f",
+            "summary": {
+              "arrivals": 48,
+              "completed": 39,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 9,
+              "meanWait": 1857.2285752624234,
+              "p50Wait": 1774.4811263166303,
+              "p95Wait": 3641.1434820431605,
+              "meanSojourn": 3683.6235316359835,
+              "slaMet": 12,
+              "slaRate": 0.25,
+              "throughputPerHour": 4.875,
+              "cost": 432,
+              "waitSampleSize": 39,
+              "measurementStart": 0,
+              "measurementEnd": 28800
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "a424bfa7b707b3cd",
+            "demandHash": "3144fcfe9c30cf1e",
+            "summary": {
+              "arrivals": 48,
+              "completed": 37,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 11,
+              "meanWait": 2845.5171431345707,
+              "p50Wait": 3272.764570090425,
+              "p95Wait": 4746.9579308807115,
+              "meanSojourn": 4775.984132073663,
+              "slaMet": 4,
+              "slaRate": 0.08333333333333333,
+              "throughputPerHour": 4.625,
+              "cost": 432,
+              "waitSampleSize": 37,
+              "measurementStart": 0,
+              "measurementEnd": 28800
+            }
+          }
+        ]
+      },
+      {
+        "id": "print-trial-1",
+        "name": "Same mean, steady jobs",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "c111e21fbb611ef1",
+            "demandHash": "5a86e341aa138ef0",
+            "summary": {
+              "arrivals": 48,
+              "completed": 42,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 6,
+              "meanWait": 1033.2585009349127,
+              "p50Wait": 1042.2902095658592,
+              "p95Wait": 1800.0851272636282,
+              "meanSojourn": 3107.4400424359746,
+              "slaMet": 12,
+              "slaRate": 0.25,
+              "throughputPerHour": 5.25,
+              "cost": 432,
+              "waitSampleSize": 42,
+              "measurementStart": 0,
+              "measurementEnd": 28800
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "c111e21fbb611ef1",
+            "demandHash": "456b530d8607e24f",
+            "summary": {
+              "arrivals": 48,
+              "completed": 42,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 6,
+              "meanWait": 1252.794952444146,
+              "p50Wait": 1202.39391393609,
+              "p95Wait": 2072.42087335014,
+              "meanSojourn": 3329.4974342527025,
+              "slaMet": 7,
+              "slaRate": 0.14583333333333334,
+              "throughputPerHour": 5.25,
+              "cost": 432,
+              "waitSampleSize": 42,
+              "measurementStart": 0,
+              "measurementEnd": 28800
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "c111e21fbb611ef1",
+            "demandHash": "3144fcfe9c30cf1e",
+            "summary": {
+              "arrivals": 48,
+              "completed": 41,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 7,
+              "meanWait": 1187.1718653843939,
+              "p50Wait": 1018.1710495459156,
+              "p95Wait": 2539.255489244675,
+              "meanSojourn": 3276.9249376114967,
+              "slaMet": 14,
+              "slaRate": 0.2916666666666667,
+              "throughputPerHour": 5.125,
+              "cost": 432,
+              "waitSampleSize": 41,
+              "measurementStart": 0,
+              "measurementEnd": 28800
+            }
+          }
+        ]
+      },
+      {
+        "id": "print-trial-2",
+        "name": "Second finishing bench",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "06b339f963b62a73",
+            "demandHash": "5a86e341aa138ef0",
+            "summary": {
+              "arrivals": 48,
+              "completed": 45,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 835.4622307218508,
+              "p50Wait": 600,
+              "p95Wait": 2700,
+              "meanSojourn": 2899.227584271483,
+              "slaMet": 25,
+              "slaRate": 0.5208333333333334,
+              "throughputPerHour": 5.625,
+              "cost": 640,
+              "waitSampleSize": 45,
+              "measurementStart": 0,
+              "measurementEnd": 28800
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "06b339f963b62a73",
+            "demandHash": "456b530d8607e24f",
+            "summary": {
+              "arrivals": 48,
+              "completed": 46,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 2,
+              "meanWait": 735.3097878016218,
+              "p50Wait": 312.968396646771,
+              "p95Wait": 2400,
+              "meanSojourn": 2577.4492870533945,
+              "slaMet": 25,
+              "slaRate": 0.5208333333333334,
+              "throughputPerHour": 5.75,
+              "cost": 640,
+              "waitSampleSize": 46,
+              "measurementStart": 0,
+              "measurementEnd": 28800
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "06b339f963b62a73",
+            "demandHash": "3144fcfe9c30cf1e",
+            "summary": {
+              "arrivals": 48,
+              "completed": 42,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 6,
+              "meanWait": 686.0481118742982,
+              "p50Wait": 359.8600047711361,
+              "p95Wait": 1914.6881767557043,
+              "meanSojourn": 2613.6725603437458,
+              "slaMet": 26,
+              "slaRate": 0.5416666666666666,
+              "throughputPerHour": 5.25,
+              "cost": 640,
+              "waitSampleSize": 42,
+              "measurementStart": 0,
+              "measurementEnd": 28800
+            }
+          }
+        ]
+      }
+    ],
+    "packing": [
+      {
+        "id": "packing-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "28c704affe5204c7",
+            "demandHash": "7e387209d9820ce4",
+            "summary": {
+              "arrivals": 200,
+              "completed": 196,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 4,
+              "meanWait": 232.7790190272305,
+              "p50Wait": 71.8294994363032,
+              "p95Wait": 1232.0005509900466,
+              "meanSojourn": 321.4671780782626,
+              "slaMet": 164,
+              "slaRate": 0.82,
+              "throughputPerHour": 98,
+              "cost": 144,
+              "waitSampleSize": 196,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "28c704affe5204c7",
+            "demandHash": "84c22e61b6ae7bb3",
+            "summary": {
+              "arrivals": 200,
+              "completed": 187,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 13,
+              "meanWait": 171.84644166960183,
+              "p50Wait": 52.091576661035106,
+              "p95Wait": 896.0977207195256,
+              "meanSojourn": 261.60039495522574,
+              "slaMet": 169,
+              "slaRate": 0.845,
+              "throughputPerHour": 93.5,
+              "cost": 144,
+              "waitSampleSize": 187,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "28c704affe5204c7",
+            "demandHash": "03a52d1674d24222",
+            "summary": {
+              "arrivals": 200,
+              "completed": 192,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 8,
+              "meanWait": 161.95156462678426,
+              "p50Wait": 35.29627127286949,
+              "p95Wait": 788.5345283219149,
+              "meanSojourn": 250.7909521611672,
+              "slaMet": 174,
+              "slaRate": 0.87,
+              "throughputPerHour": 96,
+              "cost": 144,
+              "waitSampleSize": 192,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "packing-trial-1",
+        "name": "Extra bulky bench",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "9922311edfe0e350",
+            "demandHash": "7e387209d9820ce4",
+            "summary": {
+              "arrivals": 200,
+              "completed": 195,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 5,
+              "meanWait": 183.3690000437253,
+              "p50Wait": 178.6992140438706,
+              "p95Wait": 442.3298071138397,
+              "meanSojourn": 273.3171155187872,
+              "slaMet": 195,
+              "slaRate": 0.975,
+              "throughputPerHour": 97.5,
+              "cost": 144,
+              "waitSampleSize": 195,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "9922311edfe0e350",
+            "demandHash": "84c22e61b6ae7bb3",
+            "summary": {
+              "arrivals": 200,
+              "completed": 188,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 12,
+              "meanWait": 161.29336389340023,
+              "p50Wait": 148.51527972918075,
+              "p95Wait": 346.5634846421799,
+              "meanSojourn": 255.13018923648428,
+              "slaMet": 188,
+              "slaRate": 0.94,
+              "throughputPerHour": 94,
+              "cost": 144,
+              "waitSampleSize": 188,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "9922311edfe0e350",
+            "demandHash": "03a52d1674d24222",
+            "summary": {
+              "arrivals": 200,
+              "completed": 195,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 5,
+              "meanWait": 121.29715442636738,
+              "p50Wait": 114.4675227241305,
+              "p95Wait": 311.9069403967378,
+              "meanSojourn": 211.84621372307302,
+              "slaMet": 195,
+              "slaRate": 0.975,
+              "throughputPerHour": 97.5,
+              "cost": 144,
+              "waitSampleSize": 195,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "packing-trial-2",
+        "name": "Larger packing crew",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "3898e69b8200967b",
+            "demandHash": "7e387209d9820ce4",
+            "summary": {
+              "arrivals": 200,
+              "completed": 197,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 8.723736097705737,
+              "p50Wait": 0,
+              "p95Wait": 51.58667181881947,
+              "meanSojourn": 97.90083039756303,
+              "slaMet": 197,
+              "slaRate": 0.985,
+              "throughputPerHour": 98.5,
+              "cost": 191.99999999999986,
+              "waitSampleSize": 197,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "3898e69b8200967b",
+            "demandHash": "84c22e61b6ae7bb3",
+            "summary": {
+              "arrivals": 200,
+              "completed": 198,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 2,
+              "meanWait": 9.693324924189435,
+              "p50Wait": 0,
+              "p95Wait": 55.353899672275475,
+              "meanSojourn": 103.31723535569272,
+              "slaMet": 198,
+              "slaRate": 0.99,
+              "throughputPerHour": 99,
+              "cost": 192,
+              "waitSampleSize": 198,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "3898e69b8200967b",
+            "demandHash": "03a52d1674d24222",
+            "summary": {
+              "arrivals": 200,
+              "completed": 197,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 5.998389190968659,
+              "p50Wait": 0,
+              "p95Wait": 31.052140929234156,
+              "meanSojourn": 96.80404828406485,
+              "slaMet": 197,
+              "slaRate": 0.985,
+              "throughputPerHour": 98.5,
+              "cost": 191.99999999999994,
+              "waitSampleSize": 197,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      }
+    ],
+    "fulfillment": [
+      {
+        "id": "fulfillment-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "62c9f7b046e5b4ab",
+            "demandHash": "fcb954597e02fe92",
+            "summary": {
+              "arrivals": 120,
+              "completed": 117,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 2032.4525728099513,
+              "p50Wait": 2047.7078955243092,
+              "p95Wait": 3778.2523285226234,
+              "meanSojourn": 2243.882774616236,
+              "slaMet": 12,
+              "slaRate": 0.1,
+              "throughputPerHour": 58.5,
+              "cost": 240.00000000000006,
+              "waitSampleSize": 117,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "62c9f7b046e5b4ab",
+            "demandHash": "96c7be0bd586afad",
+            "summary": {
+              "arrivals": 120,
+              "completed": 117,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 2002.0442862512587,
+              "p50Wait": 2021.2995420300708,
+              "p95Wait": 3734.963052190401,
+              "meanSojourn": 2212.7644271411386,
+              "slaMet": 12,
+              "slaRate": 0.1,
+              "throughputPerHour": 58.5,
+              "cost": 240.00000000000006,
+              "waitSampleSize": 117,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "62c9f7b046e5b4ab",
+            "demandHash": "eae5da3ecc6db7bc",
+            "summary": {
+              "arrivals": 120,
+              "completed": 117,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 2023.7246539277655,
+              "p50Wait": 2066.765728040262,
+              "p95Wait": 3751.255932238614,
+              "meanSojourn": 2233.3270937346415,
+              "slaMet": 12,
+              "slaRate": 0.1,
+              "throughputPerHour": 58.5,
+              "cost": 239.99999999999997,
+              "waitSampleSize": 117,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "fulfillment-trial-1",
+        "name": "Rebalance the crew",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "f0f4837676a32521",
+            "demandHash": "fcb954597e02fe92",
+            "summary": {
+              "arrivals": 120,
+              "completed": 116,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 4,
+              "meanWait": 2014.176022747576,
+              "p50Wait": 2024.8658258163123,
+              "p95Wait": 3729.891735349308,
+              "meanSojourn": 2225.605712913233,
+              "slaMet": 13,
+              "slaRate": 0.10833333333333334,
+              "throughputPerHour": 58,
+              "cost": 240,
+              "waitSampleSize": 116,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "f0f4837676a32521",
+            "demandHash": "96c7be0bd586afad",
+            "summary": {
+              "arrivals": 120,
+              "completed": 117,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 2062.075729137647,
+              "p50Wait": 2093.01362789241,
+              "p95Wait": 3781.9883987601097,
+              "meanSojourn": 2272.795870027528,
+              "slaMet": 12,
+              "slaRate": 0.1,
+              "throughputPerHour": 58.5,
+              "cost": 240,
+              "waitSampleSize": 117,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "f0f4837676a32521",
+            "demandHash": "eae5da3ecc6db7bc",
+            "summary": {
+              "arrivals": 120,
+              "completed": 117,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 2003.2322975685581,
+              "p50Wait": 2055.714410549087,
+              "p95Wait": 3717.9842634260067,
+              "meanSojourn": 2212.8347373754336,
+              "slaMet": 12,
+              "slaRate": 0.1,
+              "throughputPerHour": 58.5,
+              "cost": 240,
+              "waitSampleSize": 117,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "fulfillment-trial-2",
+        "name": "Smooth order releases",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "e3612d70ea0c4b23",
+            "demandHash": "7ca1c4148b5483fa",
+            "summary": {
+              "arrivals": 120,
+              "completed": 117,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 592.6126624303545,
+              "p50Wait": 589.9797741451189,
+              "p95Wait": 1140.953051005421,
+              "meanSojourn": 804.0428642366402,
+              "slaMet": 60,
+              "slaRate": 0.5,
+              "throughputPerHour": 58.5,
+              "cost": 240.00000000000009,
+              "waitSampleSize": 117,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "e3612d70ea0c4b23",
+            "demandHash": "c83dd53c7683d875",
+            "summary": {
+              "arrivals": 120,
+              "completed": 117,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 559.0490008569478,
+              "p50Wait": 551.1680693540279,
+              "p95Wait": 1086.8988630925824,
+              "meanSojourn": 769.7691417468276,
+              "slaMet": 61,
+              "slaRate": 0.5083333333333333,
+              "throughputPerHour": 58.5,
+              "cost": 240.00000000000009,
+              "waitSampleSize": 117,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "e3612d70ea0c4b23",
+            "demandHash": "d7bb13d001e36464",
+            "summary": {
+              "arrivals": 120,
+              "completed": 117,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 580.5774660079171,
+              "p50Wait": 568.0660612435308,
+              "p95Wait": 1106.9293089261382,
+              "meanSojourn": 790.1799058147932,
+              "slaMet": 61,
+              "slaRate": 0.5083333333333333,
+              "throughputPerHour": 58.5,
+              "cost": 240.00000000000006,
+              "waitSampleSize": 117,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      }
+    ],
+    "returns": [
+      {
+        "id": "returns-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "890b5bd0fde1cbfc",
+            "demandHash": "bcdfbb417e79182a",
+            "summary": {
+              "arrivals": 140,
+              "completed": 112,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 28,
+              "meanWait": 729.4886599506966,
+              "p50Wait": 722.1428571428569,
+              "p95Wait": 1688.139900842069,
+              "meanSojourn": 901.4256357661618,
+              "slaMet": 50,
+              "slaRate": 0.35714285714285715,
+              "throughputPerHour": 56,
+              "cost": 156,
+              "waitSampleSize": 112,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "890b5bd0fde1cbfc",
+            "demandHash": "c5c551f6f59d6707",
+            "summary": {
+              "arrivals": 140,
+              "completed": 106,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 34,
+              "meanWait": 761.0882481105441,
+              "p50Wait": 642.8571428571427,
+              "p95Wait": 1968.1366173281385,
+              "meanSojourn": 933.7706176355576,
+              "slaMet": 46,
+              "slaRate": 0.32857142857142857,
+              "throughputPerHour": 53,
+              "cost": 156,
+              "waitSampleSize": 106,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "890b5bd0fde1cbfc",
+            "demandHash": "a4c0f49b5aa3e1a8",
+            "summary": {
+              "arrivals": 140,
+              "completed": 103,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 37,
+              "meanWait": 910.1086051735615,
+              "p50Wait": 689.1541871049097,
+              "p95Wait": 2493.5573397452144,
+              "meanSojourn": 1082.3498823188404,
+              "slaMet": 46,
+              "slaRate": 0.32857142857142857,
+              "throughputPerHour": 51.5,
+              "cost": 156,
+              "waitSampleSize": 103,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "returns-trial-1",
+        "name": "Faster intake study",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "b12af4294729718e",
+            "demandHash": "bcdfbb417e79182a",
+            "summary": {
+              "arrivals": 140,
+              "completed": 125,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 15,
+              "meanWait": 391.1475536015386,
+              "p50Wait": 117.85714285714312,
+              "p95Wait": 1652.528628670866,
+              "meanSojourn": 539.2430839321958,
+              "slaMet": 94,
+              "slaRate": 0.6714285714285714,
+              "throughputPerHour": 62.5,
+              "cost": 156,
+              "waitSampleSize": 125,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "b12af4294729718e",
+            "demandHash": "c5c551f6f59d6707",
+            "summary": {
+              "arrivals": 140,
+              "completed": 120,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 20,
+              "meanWait": 435.50928367331386,
+              "p50Wait": 85.71428571428555,
+              "p95Wait": 1959.5651887567092,
+              "meanSojourn": 584.6634047377098,
+              "slaMet": 88,
+              "slaRate": 0.6285714285714286,
+              "throughputPerHour": 60,
+              "cost": 156,
+              "waitSampleSize": 120,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "b12af4294729718e",
+            "demandHash": "a4c0f49b5aa3e1a8",
+            "summary": {
+              "arrivals": 140,
+              "completed": 113,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 27,
+              "meanWait": 512.9371736158505,
+              "p50Wait": 47.14285714285714,
+              "p95Wait": 2382.128768316644,
+              "meanSojourn": 661.8827625181846,
+              "slaMet": 84,
+              "slaRate": 0.6,
+              "throughputPerHour": 56.5,
+              "cost": 156,
+              "waitSampleSize": 113,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "returns-trial-2",
+        "name": "Staff a second repair bench",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "e24ab4b7cc4409f2",
+            "demandHash": "bcdfbb417e79182a",
+            "summary": {
+              "arrivals": 140,
+              "completed": 118,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 22,
+              "meanWait": 521.6531846168511,
+              "p50Wait": 520.7142857142858,
+              "p95Wait": 975,
+              "meanSojourn": 696.7592239128742,
+              "slaMet": 69,
+              "slaRate": 0.4928571428571429,
+              "throughputPerHour": 59.00000000000001,
+              "cost": 216,
+              "waitSampleSize": 118,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "e24ab4b7cc4409f2",
+            "demandHash": "c5c551f6f59d6707",
+            "summary": {
+              "arrivals": 140,
+              "completed": 117,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 23,
+              "meanWait": 513.2905741968731,
+              "p50Wait": 514.2857142857142,
+              "p95Wait": 974.1582778249167,
+              "meanSojourn": 692.7349597487982,
+              "slaMet": 68,
+              "slaRate": 0.4857142857142857,
+              "throughputPerHour": 58.5,
+              "cost": 216,
+              "waitSampleSize": 117,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "e24ab4b7cc4409f2",
+            "demandHash": "a4c0f49b5aa3e1a8",
+            "summary": {
+              "arrivals": 140,
+              "completed": 118,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 22,
+              "meanWait": 524.7640990676742,
+              "p50Wait": 497.1428571428569,
+              "p95Wait": 977.1428571428569,
+              "meanSojourn": 705.369252105567,
+              "slaMet": 71,
+              "slaRate": 0.5071428571428571,
+              "throughputPerHour": 59.00000000000001,
+              "cost": 216,
+              "waitSampleSize": 118,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      }
+    ],
+    "parcel": [
+      {
+        "id": "parcel-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "85a89d907ecb601c",
+            "demandHash": "7864caed0c5d65b7",
+            "summary": {
+              "arrivals": 150,
+              "completed": 129,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 21,
+              "meanWait": 1245.0232558139535,
+              "p50Wait": 1253,
+              "p95Wait": 2199,
+              "meanSojourn": 1370.0232558139535,
+              "slaMet": 20,
+              "slaRate": 0.13333333333333333,
+              "throughputPerHour": 64.5,
+              "cost": 244,
+              "waitSampleSize": 129,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "85a89d907ecb601c",
+            "demandHash": "fea27388de659304",
+            "summary": {
+              "arrivals": 150,
+              "completed": 129,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 21,
+              "meanWait": 1245.0232558139535,
+              "p50Wait": 1253,
+              "p95Wait": 2199,
+              "meanSojourn": 1370.0232558139535,
+              "slaMet": 20,
+              "slaRate": 0.13333333333333333,
+              "throughputPerHour": 64.5,
+              "cost": 244,
+              "waitSampleSize": 129,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "85a89d907ecb601c",
+            "demandHash": "44160ad250cdf275",
+            "summary": {
+              "arrivals": 150,
+              "completed": 129,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 21,
+              "meanWait": 1245.0232558139535,
+              "p50Wait": 1253,
+              "p95Wait": 2199,
+              "meanSojourn": 1370.0232558139535,
+              "slaMet": 20,
+              "slaRate": 0.13333333333333333,
+              "throughputPerHour": 64.5,
+              "cost": 244,
+              "waitSampleSize": 129,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "parcel-trial-1",
+        "name": "Peak dispatch cover",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "0edbc579f97e3a81",
+            "demandHash": "7864caed0c5d65b7",
+            "summary": {
+              "arrivals": 150,
+              "completed": 150,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 0,
+              "meanWait": 651.3666666666667,
+              "p50Wait": 537,
+              "p95Wait": 1526,
+              "meanSojourn": 776.3666666666667,
+              "slaMet": 81,
+              "slaRate": 0.54,
+              "throughputPerHour": 75,
+              "cost": 270.2166666666667,
+              "waitSampleSize": 150,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "0edbc579f97e3a81",
+            "demandHash": "fea27388de659304",
+            "summary": {
+              "arrivals": 150,
+              "completed": 150,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 0,
+              "meanWait": 651.3666666666667,
+              "p50Wait": 537,
+              "p95Wait": 1526,
+              "meanSojourn": 776.3666666666667,
+              "slaMet": 81,
+              "slaRate": 0.54,
+              "throughputPerHour": 75,
+              "cost": 270.2166666666667,
+              "waitSampleSize": 150,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "0edbc579f97e3a81",
+            "demandHash": "44160ad250cdf275",
+            "summary": {
+              "arrivals": 150,
+              "completed": 150,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 0,
+              "meanWait": 651.3666666666667,
+              "p50Wait": 537,
+              "p95Wait": 1526,
+              "meanSojourn": 776.3666666666667,
+              "slaMet": 81,
+              "slaRate": 0.54,
+              "throughputPerHour": 75,
+              "cost": 270.2166666666667,
+              "waitSampleSize": 150,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "parcel-trial-2",
+        "name": "Even parcel releases",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "c33f6dd542efefcf",
+            "demandHash": "f47ab88e62d0e248",
+            "summary": {
+              "arrivals": 150,
+              "completed": 129,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 21,
+              "meanWait": 960,
+              "p50Wait": 960,
+              "p95Wait": 1830,
+              "meanSojourn": 1085,
+              "slaMet": 41,
+              "slaRate": 0.2733333333333333,
+              "throughputPerHour": 64.5,
+              "cost": 244,
+              "waitSampleSize": 129,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "c33f6dd542efefcf",
+            "demandHash": "28a720e14593cdbd",
+            "summary": {
+              "arrivals": 150,
+              "completed": 129,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 21,
+              "meanWait": 960,
+              "p50Wait": 960,
+              "p95Wait": 1830,
+              "meanSojourn": 1085,
+              "slaMet": 41,
+              "slaRate": 0.2733333333333333,
+              "throughputPerHour": 64.5,
+              "cost": 244,
+              "waitSampleSize": 129,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "c33f6dd542efefcf",
+            "demandHash": "2e8327e09afadaaa",
+            "summary": {
+              "arrivals": 150,
+              "completed": 129,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 21,
+              "meanWait": 960,
+              "p50Wait": 960,
+              "p95Wait": 1830,
+              "meanSojourn": 1085,
+              "slaMet": 41,
+              "slaRate": 0.2733333333333333,
+              "throughputPerHour": 64.5,
+              "cost": 244,
+              "waitSampleSize": 129,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      }
+    ],
+    "repair": [
+      {
+        "id": "repair-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "1d1ca6baab050ca1",
+            "demandHash": "ba3e5876150d2b6d",
+            "summary": {
+              "arrivals": 68,
+              "completed": 47,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 21,
+              "meanWait": 974.4646134666302,
+              "p50Wait": 714.4527609320303,
+              "p95Wait": 2122.4242388258012,
+              "meanSojourn": 1292.3247205155344,
+              "slaMet": 23,
+              "slaRate": 0.3382352941176471,
+              "throughputPerHour": 23.5,
+              "cost": 166.445489567678,
+              "waitSampleSize": 47,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "1d1ca6baab050ca1",
+            "demandHash": "272dd58ba62eb372",
+            "summary": {
+              "arrivals": 68,
+              "completed": 47,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 21,
+              "meanWait": 1035.3236267549462,
+              "p50Wait": 706.4445294287038,
+              "p95Wait": 2334.2692119701505,
+              "meanSojourn": 1354.4424776335156,
+              "slaMet": 23,
+              "slaRate": 0.3382352941176471,
+              "throughputPerHour": 23.5,
+              "cost": 166.04949278986393,
+              "waitSampleSize": 47,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "1d1ca6baab050ca1",
+            "demandHash": "53a2d74c2d50ed0b",
+            "summary": {
+              "arrivals": 68,
+              "completed": 47,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 21,
+              "meanWait": 915.9997088097477,
+              "p50Wait": 416.0945107243042,
+              "p95Wait": 2385.14317888213,
+              "meanSojourn": 1235.9077934901693,
+              "slaMet": 26,
+              "slaRate": 0.38235294117647056,
+              "throughputPerHour": 23.5,
+              "cost": 166.08270160069247,
+              "waitSampleSize": 47,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "repair-trial-1",
+        "name": "Relief during the break",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "a7cce7b06f1e9e4e",
+            "demandHash": "ba3e5876150d2b6d",
+            "summary": {
+              "arrivals": 68,
+              "completed": 52,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 16,
+              "meanWait": 733.8778801821899,
+              "p50Wait": 778.892714040182,
+              "p95Wait": 1568.9623082311482,
+              "meanSojourn": 1053.2547305164537,
+              "slaMet": 23,
+              "slaRate": 0.3382352941176471,
+              "throughputPerHour": 26,
+              "cost": 176,
+              "waitSampleSize": 52,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "a7cce7b06f1e9e4e",
+            "demandHash": "272dd58ba62eb372",
+            "summary": {
+              "arrivals": 68,
+              "completed": 53,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 15,
+              "meanWait": 770.1589400985805,
+              "p50Wait": 909.5215564582791,
+              "p95Wait": 1576.401200983426,
+              "meanSojourn": 1085.3042045099626,
+              "slaMet": 23,
+              "slaRate": 0.3382352941176471,
+              "throughputPerHour": 26.5,
+              "cost": 176,
+              "waitSampleSize": 53,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "a7cce7b06f1e9e4e",
+            "demandHash": "53a2d74c2d50ed0b",
+            "summary": {
+              "arrivals": 68,
+              "completed": 51,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 17,
+              "meanWait": 674.1222761593687,
+              "p50Wait": 535.1756775020997,
+              "p95Wait": 1682.4713650374224,
+              "meanSojourn": 996.4577346739986,
+              "slaMet": 26,
+              "slaRate": 0.38235294117647056,
+              "throughputPerHour": 25.5,
+              "cost": 176,
+              "waitSampleSize": 51,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      },
+      {
+        "id": "repair-trial-2",
+        "name": "Third technician",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "d392edb3b24c9711",
+            "demandHash": "ba3e5876150d2b6d",
+            "summary": {
+              "arrivals": 68,
+              "completed": 66,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 2,
+              "meanWait": 60.6765750184928,
+              "p50Wait": 34.426771066163724,
+              "p95Wait": 221.82490572008146,
+              "meanSojourn": 380.1597393749679,
+              "slaMet": 66,
+              "slaRate": 0.9705882352941176,
+              "throughputPerHour": 33,
+              "cost": 226.39423587678826,
+              "waitSampleSize": 66,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "d392edb3b24c9711",
+            "demandHash": "272dd58ba62eb372",
+            "summary": {
+              "arrivals": 68,
+              "completed": 65,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 65.58217611362082,
+              "p50Wait": 10.133394861675697,
+              "p95Wait": 276.77142003701465,
+              "meanSojourn": 382.49008927032344,
+              "slaMet": 63,
+              "slaRate": 0.9264705882352942,
+              "throughputPerHour": 32.5,
+              "cost": 226.08983735913438,
+              "waitSampleSize": 65,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "d392edb3b24c9711",
+            "demandHash": "53a2d74c2d50ed0b",
+            "summary": {
+              "arrivals": 68,
+              "completed": 65,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 77.3846323980493,
+              "p50Wait": 28.539941704855664,
+              "p95Wait": 318.10227206222953,
+              "meanSojourn": 399.42166052255106,
+              "slaMet": 65,
+              "slaRate": 0.9558823529411765,
+              "throughputPerHour": 32.5,
+              "cost": 226.0663616472865,
+              "waitSampleSize": 65,
+              "measurementStart": 0,
+              "measurementEnd": 7200
+            }
+          }
+        ]
+      }
+    ],
+    "service": [
+      {
+        "id": "service-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "d30c0f3214b4ffcb",
+            "demandHash": "af24c2789f673dc9",
+            "summary": {
+              "arrivals": 106,
+              "completed": 66,
+              "balked": 0,
+              "reneged": 1,
+              "inSystem": 39,
+              "meanWait": 568.4801244956659,
+              "p50Wait": 269.6723339036151,
+              "p95Wait": 1331.8030401746391,
+              "meanSojourn": 688.0122793801553,
+              "slaMet": 21,
+              "slaRate": 0.19811320754716982,
+              "throughputPerHour": 66,
+              "cost": 85.41977759492272,
+              "waitSampleSize": 66,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "d30c0f3214b4ffcb",
+            "demandHash": "e70347ae320afb4e",
+            "summary": {
+              "arrivals": 89,
+              "completed": 66,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 23,
+              "meanWait": 259.31697183138283,
+              "p50Wait": 56.75670077899281,
+              "p95Wait": 1021.7645106795626,
+              "meanSojourn": 378.70925214552506,
+              "slaMet": 44,
+              "slaRate": 0.4943820224719101,
+              "throughputPerHour": 66,
+              "cost": 85.51592115124657,
+              "waitSampleSize": 66,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "d30c0f3214b4ffcb",
+            "demandHash": "1e0043bee291d47b",
+            "summary": {
+              "arrivals": 89,
+              "completed": 68,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 21,
+              "meanWait": 373.6710678320427,
+              "p50Wait": 147.2027263378011,
+              "p95Wait": 1092.845247276608,
+              "meanSojourn": 494.6104462881393,
+              "slaMet": 39,
+              "slaRate": 0.43820224719101125,
+              "throughputPerHour": 68,
+              "cost": 85.54270303344344,
+              "waitSampleSize": 68,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          }
+        ]
+      },
+      {
+        "id": "service-trial-1",
+        "name": "Cover the team break",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "ec8e1a6da87123d6",
+            "demandHash": "af24c2789f673dc9",
+            "summary": {
+              "arrivals": 106,
+              "completed": 69,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 37,
+              "meanWait": 520.8135408982482,
+              "p50Wait": 354.35515712628705,
+              "p95Wait": 1177.70632301781,
+              "meanSojourn": 640.9750903662309,
+              "slaMet": 21,
+              "slaRate": 0.19811320754716982,
+              "throughputPerHour": 69,
+              "cost": 88,
+              "waitSampleSize": 69,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "ec8e1a6da87123d6",
+            "demandHash": "e70347ae320afb4e",
+            "summary": {
+              "arrivals": 89,
+              "completed": 70,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 19,
+              "meanWait": 230.64295893471999,
+              "p50Wait": 71.3665431431964,
+              "p95Wait": 999.0616407924658,
+              "meanSojourn": 350.0900469880585,
+              "slaMet": 45,
+              "slaRate": 0.5056179775280899,
+              "throughputPerHour": 70,
+              "cost": 88,
+              "waitSampleSize": 70,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "ec8e1a6da87123d6",
+            "demandHash": "1e0043bee291d47b",
+            "summary": {
+              "arrivals": 89,
+              "completed": 71,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 18,
+              "meanWait": 335.9515295216964,
+              "p50Wait": 157.3872691774095,
+              "p95Wait": 1042.3977276081819,
+              "meanSojourn": 456.71220858650855,
+              "slaMet": 39,
+              "slaRate": 0.43820224719101125,
+              "throughputPerHour": 71,
+              "cost": 88,
+              "waitSampleSize": 71,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          }
+        ]
+      },
+      {
+        "id": "service-trial-2",
+        "name": "First come, first served",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "cf7311842689f569",
+            "demandHash": "af24c2789f673dc9",
+            "summary": {
+              "arrivals": 106,
+              "completed": 66,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 40,
+              "meanWait": 594.4726757932657,
+              "p50Wait": 460.9333699445831,
+              "p95Wait": 1207.4462702625506,
+              "meanSojourn": 714.4549512720711,
+              "slaMet": 9,
+              "slaRate": 0.08490566037735849,
+              "throughputPerHour": 66,
+              "cost": 85.45719506962537,
+              "waitSampleSize": 66,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "cf7311842689f569",
+            "demandHash": "e70347ae320afb4e",
+            "summary": {
+              "arrivals": 89,
+              "completed": 67,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 22,
+              "meanWait": 312.6701186471619,
+              "p50Wait": 223.9441934710885,
+              "p95Wait": 895.365165463516,
+              "meanSojourn": 432.9924424180097,
+              "slaMet": 31,
+              "slaRate": 0.34831460674157305,
+              "throughputPerHour": 67,
+              "cost": 85.51592115124654,
+              "waitSampleSize": 67,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "cf7311842689f569",
+            "demandHash": "1e0043bee291d47b",
+            "summary": {
+              "arrivals": 89,
+              "completed": 69,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 20,
+              "meanWait": 408.9970994702955,
+              "p50Wait": 228.167168822338,
+              "p95Wait": 1019.1630181520645,
+              "meanSojourn": 529.8507150896081,
+              "slaMet": 28,
+              "slaRate": 0.3146067415730337,
+              "throughputPerHour": 69,
+              "cost": 85.9989466965171,
+              "waitSampleSize": 69,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          }
+        ]
+      }
+    ],
+    "festival": [
+      {
+        "id": "festival-original",
+        "name": "Original plan",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "517fa4f077f3cfdf",
+            "demandHash": "fe9a841bb8a6692a",
+            "summary": {
+              "arrivals": 99,
+              "completed": 47,
+              "balked": 0,
+              "reneged": 31,
+              "inSystem": 21,
+              "meanWait": 642.0786566324147,
+              "p50Wait": 763.5365442075239,
+              "p95Wait": 1067.8665536791632,
+              "meanSojourn": 762.8578112713273,
+              "slaMet": 7,
+              "slaRate": 0.0707070707070707,
+              "throughputPerHour": 47,
+              "cost": 74,
+              "waitSampleSize": 47,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "517fa4f077f3cfdf",
+            "demandHash": "5f4f9a4108965337",
+            "summary": {
+              "arrivals": 90,
+              "completed": 45,
+              "balked": 0,
+              "reneged": 26,
+              "inSystem": 19,
+              "meanWait": 609.2366969683387,
+              "p50Wait": 757.2820342089738,
+              "p95Wait": 1010.05958778887,
+              "meanSojourn": 731.6684144741472,
+              "slaMet": 10,
+              "slaRate": 0.1111111111111111,
+              "throughputPerHour": 45,
+              "cost": 74,
+              "waitSampleSize": 45,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "517fa4f077f3cfdf",
+            "demandHash": "089ccabf3a7e3f54",
+            "summary": {
+              "arrivals": 102,
+              "completed": 46,
+              "balked": 0,
+              "reneged": 30,
+              "inSystem": 26,
+              "meanWait": 629.0935325892017,
+              "p50Wait": 777.4368965955629,
+              "p95Wait": 1018.4675590452543,
+              "meanSojourn": 748.8218952844047,
+              "slaMet": 7,
+              "slaRate": 0.06862745098039216,
+              "throughputPerHour": 46,
+              "cost": 74,
+              "waitSampleSize": 46,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          }
+        ]
+      },
+      {
+        "id": "festival-trial-1",
+        "name": "Peak security cover",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "609d2e0c87745c0c",
+            "demandHash": "fe9a841bb8a6692a",
+            "summary": {
+              "arrivals": 99,
+              "completed": 80,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 19,
+              "meanWait": 305.4063801588516,
+              "p50Wait": 213.930342096537,
+              "p95Wait": 593.0580180932486,
+              "meanSojourn": 425.7398441637082,
+              "slaMet": 34,
+              "slaRate": 0.3434343434343434,
+              "throughputPerHour": 80,
+              "cost": 89.16317796256408,
+              "waitSampleSize": 80,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "609d2e0c87745c0c",
+            "demandHash": "5f4f9a4108965337",
+            "summary": {
+              "arrivals": 90,
+              "completed": 79,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 11,
+              "meanWait": 241.82052409399324,
+              "p50Wait": 244.70529721416847,
+              "p95Wait": 483.01002881032036,
+              "meanSojourn": 362.32482298160886,
+              "slaMet": 27,
+              "slaRate": 0.3,
+              "throughputPerHour": 79,
+              "cost": 88.79568000866698,
+              "waitSampleSize": 79,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "609d2e0c87745c0c",
+            "demandHash": "089ccabf3a7e3f54",
+            "summary": {
+              "arrivals": 102,
+              "completed": 78,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 24,
+              "meanWait": 325.10623369922547,
+              "p50Wait": 361.370936126606,
+              "p95Wait": 744.5009968087879,
+              "meanSojourn": 446.61813415945926,
+              "slaMet": 27,
+              "slaRate": 0.2647058823529412,
+              "throughputPerHour": 78,
+              "cost": 89.02592810110417,
+              "waitSampleSize": 78,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          }
+        ]
+      },
+      {
+        "id": "festival-trial-2",
+        "name": "All-hour security cover",
+        "runs": [
+          {
+            "seed": 4207,
+            "modelHash": "87764cd67f05f845",
+            "demandHash": "fe9a841bb8a6692a",
+            "summary": {
+              "arrivals": 99,
+              "completed": 89,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 10,
+              "meanWait": 239.6778606098324,
+              "p50Wait": 232.43336925375797,
+              "p95Wait": 505.5970873779288,
+              "meanSojourn": 359.8942476113353,
+              "slaMet": 42,
+              "slaRate": 0.42424242424242425,
+              "throughputPerHour": 89,
+              "cost": 96,
+              "waitSampleSize": 89,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4208,
+            "modelHash": "87764cd67f05f845",
+            "demandHash": "5f4f9a4108965337",
+            "summary": {
+              "arrivals": 90,
+              "completed": 87,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 3,
+              "meanWait": 180.1793795111546,
+              "p50Wait": 171.99422504562517,
+              "p95Wait": 385.66066110876545,
+              "meanSojourn": 300.960525249006,
+              "slaMet": 46,
+              "slaRate": 0.5111111111111111,
+              "throughputPerHour": 87,
+              "cost": 96,
+              "waitSampleSize": 87,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          },
+          {
+            "seed": 4209,
+            "modelHash": "87764cd67f05f845",
+            "demandHash": "089ccabf3a7e3f54",
+            "summary": {
+              "arrivals": 102,
+              "completed": 86,
+              "balked": 0,
+              "reneged": 0,
+              "inSystem": 16,
+              "meanWait": 314.31002429746275,
+              "p50Wait": 346.2241695524956,
+              "p95Wait": 667.9720949310608,
+              "meanSojourn": 435.9843585869504,
+              "slaMet": 27,
+              "slaRate": 0.2647058823529412,
+              "throughputPerHour": 86,
+              "cost": 96,
+              "waitSampleSize": 86,
+              "measurementStart": 0,
+              "measurementEnd": 3600
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

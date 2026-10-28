@@ -11,7 +11,7 @@ let installed=true;try{await fs.access(chromium.executablePath())}catch{installe
 const browser=await chromium.launch({headless:true,...(installed?{executablePath:chromium.executablePath()}:{channel:'chrome'})});
 const errors=[],checks=[];let page,stage='start';
 const state=p=>p.evaluate(()=>JSON.parse(window.render_game_to_text()));
-async function ready(p){await p.waitForFunction(()=>{const s=JSON.parse(window.render_game_to_text?.()||'{}');return !s.running&&s.result?.status==='completed'&&!s.result.stale})}
+async function ready(p){await p.waitForFunction(()=>{const s=JSON.parse(window.render_game_to_text?.()||'{}');return !document.querySelector('.studio-world-picker select')?.disabled && !s.running&&s.result?.status==='completed'&&!s.result.stale})}
 async function fresh(width=1440,height=960){const context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce',acceptDownloads:true});const p=await context.newPage();p.on('pageerror',e=>errors.push(String(e)));await p.goto(origin.href);await ready(p);const pause=p.getByRole('button',{name:'Pause replay',exact:true});if(await pause.count())await pause.click();return{context,page:p}}
 async function download(p,name){const next=p.waitForEvent('download');await p.locator('.studio-save').click();const file=await next,target=path.join(out,name);await file.saveAs(target);return JSON.parse(await fs.readFile(target,'utf8'))}
 async function screenshot(name){await page.screenshot({path:path.join(out,name+'.png')})}

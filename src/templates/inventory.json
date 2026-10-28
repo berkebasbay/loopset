@@ -1,0 +1,98 @@
+{
+  "factory": {
+    "version": 1,
+    "bytes": 101417,
+    "sha256": "b62c0a0ab5c8bbc3a336acf7ada5dae71d33bf8b1c4ace7fde5f2ef8f934450e",
+    "objects": 57,
+    "steps": 8,
+    "resources": 3
+  },
+  "workshop": {
+    "version": 1,
+    "bytes": 99646,
+    "sha256": "4a047f006a8820d9e55dac4e1f210b0b35f954726e2b6f9a2086c7ef19c51aaa",
+    "objects": 58,
+    "steps": 9,
+    "resources": 2
+  },
+  "machining": {
+    "version": 1,
+    "bytes": 111559,
+    "sha256": "12c63a616eb43f53018f95c0a5df99eb53b92dd9a13e07c79b6996ef9261571f",
+    "objects": 60,
+    "steps": 11,
+    "resources": 3
+  },
+  "quality": {
+    "version": 1,
+    "bytes": 82648,
+    "sha256": "e3cfaa9d3246aedfa62342fe8b9ea4d61944a30e3dec8c88f67d6c30dd9a695a",
+    "objects": 47,
+    "steps": 7,
+    "resources": 2
+  },
+  "print": {
+    "version": 1,
+    "bytes": 98985,
+    "sha256": "4d149dfa5ac5ae34913ccd151b69b5519e8fdb2d590ba99a6c6f047f122a39d8",
+    "objects": 58,
+    "steps": 8,
+    "resources": 2
+  },
+  "packing": {
+    "version": 1,
+    "bytes": 120341,
+    "sha256": "d13433c8bc02f10b48e158b7596251124c7c7cee3ff0329e43fec3e17cebf9d4",
+    "objects": 72,
+    "steps": 9,
+    "resources": 2
+  },
+  "fulfillment": {
+    "version": 1,
+    "bytes": 184727,
+    "sha256": "27bf047819af0cbe4165393ab0f93fd6fcf0a16007cc6164a59ba820cb77fa76",
+    "objects": 111,
+    "steps": 8,
+    "resources": 3
+  },
+  "returns": {
+    "version": 1,
+    "bytes": 111203,
+    "sha256": "b3b383e86fceef923be11364d60cf9424b66a85419b5a51e62456097ac2df736",
+    "objects": 63,
+    "steps": 10,
+    "resources": 3
+  },
+  "parcel": {
+    "version": 1,
+    "bytes": 145152,
+    "sha256": "cebe85f197db51a3db595bd351a4b607d078047f60cf74d0c17f965dd25e9f18",
+    "objects": 82,
+    "steps": 8,
+    "resources": 3
+  },
+  "repair": {
+    "version": 1,
+    "bytes": 101917,
+    "sha256": "201260351a1c11f8ad382732ea9b8e9f15f1051b6e60dcd8b3c980139c41877e",
+    "objects": 60,
+    "steps": 8,
+    "resources": 2
+  },
+  "service": {
+    "version": 1,
+    "bytes": 72712,
+    "sha256": "ba64c0461a235a5b858a6231476c477eacb354e695dbfe657323a1e1220bba78",
+    "objects": 38,
+    "steps": 8,
+    "resources": 2
+  },
+  "festival": {
+    "version": 1,
+    "bytes": 54477,
+    "sha256": "4fb23ed0bd2c5776de19c7377eacb5db028b2bdab277372a5a27b179afadf2de",
+    "objects": 24,
+    "steps": 8,
+    "resources": 3
+  }
+}

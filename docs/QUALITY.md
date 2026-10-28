@@ -6,6 +6,7 @@ Use Node.js 24 and the committed lockfile:
 npm ci
 npm run typecheck
 npm run check:assets
+npm run check:templates
 npm test -- --maxWorkers=1
 npm run test:publication
 npm run build
@@ -37,6 +38,8 @@ Run `QUEUELAB_URL=http://127.0.0.1:4173 node scripts/facility-navigation-smoke.m
 Run `QUEUELAB_URL=http://127.0.0.1:4173 node scripts/interface-polish-smoke.mjs` for exact numeric readouts, captured result labels, real experiment execution, dialog/keyboard bounds, forced colors, short windows, narrow model navigation and global validation repair.
 
 Run `QUEUELAB_URL=http://127.0.0.1:4173 node scripts/templates-smoke.mjs` for true blank starts, placement, template snapshots, fresh instances, reload, process initialization/Undo, JSON import/export, storage failures, simultaneous saves and mobile templates. Run `node scripts/templates-storage-smoke.mjs` with the same URL for the independent byte cap, unavailable storage and future-database handling.
+
+Run `QUEUELAB_URL=http://127.0.0.1:4173 npm run test:templates` for all twelve curated starters and their twenty-four alternatives, recorded reference outcomes, real JSON download and Undo, selected-only loading, HTTP/integrity errors, retry, cancellation, unfinished fields and narrow gallery/brief layouts.
 
 The facility compatibility smoke checks real placement/transforms, unchanged numerical results for visual edits, object history, functional cells, captured baseline/current scenarios, actual project download/reopen and the existing worlds. It reuses an installed browser and never installs one automatically. Catalogue checks decode and validate prepared derivatives using public manifests, without needing local preparation logs. Numerical invariants and file/storage/recovery tests remain separate from browser/graphics evidence.
 

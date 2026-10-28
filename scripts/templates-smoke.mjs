@@ -13,7 +13,7 @@ let installed = true; try { await fs.access(chromium.executablePath()); } catch 
 const browser = await chromium.launch({ headless: true, ...(installed ? { executablePath: chromium.executablePath() } : { channel: 'chrome' }) });
 const checks = [], errors = []; let page, stage = 'startup';
 const state = p => p.evaluate(() => JSON.parse(window.render_game_to_text()));
-const ready = p => p.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !s.running && (s.workspaceMode === 'layout' || s.result?.status === 'completed' && !s.result.stale); });
+const ready = p => p.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !document.querySelector('.studio-world-picker select')?.disabled && !s.running && (s.workspaceMode === 'layout' || s.result?.status === 'completed' && !s.result.stale); });
 const art = p => p.waitForFunction(() => { const h = document.querySelector('.world-scene'), f = JSON.parse(h?.getAttribute('data-facility') || '{}'); return h?.getAttribute('data-status') === 'ready' && !f.pending && !f.failed; });
 const close = p => p.getByRole('button', { name: 'Close dialog', exact: true }).click();
 async function fresh(width = 1440) {
