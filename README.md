@@ -2,19 +2,17 @@
 
 **Build a little world. Test a better plan.**
 
-Loopset is a visual process and capacity simulator. Explore a factory, a festival entrance or a service studio; change demand, processing time and staffing, then compare what happens to queues, completed work and cost.
+Loopset is a visual process and capacity simulator for exploring why work queues up and what a different plan changes. Build a small facility, adjust demand, processing time, stations or team availability, then compare completed work, waiting and resource cost.
 
 Free, client-side and account-free. Simulations run in your browser without a paid API or simulation backend. Your models stay on your device.
 
-**[Try Loopset in your browser →](https://berkebasbay.github.io/loopset/)** · [Watch the demo](docs/media/loopset-demo.mp4)
+**[Try Loopset in your browser →](https://berkebasbay.github.io/loopset/)** · [Watch the 67-second demo](docs/media/loopset-demo.mp4) · [Contribute](CONTRIBUTING.md)
 
-Choose from **12 editable templates** across production, logistics, service and events, or start with **Blank**. Each ready-made facility includes an original plan and two experiments. Save your own starting points in **My templates**. No installation needed.
+Start with **12 editable templates** across production, logistics, service and events, or choose **Blank**. Each starter has an original plan and two alternatives: **24 prepared experiments** to explore. Save your own starting points in **My templates** or download a portable project JSON. No installation needed.
 
 [![Loopset facility workspace: searchable model library, editable workshop and recorded outcomes](docs/media/loopset-facility.png)](https://berkebasbay.github.io/loopset/)
 
-[Watch the capacity-comparison demo (RC9)](docs/media/loopset-demo.mp4) · [Facility guide](docs/FACILITY_GUIDE.md)
-
-[Quickstart](docs/QUICKSTART.md) · [Workspace guide](docs/UX_GUIDE.md) · [Model guide](docs/MODEL_GUIDE.md) · [Engine API](docs/API.md) · [Examples](examples/README.md)
+[Quickstart](docs/QUICKSTART.md) · [Templates](docs/TEMPLATES.md) · [Facility guide](docs/FACILITY_GUIDE.md) · [Workspace guide](docs/UX_GUIDE.md) · [Model guide](docs/MODEL_GUIDE.md) · [Engine API](docs/API.md) · [Examples](examples/README.md)
 
 ## One more station. The same output.
 
@@ -70,7 +68,9 @@ These original numerical examples remain unchanged. The [twelve-template collect
 
 ## Build your facility
 
-The workspace separates **Build facility**, **Define process** and **Review results**. The docked **Asset library → 3D models** lets you search and drag equipment, shelves, building parts and containers onto the site. **Empty site** starts with no objects or process steps. Add **Start a process** when ready to simulate. Layout objects have position, elevation, rotation and scale controls; process cells add connected waiting and processing stages with explicit team settings. Models load when used, and repeated instances share geometry.
+The workspace separates **Build facility**, **Define process** and **Review results**. The docked **Asset library → 3D models** contains **1,141 selected, browser-prepared models**: equipment, shelves, building parts, containers and other facility objects. Search and drag them onto the site. Models load when used, and repeated instances share geometry.
+
+**Empty site** starts with no objects or process steps. Add **Start a process** when ready to simulate. Layout objects have position, elevation, rotation and scale controls; process cells add connected waiting and processing stages with explicit team settings.
 
 **Save as template** keeps a reusable snapshot in this browser. Each use creates an independent project. Templates can be downloaded or imported as project JSON.
 
@@ -104,6 +104,10 @@ Projects save in browser storage at the current site address. Download JSON back
 
 ## Develop and contribute
 
+Contributions are welcome. A useful starting point can be a synthetic template with a clear process question, an independently reasoned engine test, a focused bug fix, an accessible editing improvement or a clearer guide. See [CONTRIBUTING](CONTRIBUTING.md) for the relevant files, evidence and checks.
+
+Try the app and [open an issue](https://github.com/berkebasbay/loopset/issues/new/choose) with a reproducible example or proposed template. For a larger change, describe the problem and intended scope before implementing it. Pull requests propose changes for review; small, focused contributions are easier to discuss and verify.
+
 ```sh
 npm run typecheck
 npm test -- --maxWorkers=1
@@ -111,7 +115,7 @@ npm run build
 npm run test:headless
 ```
 
-`npm run preview` serves a production build locally. See [CONTRIBUTING](CONTRIBUTING.md) for architecture boundaries, focused checks and synthetic examples, or [SECURITY](SECURITY.md) for vulnerability reporting.
+`npm run preview` serves a production build locally. Report vulnerabilities through [SECURITY](SECURITY.md).
 
 ## License and credits
 

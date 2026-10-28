@@ -1,45 +1,38 @@
 WEBVTT
 
-00:00.450 --> 00:01.888
-One more station?
-Synthetic example · one recorded seed
+00:00:00.000 --> 00:00:05.000
+Work is piling up.
 
-00:02.048 --> 00:03.750
-Let’s test it.
-Synthetic example · one recorded seed
+00:00:05.000 --> 00:00:11.000
+Choose a template and open Little Factory.
 
-00:04.450 --> 00:07.750
-Packing: one station → two. Team capacity stays at one.
-Synthetic example · one recorded seed
+00:00:11.000 --> 00:00:19.000
+Search the model library and place a shelf.
+Layout stays separate from calculations.
 
-00:08.450 --> 00:10.348
-Two stations.
-Synthetic example · one recorded seed
+00:00:19.000 --> 00:00:27.000
+Add a packing station, then run and compare.
 
-00:10.508 --> 00:12.750
-Still 40 completed.
-Synthetic example · one recorded seed
+00:00:27.000 --> 00:00:32.000
+Same output: 40 → 40 completed.
 
-00:13.450 --> 00:16.750
-Now change the Packing team: one available unit → two.
-Synthetic example · one recorded seed
+00:00:32.000 --> 00:00:41.000
+Increase team capacity too, then run again.
 
-00:17.450 --> 00:21.188
-40 → 77 completed.
-Synthetic example · one recorded seed
+00:00:41.000 --> 00:00:47.000
+Completed work: 40 → 77.
+Synthetic example; same 80 arrivals.
 
-00:21.348 --> 00:25.750
-$74 → $96 resource cost.
-Synthetic example · one recorded seed
+00:00:47.000 --> 00:00:50.000
+Mean wait: 14.5 → 1.4 min.
+One modeled hour, seed 4207.
 
-00:26.450 --> 00:31.750
-The same engine moves a festival entrance.
-Synthetic example · one recorded seed
+00:00:50.000 --> 00:00:54.000
+Resource cost: $74 → $96.
 
-00:32.450 --> 00:37.750
-Shared specialists. Different capacity constraints.
-Synthetic example · one recorded seed
+00:00:54.000 --> 00:01:01.000
+Save this setup as a template. Reuse it.
 
-00:38.450 --> 00:41.750
-Loopset · Explore. Change. Calculate. Compare.
-Synthetic example · one recorded seed
+00:01:01.000 --> 00:01:07.000
+Loopset. Build on it with me.
+github.com/berkebasbay/loopset
