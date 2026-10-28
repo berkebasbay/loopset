@@ -8,6 +8,7 @@ export const savedScenariosMessages = {
   scenarioName: "Scenario name",
   saveCurrentPlan: "Save current plan",
   saveBaseline: "Save baseline",
+  baselineLayoutUnavailable: "That run's facility layout is unavailable. Save the current plan instead.",
   restoredScenario: (name: string) => `Restored “${name}”. Calculate the draft to get a new result.`,
   restore: "Restore",
   baselineCalculatedFrom: (name: string) => `Baseline calculated from “${name}”.`,

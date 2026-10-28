@@ -43,6 +43,8 @@ jobs:
           fi
       - run: npm run test:publication
       - run: npm ci
+      - run: npm run test:catalogue
+      - run: npm run check:assets
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:headless

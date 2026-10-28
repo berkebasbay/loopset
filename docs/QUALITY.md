@@ -5,6 +5,7 @@ Use Node.js 24 and the committed lockfile:
 ```sh
 npm ci
 npm run typecheck
+npm run check:assets
 npm test -- --maxWorkers=1
 npm run test:publication
 npm run build
@@ -22,6 +23,14 @@ QUEUELAB_URL=http://127.0.0.1:4173 QUEUELAB_UX_PHASE=core node scripts/ux-smoke.
 ```
 
 The script uses isolated browser contexts and synthetic models. It requires Playwright browser binaries; it does not install them. Generated screenshots and files stay outside version control.
+
+The facility flow has a separate isolated smoke command:
+
+```sh
+QUEUELAB_URL=http://127.0.0.1:4173 npm run test:facility
+```
+
+It checks real placement/transforms, unchanged numerical results for visual edits, object history, functional cells, captured baseline/current scenarios, actual project download/reopen and the existing worlds. It reuses an installed browser and never installs one automatically. Catalogue checks decode and validate prepared derivatives using public manifests, without needing local preparation logs. Numerical invariants and file/storage/recovery tests remain separate from browser/graphics evidence.
 
 | Area | Check |
 | --- | --- |

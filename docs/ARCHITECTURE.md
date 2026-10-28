@@ -20,6 +20,8 @@ Compatibility identifiers include the `queuelab` package, `queuelab-projects` da
 
 A project contains its identity, model, layout and optional named scenarios. The model contains the actual process, demand, resources, costs and measurement policies. Layout and viewing preferences are presentation state.
 
+The optional `facility` presentation stores independent asset placements, node artwork references and example-surroundings visibility. It is validated separately from the numerical model and travels through files, history, storage and scenario snapshots. Catalogue availability belongs to rendering, so a safe missing asset reference remains recoverable data. A UI-side immutable presentation snapshot accompanies each accepted run for saving its baseline; it never enters engine `RunResult` or fingerprints.
+
 A calculation seals a copy of the submitted model, actual seed and effective limits. Accepted results remain tied to that snapshot after editing the draft. Cancelled, failed and limited attempts remain separate from completed results and cannot silently enter a comparison or confidence interval.
 
 Field buffers and staged time plans are UI state. Applying a valid command creates one history action; Enter/blur applies ordinary numeric fields and Escape restores their prior value. Display-unit changes never write converted numbers back to the model. Horizon cropping/repetition and distribution replacement require an explicit choice.
@@ -39,5 +41,7 @@ The library scans bounded metadata pages and labels partial searches explicitly.
 ## Rendering and reports
 
 The scene consumes model/layout plus a recorded replay frame. It never decides the numerical result. Staff and visitors are bounded illustrations, not a physical crowd or individual-worker assignment model. A full DOM editing/results path remains available.
+
+The facility layer batches repeated source meshes with instanced rendering. Parsed models have explicit scene leases; only inactive buffers can be evicted. Metadata/thumbnail browsing does not load the whole model library. Failed or pending invisible art does not block visible geometry's hit testing. Async model completion and subsequent layout edits invalidate shadows without applying numerical edits. Download, decoded-resource and rendering costs are separate budgets.
 
 Reports read the selected immutable run, including its status, measurement scope and provenance. Exporting an earlier run never substitutes current draft values. All runtime fonts, models and artwork are served locally with their source licences.

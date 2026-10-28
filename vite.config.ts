@@ -49,6 +49,6 @@ export default defineConfig({
     apply: 'build',
     transformIndexHtml: () => socialMetadata(process.env.QUEUELAB_PUBLIC_URL),
   }],
-  build: { target: 'es2022', chunkSizeWarningLimit: 800 },
+  build: { target: 'es2022', chunkSizeWarningLimit: 800, rolldownOptions: { output: { codeSplitting: { groups: [{ name: 'catalogue', test: /\/src\/catalog\/data\.ts$/ }] } } } },
   test: { include: ['tests/**/*.test.ts'], environment: 'node' },
 });

@@ -1,7 +1,9 @@
 import type { Project, SimulationModel, ValidationIssue } from './types';
 import { MAX_ARRIVALS_PER_HOUR, MAX_RUN_SECONDS, MAX_WAITING_PLACES } from './limits';
+import { validateFacility } from './facilityValidation';
 
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const facilityNodeIds = (model: unknown) => new Set<string>(object(model) && Array.isArray(model.nodes) ? model.nodes.filter(object).map(node => String(node.id)) : []);
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const id = (v: unknown) => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v) && !['constructor', 'prototype', '__proto__'].includes(v);
 const text = (v: unknown) => typeof v === 'string' && v.trim().length > 0 && v.length <= 160;
@@ -162,6 +164,7 @@ export function validateProject(value: unknown): ValidationIssue[] {
   if (typeof value.description !== 'string' || value.description.length > 5000) error('description', 'Description is too long or missing.');
   if (!object(value.layout) || Object.entries(value.layout).length > 100) error('layout', 'Layout must contain at most 100 positions.');
   else for (const [key, p] of Object.entries(value.layout)) if (!id(key) || !object(p) || !finite(p.x) || !finite(p.z) || Math.abs(p.x) > 100 || Math.abs(p.z) > 100) error(`layout.${key}`, 'Use valid positions within the workspace.');
+  issues.push(...validateFacility(value.facility, facilityNodeIds(value.model)));
   if (value.scenarios !== undefined) {
     if (!Array.isArray(value.scenarios) || value.scenarios.length > 20 || !dense(value.scenarios)) error('scenarios', 'A project can keep at most 20 saved scenarios.');
     else {
@@ -174,6 +177,7 @@ export function validateProject(value: unknown): ValidationIssue[] {
         issues.push(...validateModel(scenario.model).map(issue => ({ ...issue, path: `${at}.${issue.path}` })));
         if (!object(scenario.layout) || Object.keys(scenario.layout).length > 100) error(`${at}.layout`, 'Scenario positions are invalid.');
         else for (const [key, p] of Object.entries(scenario.layout)) if (!id(key) || !object(p) || !finite(p.x) || !finite(p.z) || Math.abs(p.x) > 100 || Math.abs(p.z) > 100) error(`${at}.layout.${key}`, 'Scenario position must be finite and within the workspace.');
+        issues.push(...validateFacility(scenario.facility, facilityNodeIds(scenario.model), `${at}.facility`));
       });
     }
   }
