@@ -8,11 +8,11 @@ Free, client-side and account-free. Simulations run in your browser without a pa
 
 **[Try Loopset in your browser →](https://berkebasbay.github.io/loopset/)** · [Watch the demo](docs/media/loopset-demo.mp4)
 
-Start with Little Factory: add a packing station, run the plan, then increase its team capacity and compare the difference. No installation needed.
+Start with an editable workshop, place models from the library, then define the process and compare plans. The Factory, Festival and Service examples remain available. No installation needed.
 
-[![Loopset preview: change station and team capacity, then compare the recorded outcomes](docs/media/loopset-demo.gif)](docs/media/loopset-demo.mp4)
+[![Loopset facility workspace: searchable model library, editable workshop and recorded outcomes](docs/media/loopset-facility.png)](https://berkebasbay.github.io/loopset/)
 
-[Watch the 42-second demo](docs/media/loopset-demo.mp4) · [Workspace screenshot](docs/media/loopset-studio.png)
+[Watch the capacity-comparison demo (RC9)](docs/media/loopset-demo.mp4) · [Facility guide](docs/FACILITY_GUIDE.md)
 
 [Quickstart](docs/QUICKSTART.md) · [Workspace guide](docs/UX_GUIDE.md) · [Model guide](docs/MODEL_GUIDE.md) · [Engine API](docs/API.md) · [Examples](examples/README.md)
 
@@ -70,13 +70,11 @@ The complete DOM model editor remains available under **Tools**. Command search,
 
 ## Build your facility
 
-Open **Add step → Objects** to search the prepared NVIDIA asset library and drag equipment, shelves, building parts and containers into a facility. **New facility** starts on a clear site. Layout objects have position, elevation, rotation and scale controls; process cells add connected waiting and processing stages with explicit team settings. Models load when used, and repeated instances share geometry.
+The workspace separates **Build facility**, **Define process** and **Review results**. The docked **Asset library → 3D models** lets you search and drag equipment, shelves, building parts and containers onto the site. **Empty site** starts a new facility. Layout objects have position, elevation, rotation and scale controls; process cells add connected waiting and processing stages with explicit team settings. Models load when used, and repeated instances share geometry.
 
 Facilities and their saved scenarios travel in project JSON. Artwork and arrangement remain separate from numerical behavior; a machine model does not supply real processing measurements or physical transport rules. See the [facility guide](docs/FACILITY_GUIDE.md) for building, comparing and reopening a complete project.
 
-![Synthetic workshop and dispatch facility with editable NVIDIA racks, building parts and staging areas](docs/media/loopset-facility.png)
-
-Choose **Example facility** in the library to open this layout, or use its [portable project JSON](examples/facility.json).
+Choose **Workshop example** in the library to open this layout, or use its [portable project JSON](examples/facility.json).
 
 Use **How it works** in the world for the optional three-step guide. Common edits preserve distribution shapes, separate stations from teams, and keep calendar changes explicit.
 

@@ -1,6 +1,8 @@
 # Workspace guide
 
-Start with the world and a question: which arrival rate, processing time, team or waiting policy do you want to test? Use **Scenario settings** and **Properties** for common edits. **Tools → Model editor** provides the full model without requiring a second workflow.
+Use **Build facility** for visual arrangement, **Define process** for connected numerical steps and **Review results** for recorded outcomes. The Asset library occupies a separate dock; selecting a model keeps its placement action visible. Existing projects reopen without resetting their content.
+
+Start with a process question: which arrival rate, processing time, team or waiting policy do you want to test? Use **Scenario settings** and **Properties** for common edits. **Tools → Model editor** provides the full model without requiring a second workflow.
 
 **How it works** in the world opens the optional three-step guide: change one thing, run the changed plan, compare and keep it. On a phone, select a world object and use **Edit selected step** below the scene. Scenario settings links directly to arrivals and related team controls.
 
@@ -62,7 +64,7 @@ Class and route probabilities are edited as percentages. They must total 100%; t
 
 ## Build and arrange a process
 
-**Add step** and **Add after** preview which connection will change before inserting a new stage. This adds a stage to the flow; it is different from adding parallel capacity at one station. Connection pickers explain invalid destinations.
+**Define process → Steps** and **Add after** preview which connection will change before inserting a new stage. This adds a stage to the flow; it is different from adding parallel capacity at one station. Connection pickers explain invalid destinations.
 
 **Copy step** previews a detached copy or an insertion after the selected step. Copies receive new step and sampling identities and retain their resource references. Copying a source adds an independent arrival stream; copying a queue also copies its processing step.
 

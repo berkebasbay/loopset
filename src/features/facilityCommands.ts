@@ -96,35 +96,52 @@ export const processCells: readonly ProcessCell[] = [
   { id: 'reception', name: m.reception, assetId: 'desk_a01', seconds: 45 },
   { id: 'service', name: m.service, assetId: 'desk_a01', seconds: 90 },
 ];
-/** Anchor only the newly inserted nodes in the resulting presentation map.
- * Expanded station bands can leave unreachable positions; reject atomically.
- */
-export function alignInsertedProcess(before: Project, inserted: { project: Project; id: string }, target: Point): { project: Project; id: string } {
+/** Preserve exact drops where possible; snap across expanded station bands. */
+export function alignInsertedProcess(before: Project, inserted: { project: Project; id: string }, target: Point): { project: Project; id: string; snapped?: boolean } {
   if (![target.x, target.z].every(Number.isFinite)) throw new Error(m.unavailableDrop);
   const prior = new Set(before.model.nodes.map(node => node.id));
   const added = inserted.project.model.nodes.filter(node => !prior.has(node.id)).map(node => node.id);
   if (!added.includes(inserted.id)) throw new Error(m.invalidCell);
   const initial = capacityLayout(before.model.nodes, sceneLayout(before)).toModel(target);
+  let snapped = false;
   const next = mutateProject(inserted.project, copy => {
     const origin = copy.layout[inserted.id], shift = { x: initial.x - origin.x, z: initial.z - origin.z };
     for (const id of added) copy.layout[id] = { x: copy.layout[id].x + shift.x, z: copy.layout[id].z + shift.z };
     if (added.some(id => Math.abs(copy.layout[id].x) > 100 || Math.abs(copy.layout[id].z) > 100)) throw new Error(m.unavailableDrop);
     const seen = new Set<string>();
+    let bestDistance = Infinity, best = Object.fromEntries(added.map(id => [id, { ...copy.layout[id] }]));
     for (let attempt = 0; attempt < 32; attempt++) {
       const actual = capacityLayout(copy.model.nodes, sceneLayout(copy)).positions[inserted.id];
       const delta = { x: target.x - actual.x, z: target.z - actual.z };
+      const distance = delta.x ** 2 + delta.z ** 2;
+      if (distance < bestDistance) { bestDistance = distance; best = Object.fromEntries(added.map(id => [id, { ...copy.layout[id] }])); }
       if (Math.abs(delta.x) < 1e-7 && Math.abs(delta.z) < 1e-7) return;
       const key = `${copy.layout[inserted.id].x.toFixed(7)}:${copy.layout[inserted.id].z.toFixed(7)}`;
       if (seen.has(key)) break; seen.add(key);
+      if (added.some(id => Math.abs(copy.layout[id].x + delta.x) > 100 || Math.abs(copy.layout[id].z + delta.z) > 100)) break;
       for (const id of added) {
         const point = { x: copy.layout[id].x + delta.x, z: copy.layout[id].z + delta.z };
-        if (Math.abs(point.x) > 100 || Math.abs(point.z) > 100) throw new Error(m.unavailableDrop);
         copy.layout[id] = point;
       }
     }
-    throw new Error(m.unavailableDrop);
+    // A station band's edges can be discontinuities for the newly added knot.
+    // Check nearby existing knots as well as the iterative estimate.
+    const candidateOrigin = best[inserted.id], previousPositions = sceneLayout(before);
+    const nearby = (axis: 'x' | 'z') => [candidateOrigin[axis], ...[...new Set(before.model.nodes.map(node => previousPositions[node.id][axis]))]
+      .sort((a, b) => Math.abs(a - candidateOrigin[axis]) - Math.abs(b - candidateOrigin[axis])).slice(0, 4)];
+    const base = best;
+    for (const x of nearby('x')) for (const z of nearby('z')) {
+      const delta = { x: x - candidateOrigin.x, z: z - candidateOrigin.z };
+      if (added.some(id => Math.abs(base[id].x + delta.x) > 100 || Math.abs(base[id].z + delta.z) > 100)) continue;
+      for (const id of added) copy.layout[id] = { x: base[id].x + delta.x, z: base[id].z + delta.z };
+      const actual = capacityLayout(copy.model.nodes, sceneLayout(copy)).positions[inserted.id];
+      const distance = (target.x - actual.x) ** 2 + (target.z - actual.z) ** 2;
+      if (distance < bestDistance) { bestDistance = distance; best = Object.fromEntries(added.map(id => [id, { ...copy.layout[id] }])); }
+    }
+    for (const id of added) copy.layout[id] = best[id];
+    snapped = bestDistance > 1e-14;
   });
-  return { project: checked(next), id: inserted.id };
+  return { project: checked(next), id: inserted.id, snapped };
 }
 export function insertEquipment(project: Project, assetId: string, anchorId: string, settings: CellSettings, point?: Point, cellName?: string): { project: Project; id: string } {
   const asset = findLibraryAsset(assetId), anchor = project.model.nodes.find(node => node.id === anchorId);

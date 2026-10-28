@@ -1,20 +1,20 @@
 # Build a facility
 
-Open **Add step** to find three library views:
+The workspace follows **Build facility → Define process → Review results**. On desktop the Asset library has its own dock beside the site. Open **Build facility** to find three views:
 
 - **Steps** retains the general workstation, waiting-area and delay tools.
 - **Process cells** adds a connected waiting area and processing step with editable synthetic starting values.
-- **Objects** searches the prepared equipment, building, furniture, storage, container and accessory models.
+- **3D models** searches the prepared equipment, building, furniture, storage, container and accessory models.
 
-Choose **New facility** for a small valid process on a clear site. Your previous project follows the normal save/recovery path. The three example worlds remain available through the world selector. **View → Show example surroundings** controls their decorative setting; it does not add numerical resources.
+Choose **Empty site** for a small valid process on a clear site. Your previous project follows the normal save/recovery path. The three example worlds remain available through the world selector. **View → Show example surroundings** controls their decorative setting; it does not add numerical resources.
 
-**Example facility** opens Workshop and dispatch: the existing synthetic Factory process with an editable cutaway building, material racks, staging pallets, cartons and lighting. It is a starting layout to explore, not a calibrated business forecast. The portable version is [`examples/facility.json`](../examples/facility.json).
+**Workshop example** opens Workshop and dispatch: the existing synthetic Factory process with an editable cutaway building, material racks, staging pallets, cartons and lighting. It is a starting layout to explore, not a calibrated business forecast. The portable version is [`examples/facility.json`](../examples/facility.json).
 
 ## Place and arrange objects
 
-Filter or search Objects, then select a model. The library shows its source dimensions, download size and attribution. Choose **Place object** or drag its tile onto the world. Browsing the library loads metadata and the current page of previews; it does not download every model.
+Filter or search 3D models, then select a model. The library shows its source dimensions, download size and attribution. Choose **Place object** or drag its tile onto the world. Browsing the library loads metadata and the current page of previews; it does not download every model.
 
-Selecting a placed object opens its controls under **Objects** in the inspector. Change horizontal position, elevation, rotation, scale or name; duplicate it or remove it. Dragging snaps horizontal movement to half-unit increments. Numeric controls accept finer values. Enter or leaving a valid field applies the edit; Escape cancels an unfinished field. Use the object list when precise canvas pointing is inconvenient, and **G** or **View → Focus selected object** to inspect the selection.
+Selecting a placed object opens its controls under **Placed** in the inspector. Change horizontal position, elevation, rotation, scale or name; duplicate it or remove it. Dragging snaps horizontal movement to half-unit increments. Numeric controls accept finer values. Enter or leaving a valid field applies the edit; Escape cancels an unfinished field. Use the object list when precise canvas pointing is inconvenient, and **G** or **View → Focus selected object** to inspect the selection.
 
 Elevation allows visual arrangements such as beams, roofs or objects on shelving. There is no automatic stacking, collision, structural or inventory calculation. Source dimensions are metres; the miniature workspace remains an illustrative layout rather than a calibrated CAD or transport model.
 
@@ -22,13 +22,15 @@ Placed layout objects do not create processing capacity, staff, storage policies
 
 ## Add equipment to the process
 
-For an equipment model, choose **Processing step** to add a timed service to the flow. Select **Add after**, enter processing time and deliberately choose a separate team, an existing team or no shared team. A separate team starts with one installed and available unit and zero hourly cost; review its capacity, shifts and cost in Properties. These are starting inputs, not measurements supplied by the artwork.
+Every catalogue tile starts as a **Layout object**, including equipment. This lets you arrange a facility without creating numerical stages or allocating teams. The selected model has a visible placement action; details and attribution are secondary.
 
-**Layout object** places the same equipment visually without creating a process step. **Use on selected step** changes an existing step's appearance while retaining its numerical settings. The equipment-appearance disclosure also restores the world's default artwork and adjusts its rotation/scale.
+For an equipment model, deliberately choose **Use as → Processing step** to add a timed service to the flow. Select **Add after**, enter processing time and deliberately choose a separate team, an existing team or no shared team. A separate team starts with one installed and available unit and zero hourly cost; review its capacity, shifts and cost in Properties. These are starting inputs, not measurements supplied by the artwork.
+
+**Layout object** places the equipment visually without creating a process step. **Use on selected step** changes an existing step's appearance while retaining its numerical settings. The equipment-appearance disclosure also restores the world's default artwork and adjusts its rotation/scale.
 
 Built-in cells cover machining, inspection, packing, reception and service. Each adds a waiting area and service as one undoable change, keeping the chosen connection and team policy explicit. A cell adds stages; parallel stations add concurrent capacity at an existing service. More stations do not automatically create more staff.
 
-Drag/drop uses the actual camera and resulting process layout. Expanded station groups reserve visual spacing; an unreachable process position is rejected without inserting a partial stage. Drop farther from the expanded group or use the regular insertion and arrangement controls.
+Drag/drop uses the actual camera and resulting process layout. Expanded station groups reserve visual spacing. If an exact process position falls inside an expanded band, the new stage snaps nearby and a message explains the adjustment. Existing stages and their numerical inputs are preserved.
 
 ## Calculate and compare
 
@@ -42,10 +44,10 @@ Moving, resizing, replacing artwork or changing surroundings does not change num
 
 Named scenarios preserve their facility presentation. Saving a baseline uses the presentation captured with that run, rather than later draft artwork. Run reports remain numerical records tied to immutable calculations; use project JSON for an editable facility.
 
-If an old asset revision is unavailable, its reference and placement remain in the project. Use the Objects list or equipment controls to choose a replacement, keep a JSON backup, or reopen with a compatible catalogue. Failed artwork loading does not delete objects or replace them silently with unrelated models.
+If an old asset revision is unavailable, its reference and placement remain in the project. Use the Placed list or equipment controls to choose a replacement, keep a JSON backup, or reopen with a compatible catalogue. Failed artwork loading does not delete objects or replace them silently with unrelated models.
 
 ## Scope and limits
 
-The editor supports up to 500 independent layout objects, separately from the numerical model's 100 steps and 50 resource pools. File, scenario, history and calculation limits still apply. Repeated instances share model geometry; the renderer tracks bounded model caches and can report unavailable detail without discarding the project. Browser HTTP caching is managed by the browser; the application does not persist a complete asset catalogue in the project database.
+The catalogue count describes available model variants, not the number of objects already placed. The library shows the placed-object count separately and explains reached limits before placement. The editor supports up to 500 independent layout objects, separately from the numerical model's 100 steps and 50 resource pools. File, scenario, history and calculation limits still apply. Repeated instances share model geometry; the renderer tracks bounded model caches and can report unavailable detail without discarding the project. Browser HTTP caching is managed by the browser; the application does not persist a complete asset catalogue in the project database.
 
 Models and source previews retain their separate licences. See [asset provenance](NVIDIA_ASSETS.md), the [catalogue preparation guide](CATALOGUE.md), and [third-party notices](../THIRD_PARTY_NOTICES.md).

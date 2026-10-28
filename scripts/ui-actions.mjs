@@ -12,7 +12,7 @@ const panelNames = {
 export async function panelOpener(page, panel) {
   if (!Object.hasOwn(panelNames, panel)) throw new Error(`Unknown studio panel: ${panel}`);
   if (toolPanels.has(panel)) {
-    await page.locator('.studio-rail').getByRole('button', { name: 'Tools', exact: true }).click();
+    await page.locator('[data-tools-opener]:visible').click();
   }
   const opener = page.locator(`[data-panel-opener="${panel}"]`);
   await opener.waitFor({ state: 'visible' });
@@ -87,4 +87,15 @@ export async function openReviewedProject(page, file) {
 export async function showSavedScenarios(page) {
   await page.getByRole('dialog', { name: panelNames.compare, exact: true }).waitFor();
   await page.getByRole('textbox', { name: 'Scenario name', exact: true }).waitFor();
+}
+
+/** Find a visible piece of floor, avoiding DOM station labels and camera tools. */
+export async function canvasDropPoint(canvas) {
+  return canvas.evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    for (const [x, y] of [[.8,.72],[.9,.55],[.72,.88],[.4,.8],[.88,.38],[.3,.65],[.55,.6]]) {
+      if (document.elementFromPoint(rect.left + rect.width * x, rect.top + rect.height * y) === element) return { x: rect.width * x, y: rect.height * y };
+    }
+    throw new Error('No unobstructed canvas drop point is visible.');
+  });
 }

@@ -1,7 +1,7 @@
 import { assetURL } from './assetUrl';
 import { appMessages as m } from './ui/messages/App';
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Activity, ArrowDownToLine, ArrowRight, ArrowUpRight, Box, Check, ChevronRight, CircleHelp, Copy, FileUp, FlaskConical, Focus, GitCompareArrows, Globe2, History, Layers3, Link2, List, LoaderCircle, MousePointer2, Move, Pause, Play, Plus, Redo2, Search, ShieldCheck, SkipBack, Undo2, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowRight, ArrowUpRight, Box, Check, ChevronRight, CircleHelp, Copy, FileUp, FlaskConical, Focus, GitCompareArrows, Globe2, History, Layers3, Link2, List, LoaderCircle, MousePointer2, Move, Pause, Play, Plus, Redo2, Search, ShieldCheck, SkipBack, Undo2, X } from 'lucide-react';
 import { WORLD_INFO } from './examples';
 import { createStudioExample as createExample } from './examples/studio';
 import { createWorkshopFacility } from './examples/facility';
@@ -38,11 +38,12 @@ import { CommandSearch, QuickGuide, type WorkspaceCommand } from './features/Wor
 import { shellEaseMessages as sx } from './ui/messages/shellEase';
 import { easeMessages as ease } from './ui/messages/ease';
 import { BuildTray, type BuildPrefab } from './features/BuildTray';
+import { FacilityWorkflow } from './features/FacilityWorkflow';
 import { FacilityInspector } from './features/FacilityInspector';
 import { EquipmentAppearance } from './features/EquipmentAppearance';
 import { DecisionGuide } from './features/DecisionGuide';
 import { placeFacilityObject, changeFacilityObject, duplicateFacilityObject, removeFacilityObject, replaceFacilityAsset, setFacilityScenery, insertEquipment, insertProcessCell, alignInsertedProcess, setNodeAsset, type CellSettings } from './features/facilityCommands';
-import type { LibraryDrop } from './features/FacilityLibrary';
+import type { LibraryDrop, LibraryTab } from './features/FacilityLibrary';
 import { findLibraryAsset, type LibraryAsset } from './catalog/registry';
 import { capturePresentation, type PresentationSnapshot } from './model/scenarios';
 import { facilityMessages as fm } from './ui/messages/facility';
@@ -50,6 +51,7 @@ import './features/workspace.css';
 import './features/shellEase.css';
 import './features/quality.css';
 import './features/facility.css';
+import './features/facilityWorkspace.css';
 import { DataTools, recoveryProjectKey, serializeDraftRecovery, type RetainedDraft, type FileTab } from './features/DataTools';
 import { CouplingDetails } from './features/CouplingDetails';
 import { CalculationBudget } from './features/CalculationBudget';
@@ -86,7 +88,7 @@ function focusChangedSince(origin: Element | null): boolean {
 export default function App() {
   const [pendingEdits, setPendingEdits] = useState(false);
   const [guideIndex, setGuideIndex] = useState(0);
-  const [project, setProject] = useState<Project>(() => createExample('factory'));
+  const [project, setProject] = useState<Project>(() => createWorkshopFacility());
   const [history, setHistory] = useState(emptyHistory); const historyRef = useRef(history); historyRef.current = history;
   const [selection, setSelection] = useState<EditorSelection>({ ids: ['station-c'], primary: 'station-c' });
   const selectionRef = useRef(selection); selectionRef.current = selection;
@@ -108,9 +110,10 @@ export default function App() {
   const [connectionPreview, setConnectionPreview] = useState<{ owner: string; from: string; to: string } | null>(null);
   const [quality, setQuality] = useState<'high' | 'low'>('high');
   const [moving, setMoving] = useState(true); const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const [objectDetailsOpen, setObjectDetailsOpen] = useState(() => !matchMedia('(max-width:740px)').matches);
+  const [objectDetailsOpen, setObjectDetailsOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<'object' | 'tools' | 'steps' | 'objects'>('object');
-  const [buildTrayOpen, setBuildTrayOpen] = useState(false);
+  const [buildTrayOpen, setBuildTrayOpen] = useState(() => !matchMedia('(max-width:740px)').matches);
+  const [libraryTab, setLibraryTab] = useState<LibraryTab>('objects');
   const buildTrayOrigin = useRef<HTMLElement | null>(null);
   const objectDetailsOrigin = useRef<HTMLElement | null>(null);
   const [flowState, setFlowState] = useState({ key: '', open: false, cursor: 0 });
@@ -175,7 +178,7 @@ export default function App() {
   const flowSuspended = Boolean(linkFrom || moving || panel);
   const sceneFlow = useMemo(() => {
     if (panel || hasErrors) return null;
-    if (buildTrayOpen) {
+    if (buildTrayOpen && libraryTab !== 'objects') {
       const anchor = insertionAnchor(visualProject), walk = anchor && possibleFlow(topology, anchor.id);
       if (walk && anchor) return { walk, cursor: Math.max(0, walk.links.findIndex(link => link.from === anchor.id && link.to === anchor.next)) };
     }
@@ -185,7 +188,7 @@ export default function App() {
       if (previewWalk) return { walk: previewWalk, cursor: Math.max(0, previewWalk.links.findIndex(link => link.from === connectionPreview.from && link.to === connectionPreview.to)) };
     }
     return flowOpen && !flowSuspended && flowWalk ? { walk: flowWalk, cursor: flowCursor } : null;
-  }, [panel, hasErrors, connectionPreview, buildTrayOpen, visualProject, selected, topology, flowOpen, flowSuspended, flowWalk, flowCursor]);
+  }, [panel, hasErrors, connectionPreview, buildTrayOpen, libraryTab, visualProject, selected, topology, flowOpen, flowSuspended, flowWalk, flowCursor]);
   function showFlowConnection(index: number) {
     if (hasErrors || flowSuspended) return;
     document.querySelector('.world-scene')?.dispatchEvent(new CustomEvent('queuelab:show-connection', { detail: index }));
@@ -218,7 +221,7 @@ export default function App() {
   async function compute(p: Project, establishBaseline = false) {
     const generation = ++requestGeneration.current; setPlaying(false); setLatestAttempt(null);
     const announcementId = String(generation);
-    calculationStatus.controller.begin(announcementId, m.calculationStarted(p.model.name), panelGeneration.current);
+    calculationStatus.controller.begin(announcementId, m.calculationStarted(p.name), panelGeneration.current);
     if (!establishBaseline) setToast(null);
     try {
       const r = await sim.run(p.model);
@@ -236,7 +239,7 @@ export default function App() {
         { projectId: p.id, modelHash: r.modelHash, seed: r.seed, valid: true },
         { projectId: current.id, modelHash: modelHash(current.model), seed: current.model.seed, valid: !validateProject(current).some(issue => issue.severity === 'error') },
       );
-      calculationStatus.controller.finish(announcementId, completedSimulationNotice({ status: r.status, name: r.model.name, completed: r.summary.completed, unfinished: r.summary.inSystem, earlier }, m.calculationCompleted), panelGeneration.current);
+      calculationStatus.controller.finish(announcementId, completedSimulationNotice({ status: r.status, name: runDisplayNames.current.get(r) ?? r.model.name, completed: r.summary.completed, unfinished: r.summary.inSystem, earlier }, m.calculationCompleted), panelGeneration.current);
       return r;
     } catch (e) { if (generation === requestGeneration.current) { calculationStatus.controller.finish(announcementId, '', panelGeneration.current); setToast(e instanceof Error ? e.message : m.theRunCouldNotFinish); } }
   }
@@ -401,7 +404,7 @@ export default function App() {
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(null), 6000); return () => clearTimeout(id); }, [toast]);
   // Adopt a document's inspector before it can receive input. A deferred reset
   // can otherwise overwrite a Tools choice made just after the new world appears.
-  useLayoutEffect(() => { setObjectDetailsOpen(!matchMedia('(max-width:740px)').matches); setInspectorTab('object'); }, [project.id]);
+  useLayoutEffect(() => { setObjectDetailsOpen(!project.facility && !matchMedia('(max-width:740px)').matches); setInspectorTab('object'); }, [project.id]);
 
 
   function updateRetained(next: RetainedDraft[]) { retained.current = next; setRetainedDrafts(next); }
@@ -512,13 +515,22 @@ export default function App() {
     if (!Number.isInteger(next) || next < 1 || (delta > 0 && next > MAX_PARALLEL_STATIONS)) return;
     if (next !== node.servers) edit(mutateProject(current, copy => { const target = copy.model.nodes.find(n => n.id === id); if (target?.kind === 'service') target.servers = next; }), ease.stationChanged(node.label));
   }
+  function chooseLibraryTab(tab: LibraryTab) {
+    setLibraryTab(tab);
+    if (tab !== 'cells') return;
+    const current = live.current.project, anchor = insertionAnchor(current);
+    if (anchor && anchor.kind !== 'queue') return;
+    const following = anchor?.kind === 'queue' ? current.model.nodes.find(node => node.id === anchor.next) : null;
+    const target = following && 'next' in following && following.kind !== 'queue' ? following : current.model.nodes.find(node => node.kind === 'service');
+    if (target) setSelected(target.id);
+  }
   function showBuildTray(origin: HTMLElement) {
     buildTrayOrigin.current = origin;
     setBuildTrayOpen(true); setLinkFrom(null);
     requestAnimationFrame(() => {
       const tray = document.querySelector<HTMLElement>('.build-tray');
       tray?.scrollIntoView({ block: 'nearest' });
-      tray?.querySelector<HTMLElement>('select:not(:disabled),.build-prefab:not(:disabled),.tray-close')?.focus({ preventScroll: true });
+      tray?.querySelector<HTMLElement>('input[type=search],.library-tabs button,.tray-close')?.focus({ preventScroll: true });
     });
   }
   function closeBuildTray() {
@@ -616,25 +628,27 @@ export default function App() {
   function addLibraryAsset(asset: LibraryAsset, mode: 'visual' | 'process', settings: CellSettings, point?: Point) {
     facilityAction(() => {
       const current = live.current.project;
+      let snapped = false;
       if (mode === 'process') {
         const anchor = insertionAnchor(current); if (!anchor) throw new Error(fm.invalidCell);
         let added = insertEquipment(current, asset.id, anchor.id, settings);
-        if (point) added = alignInsertedProcess(current, added, point);
+        if (point) { const aligned = alignInsertedProcess(current, added, point); added = aligned; snapped = Boolean(aligned.snapped); }
         if (edit(added.project, fm.addedStep(asset.name))) { setSelected(added.id); setInspectorTab('object'); setObjectDetailsOpen(true); }
       } else {
         const origin = document.activeElement;
         const added = placeFacilityObject(current, asset.id, point);
         if (edit(added.project, fm.added(asset.name))) { selectFacility(added.id); focusFacility(added.id, origin, current.id); }
       }
-      setBuildTrayOpen(false); setMoving(true); setToast(fm.added(asset.name));
+      if (matchMedia('(max-width:740px)').matches) setBuildTrayOpen(false); setMoving(true); setToast(snapped ? fm.snapped : fm.added(asset.name));
     });
   }
   function addLibraryCell(id: string, settings: CellSettings, point?: Point) {
     facilityAction(() => {
       const current = live.current.project, anchor = insertionAnchor(current);
       if (!anchor) throw new Error(fm.invalidCell);
-      let added = insertProcessCell(current, id, anchor.id, settings);
+      let added: ReturnType<typeof alignInsertedProcess> = insertProcessCell(current, id, anchor.id, settings);
       if (point) added = alignInsertedProcess(current, added, point);
+      if (added.snapped) setToast(fm.snapped);
       if (edit(added.project, fm.addedCell(added.project.model.nodes.find(node => node.id === added.id)!.label))) { setSelected(added.id); setInspectorTab('object'); setObjectDetailsOpen(true); setMoving(true); }
     });
   }
@@ -712,52 +726,50 @@ export default function App() {
   }
   const panelTitle = (surface: Exclude<Panel, null>) => ({ worlds: m.chooseYourLittleWorld, compare: m.aBetterPlanStartsHere, model: m.insideYourModel, data: m.keepYourWorkShareYourFindings, experiments: m.runExperiments, insights: m.yourRunInDetail, budget: m.beforeYouCalculate, history: m.yourRecentActions, help: m.helpHeading, scenario: sx.scenario, view: sx.view, rename: sx.renameProject, search: sx.search, guide: sx.guide }[surface]);
   const draftSummary = normalBudget ? sx.quickSummary(ease.duration(project.model.horizon), number(normalBudget.groups[0].arrivalsPerRun), normalBudget.groups[0].stochastic, project.model.resources.length) : sx.reviewInputs;
-  return <NumericDraftProvider onPendingChange={setPendingEdits}><div className="app-shell studio-shell">
+  return <NumericDraftProvider onPendingChange={setPendingEdits}><div className="app-shell studio-shell facility-studio">
     <header className="studio-header" inert={Boolean(panel)}>
       <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>{m.queueLab}<span className="studio-brand-dot">.</span></span></a>
       <div className="studio-project"><h1><button className="studio-project-name" data-panel-opener="rename" aria-label={sx.renameProject} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{sx.localProject}</span></div>
       <label className="studio-world-picker"><span>{m.chooseWorld}</span><select aria-label={m.chooseWorld} value={project.world} onChange={event => chooseWorld(event.currentTarget.value as World)}><option value="factory">{m.factory}</option><option value="festival">{m.festival}</option><option value="service">{m.service}</option></select></label>
       <div className="studio-command-actions">
-        <button className="studio-icon-button" title={m.openProject} aria-label={m.openProject} onClick={event => openFiles('projects', event.currentTarget)}><FileUp size={17} /></button>
+        <button data-panel-opener="data" className="studio-icon-button" title={m.openProject} aria-label={m.openProject} onClick={event => openFiles('projects', event.currentTarget)}><FileUp size={17} /></button>
         <button className="studio-save" aria-label={m.saveProject} onClick={downloadProject}><ArrowDownToLine size={16} /><span>{m.saveProject}</span></button>
         <button className="studio-icon-button ease-search-opener" data-panel-opener="search" aria-label={sx.search} title={sx.search} onClick={event => setPanel('search', event.currentTarget)}><Search size={17} /></button><span className="studio-command-divider" />
-        <button className="studio-button" aria-label={m.comparePlans} onClick={event => setPanel('compare', event.currentTarget)}><GitCompareArrows size={16} />{m.compareTool}</button>
+        <button data-panel-opener="compare" className="studio-button" aria-label={m.comparePlans} onClick={event => setPanel('compare', event.currentTarget)}><GitCompareArrows size={16} />{m.compareTool}</button>
         <button className="studio-button ease-scenario-opener" data-panel-opener="scenario" aria-label={sx.scenario} onClick={event => setPanel('scenario', event.currentTarget)}><span>{sx.scenario}</span><small>{draftSummary}</small></button><button className="studio-button studio-primary" disabled={sim.running || hasErrors || pendingEdits} onClick={event => { if (stale && baseline) void runAndCompare(event.currentTarget); else void compute(project); }}>{sim.running ? <LoaderCircle size={16} className="spin" /> : <Play size={15} fill="currentColor" />}{sim.running ? m.calculationProgress(Math.round(sim.progress * 100)) : stale && baseline ? m.runAndCompare : m.runSimulation}</button>
       </div>
     </header>
+    <FacilityWorkflow tab={libraryTab} open={buildTrayOpen} objects={project.facility?.objects.length ?? 0} steps={project.model.nodes.length} inert={Boolean(panel)} onBuild={(element, tab) => { chooseLibraryTab(tab); showBuildTray(element); }} onResults={element => setPanel('insights', element)} onTools={openTools} onView={element => setPanel('view', element)} />
     <div className="studio-body" inert={Boolean(panel)}>
-      <aside className="studio-rail" aria-label={m.studioTools}>
-        <div className="studio-rail-group">
-          <button data-build-opener="" className={buildTrayOpen ? 'is-active' : ''} aria-expanded={buildTrayOpen} aria-controls="process-blocks" aria-pressed={buildTrayOpen} onClick={event => { if (buildTrayOpen) closeBuildTray(); else showBuildTray(event.currentTarget); }}><Plus size={20} /><span>{m.build}</span></button>
-          <button className={!moving && !linkFrom ? 'is-active' : ''} aria-pressed={!moving && !linkFrom} onClick={() => { setMoving(false); setLinkFrom(null); }}><MousePointer2 size={19} /><span>{m.selectTool}</span></button>
-          <button className={moving && !linkFrom ? 'is-active' : ''} aria-label={m.moveStations} aria-pressed={moving && !linkFrom} disabled={hasErrors} onClick={() => { setMoving(true); setLinkFrom(null); }}><Move size={19} /><span>{m.moveTool}</span></button>
-          <button className={linkFrom ? 'is-active' : ''} aria-label={m.connectSelectedStep} title={!selectedStep || !('next' in selectedStep) ? processEaseMessages.noOutgoing : hasErrors ? m.repairYourModelFirst : m.connectSelectedStep} aria-pressed={Boolean(linkFrom)} disabled={hasErrors || !selectedStep || !('next' in selectedStep)} onClick={() => { setBuildTrayOpen(false); setMoving(false); setLinkFrom(linkFrom ? null : selected); }}><Link2 size={19} /><span>{m.connectTool}</span></button>
-        </div>
-        <div className="studio-rail-group">
-          <button data-panel-opener="insights" onClick={event => setPanel('insights', event.currentTarget)}><Activity size={19} /><span>{m.resultsTool}</span></button>
-          <button data-panel-opener="compare" onClick={event => setPanel('compare', event.currentTarget)}><GitCompareArrows size={19} /><span>{m.compareTool}</span></button>
-          <button data-panel-opener="data" onClick={event => openFiles('projects', event.currentTarget)}><ArrowDownToLine size={19} /><span>{m.filesTool}</span></button>
-        </div>
-        <div className="studio-rail-group studio-rail-bottom"><button aria-label={sx.steps} className={objectDetailsOpen && inspectorTab === 'steps' ? 'is-active' : ''} onClick={openStepList}><List size={19} /><span>{sx.steps}</span></button><button data-panel-opener="view" aria-label={sx.view} onClick={event => setPanel('view', event.currentTarget)}><Layers3 size={19} /><span>{sx.view}</span></button>
-          <button className={objectDetailsOpen && inspectorTab === 'object' ? 'is-active' : ''} aria-expanded={objectDetailsOpen && inspectorTab === 'object'} onClick={event => { objectDetailsOrigin.current = event.currentTarget; if (objectDetailsOpen && inspectorTab === 'object' && !matchMedia('(max-width:740px)').matches) closeObjectDetails(); else { setInspectorTab('object'); setObjectDetailsOpen(true); revealNarrowSection('#object-properties', '[data-object-details-close]'); } }}><List size={19} /><span>{m.properties}</span></button>
-          <button className={objectDetailsOpen && inspectorTab === 'tools' ? 'is-active' : ''} onClick={openTools}><Layers3 size={19} /><span>{m.toolsTool}</span></button>
-          <button title={m.fitWorld} aria-label={m.fitWorld} onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={19} /><span>{m.fitWorld}</span></button>
-        </div>
-      </aside>
+      <aside className="studio-library-dock" hidden={!buildTrayOpen}><BuildTray activeTab={libraryTab} onTabChange={chooseLibraryTab} key={project.id} onExample={() => facilityAction(() => { if (acceptProject(createWorkshopFacility())) { setBuildTrayOpen(true); setLibraryTab('objects'); setInspectorTab('objects'); setObjectDetailsOpen(false); } })} selectedObject={Boolean(project.facility?.objects.some(object => object.id === facilitySelection))} onReplace={asset => facilityAction(() => { if (facilitySelection) { edit(replaceFacilityAsset(live.current.project, facilitySelection, asset.id), fm.assetChanged); setBuildTrayOpen(false); } })} onNew={() => { const next = createNewProject(project.world); next.facility = { version: 1, objects: [], nodeAssets: {}, scenery: false }; if (acceptProject(next)) { setPanel(null); setLibraryTab('objects'); setBuildTrayOpen(true); setInspectorTab('objects'); setObjectDetailsOpen(false); } }} project={project} onPlace={addLibraryAsset} onCell={addLibraryCell} selectedStep={Boolean(selectedStep)} onAppearance={asset => facilityAction(() => { if (selected) edit(setNodeAsset(live.current.project, selected, asset.id), fm.assetChanged); })} world={project.world} serviceCount={serviceNodes(project).length} insertionLabel={insertionAnchor(project)?.label} insertionId={insertionAnchor(project)?.id} followingLabel={project.model.nodes.find(node => node.id === insertionAnchor(project)?.next)?.label} insertionOptions={project.model.nodes.filter(node => 'next' in node).map(node => ({ id: node.id, label: node.label }))} onInsertionChange={id => setSelected(id)} disabled={hasErrors || revisionExhausted || sim.running} disabledReason={hasErrors ? m.repairYourModelFirst : revisionExhausted ? m.revisionLimitReached : sim.running ? m.addingWhileRunning : project.model.nodes.length >= 100 ? m.stepLimitReached : undefined} onAdd={addProcess} onClose={closeBuildTray} /></aside>
+
       <main className="main-shell studio-main">
         <CalculationStatus announcement={calculationStatus.announcement} active={!panel && calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />
         {pendingEdits && <p className="ease-pending-banner" role="status">{sx.pendingEdits}</p>}
         {revisionExhausted && <div className="studio-selection-summary" role="status"><span>{m.revisionLimitReached}</span><button onClick={() => acceptProject(duplicateProject(live.current.project))}>{m.duplicateToEdit}</button></div>}
         <section className="world-workspace studio-world" aria-label={m.simulationWorkspace}>
           <div className={`studio-context ${hasErrors ? 'is-error' : ''}`}>
-            <div className="studio-context-copy"><span className="studio-status"><span className={sim.running || stale || hasErrors ? 'status-dot orange' : 'status-dot'} />{sim.running ? m.calculatingStatus : hasErrors ? m.modelIssue : stale ? m.currentDraft : m.playground}</span><span className="studio-context-hint">{hasErrors ? <>{errorNode && <b>{errorNode.label}: </b>}{firstError?.message}</> : linkFrom ? m.connectionHint(selectedStep?.label ?? m.step) : latestAttempt ? attemptMatchesDraft ? m.incompleteAttemptStatus(latestAttempt.status) : m.anIncompleteAttemptBelongsToAnEarlierDraft : stale ? `${m.changedPlanHint} ${staleChanges.slice(0, 2).map(change => change.label).join('; ')}` : shownResult && !shownResult.trace.complete ? canReplay ? m.replayCoverageCaption(clock(replayUntil)) : m.noDetailedReplayWasRetainedFullRunNumericalResults : frame.aggregated ? m.representativeActors(frame.actors.length, worldInfo.unit, frame.inSystem) : selectedStep ? m.selectedObjectHint(selectedStep.label) : m.workspaceHint}</span></div>
+            <div className="studio-context-copy"><span className="studio-status"><span className={sim.running || stale || hasErrors ? 'status-dot orange' : 'status-dot'} />{sim.running ? m.calculatingStatus : hasErrors ? m.modelIssue : stale ? m.currentDraft : m.playground}</span><span className="studio-context-hint">{hasErrors ? <>{errorNode && <b>{errorNode.label}: </b>}{firstError?.message}</> : linkFrom ? m.connectionHint(selectedStep?.label ?? m.step) : latestAttempt ? attemptMatchesDraft ? m.incompleteAttemptStatus(latestAttempt.status) : m.anIncompleteAttemptBelongsToAnEarlierDraft : stale ? `${m.changedPlanHint} ${staleChanges.slice(0, 2).map(change => change.label).join('; ')}` : shownResult && !shownResult.trace.complete ? canReplay ? m.replayCoverageCaption(clock(replayUntil)) : m.noDetailedReplayWasRetainedFullRunNumericalResults : frame.aggregated ? m.representativeActors(frame.actors.length, worldInfo.unit, frame.inSystem) : libraryTab === 'objects' ? fm.layoutHint : selectedStep ? m.selectedObjectHint(selectedStep.label) : m.workspaceHint}</span></div>
             {hasErrors ? <button onClick={event => { if (errorNode) setSelected(errorNode.id); setPanel('model', event.currentTarget); }}>{m.repairModel}<ArrowRight size={13} /></button> : latestAttempt ? <><button onClick={event => openFiles('reports', event.currentTarget)}>{m.reviewIncompleteRun}<ArrowRight size={13} /></button><button onClick={event => setPanel('scenario', event.currentTarget)}>{sx.editSettings}</button></> : null}
             <div className="studio-edit-history"><button aria-label={undoAction ? m.undoLabel(undoAction.label) : m.undo} title={undoAction ? m.undoTitle(undoAction.label) : m.undo} disabled={!undoAction || revisionExhausted} onClick={undo}><Undo2 size={15} /><kbd>{/Mac/.test(navigator.platform) ? '⌘Z' : 'Ctrl+Z'}</kbd></button><button aria-label={redoAction ? m.redoLabel(redoAction.label) : m.redo} title={redoAction ? m.redoTitle(redoAction.label) : m.redo} disabled={!redoAction || revisionExhausted} onClick={redo}><Redo2 size={15} /><kbd>{/Mac/.test(navigator.platform) ? '⇧⌘Z' : 'Ctrl+Y'}</kbd></button></div>
           </div>
           {selection.ids.length > 1 && <div className="studio-selection-summary"><span>{m.selectionSummary(selection.ids.length, selectedStep?.label ?? m.step)}</span><button onClick={event => setPanel('model', event.currentTarget)}>{m.moveOrEditSelection}</button><button onClick={() => setSelected(null)}>{m.clearSelection}</button></div>}
           {linkFrom && selectedStep && <div className="ease-connect-review"><ConnectionPicker project={project} node={project.model.nodes.find(node => node.id === linkFrom) ?? selectedStep} onChange={(next,label) => { edit(next,label); setLinkFrom(null); setConnectionPreview(null); }} onPreview={to => setConnectionPreview(previous => to ? { owner: 'tool', from: linkFrom, to } : previous?.owner === 'tool' ? null : previous)} /></div>}
           <div className="scene-area studio-canvas">
-            <div className="quality-world-brief"><p>{project.model.id === `${project.world}-model` ? sx.worldQuestions[project.world] : sx.workspaceQuestion}</p><button type="button" data-panel-opener="guide" onClick={event => { setGuideIndex(0); setPanel('guide', event.currentTarget); }}><CircleHelp size={14} />{sx.firstSteps}</button></div>
+            <div className="quality-world-brief"><div><small>{libraryTab === 'objects' ? fm.canvasTitle : fm.processTitle}</small><p title={project.name}>{project.name}</p></div><button type="button" data-panel-opener="guide" onClick={event => { setGuideIndex(0); setPanel('guide', event.currentTarget); }}><CircleHelp size={14} />{sx.firstSteps}</button></div>
+            <div className="facility-canvas-tools" role="toolbar" aria-label={fm.canvasTools}>
+              <button type="button" title={fm.libraryToggle} aria-label={fm.libraryToggle} aria-pressed={buildTrayOpen} onClick={event => buildTrayOpen ? closeBuildTray() : showBuildTray(event.currentTarget)}><Box size={17} /></button>
+              <span />
+              <button type="button" aria-pressed={!moving && !linkFrom} title={m.selectTool} aria-label={m.selectTool} onClick={() => { setMoving(false); setLinkFrom(null); }}><MousePointer2 size={17} /></button>
+              <button type="button" title={m.moveStations} aria-label={m.moveStations} aria-pressed={moving && !linkFrom} disabled={hasErrors} onClick={() => { setMoving(true); setLinkFrom(null); }}><Move size={17} /></button>
+              <button type="button" title={m.connectSelectedStep} aria-label={m.connectSelectedStep} aria-pressed={Boolean(linkFrom)} disabled={hasErrors || !selectedStep || !('next' in selectedStep)} onClick={() => { setMoving(false); setLinkFrom(linkFrom ? null : selected); }}><Link2 size={17} /></button>
+              <span />
+              <button type="button" title={sx.steps} aria-label={sx.steps} onClick={openStepList}><List size={17} /></button>
+              <button type="button" title={fm.showProperties} aria-label={fm.showProperties} aria-pressed={objectDetailsOpen} onClick={() => { setInspectorTab(facilitySelection ? 'objects' : 'object'); setObjectDetailsOpen(!objectDetailsOpen); }}><Layers3 size={17} /></button>
+              <button type="button" className="facility-mobile-tools" data-tools-opener="" aria-label={m.toolsTool} onClick={openTools}><List size={17} /></button>
+              <button type="button" className="facility-mobile-tools" data-panel-opener="view" aria-label={sx.view} onClick={event => setPanel('view', event.currentTarget)}><Layers3 size={17} /></button>
+              <button type="button" title={m.fitWorld} aria-label={m.fitWorld} onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={17} /></button>
+            </div>
             <Suspense fallback={<div className="scene-fallback" role="status"><p>{m.buildingYourLittleWorld}</p></div>}><WorldScene playing={playing} playbackSpeed={speed} replayUntil={replayUntil} runKey={shownResult?.id} seekEpoch={visualSeekEpoch} result={shownResult} onMoveStart={() => setPlaying(false)} project={visualProject} selectedFacilityId={facilitySelection} onSelectFacility={selectFacility} onMoveFacility={moveFacility} onDropAsset={droppedLibraryAsset} quality={quality} frame={frame} selected={selected} selectedIds={selection.ids} reducedMotion={reducedMotion} moving={moving && !hasErrors && !revisionExhausted} editable={!hasErrors && !revisionExhausted} flow={sceneFlow} onSelect={selectFromWorld} onMove={moveSelected} onCapacityChange={changeCapacity} onEditNode={editSceneNode} /></Suspense>
           </div>
           <div className="quality-mobile-selection"><span>{selectedStep?.label ?? m.selectionEmpty}</span><button type="button" disabled={!selectedStep} onClick={() => { if (selectedStep) editSceneNode(selectedStep.id); }}>{m.editSelectedStep}<ArrowRight size={14} /></button></div>
@@ -771,12 +783,12 @@ export default function App() {
             onClose={() => setFlowState(state => ({ ...state, open: false }))}
             onCursor={cursor => setFlowState({ key: flowKey, open: true, cursor })} onShow={showFlowConnection} /></div>
         </section>
-        <div hidden={!buildTrayOpen}><BuildTray key={project.id} onExample={() => facilityAction(() => { if (acceptProject(createWorkshopFacility())) { setBuildTrayOpen(false); setInspectorTab('objects'); setObjectDetailsOpen(true); } })} selectedObject={Boolean(project.facility?.objects.some(object => object.id === facilitySelection))} onReplace={asset => facilityAction(() => { if (facilitySelection) { edit(replaceFacilityAsset(live.current.project, facilitySelection, asset.id), fm.assetChanged); setBuildTrayOpen(false); } })} onNew={() => { const next = createNewProject(project.world); next.facility = { version: 1, objects: [], nodeAssets: {}, scenery: false }; if (acceptProject(next)) { setPanel(null); setInspectorTab('object'); setObjectDetailsOpen(true); } }} project={project} onPlace={addLibraryAsset} onCell={addLibraryCell} selectedStep={Boolean(selectedStep)} onAppearance={asset => facilityAction(() => { if (selected) edit(setNodeAsset(live.current.project, selected, asset.id), fm.assetChanged); })} world={project.world} serviceCount={serviceNodes(project).length} insertionLabel={insertionAnchor(project)?.label} insertionId={insertionAnchor(project)?.id} followingLabel={project.model.nodes.find(node => node.id === insertionAnchor(project)?.next)?.label} insertionOptions={project.model.nodes.filter(node => 'next' in node).map(node => ({ id: node.id, label: node.label }))} onInsertionChange={id => setSelected(id)} disabled={hasErrors || revisionExhausted || sim.running} disabledReason={hasErrors ? m.repairYourModelFirst : revisionExhausted ? m.revisionLimitReached : sim.running ? m.addingWhileRunning : project.model.nodes.length >= 100 ? m.stepLimitReached : undefined} onAdd={addProcess} onClose={closeBuildTray} /></div>
+
         <footer className="workspace-footer"><span title={sx.storageScope(window.location.origin)}><span className="status-dot" />{storageError ? m.localSaveFailedDownloadABackup : !storageReady ? m.openingLocalProject : issues.some(i => i.severity === 'error') ? m.draftHasIssuesRepairBeforeSaving : localRevision === project.revision ? m.savedInThisBrowser : m.savingLocally}{backupRequestedRevision === project.revision ? m.backupRequestedVerifyFile : ''}<small className="ease-storage-origin">{window.location.host}</small>{retainedDrafts.length > 0 && <button onClick={event => setPanel('data', event.currentTarget)}>{m.retainedDraftRecovery(retainedDrafts.length)}</button>}</span><span>{m.seedLabel(Number.isFinite(project.model.seed) ? project.model.seed : m.check)}<span className="footer-separator" />{source?.kind === 'source' ? m.variableDemand : m.customModel}<span className="footer-separator" /><button onClick={() => setReducedMotion(!reducedMotion)}>{reducedMotion ? m.reducedMotionOn : m.motionOn}</button></span></footer>
       </main>
       {objectDetailsOpen && <aside id="object-properties" className="inspector studio-inspector" aria-label={inspectorTab === 'tools' ? m.studioTools : m.stationInspector}>
-        <div className="studio-inspector-tabs"><button className={inspectorTab === 'steps' ? 'selected' : ''} onClick={() => setInspectorTab('steps')}>{sx.steps}</button><button className={inspectorTab === 'object' ? 'selected' : ''} onClick={() => setInspectorTab('object')}>{m.properties}</button><button className={inspectorTab === 'tools' ? 'selected' : ''} onClick={() => setInspectorTab('tools')}>{m.toolsTool}</button><button className={inspectorTab === 'objects' ? 'selected' : ''} onClick={() => setInspectorTab('objects')}>{fm.catalogue}</button><button className="studio-inspector-close" data-object-details-close="" aria-label={m.closeObjectDetails} onClick={closeObjectDetails}><X size={16} /></button></div>
-        {inspectorTab === 'objects' ? <FacilityInspector project={project} selectedId={facilitySelection} onSelect={selectFacility} onChange={edit} onDuplicate={copyFacility} onRemove={deleteFacility} disabled={revisionExhausted || hasErrors} /> : inspectorTab === 'tools' ? <div className="studio-tool-list"><h2>{m.processTools}</h2><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><button data-panel-opener="model" onClick={event => setPanel('model', event.currentTarget)}><List size={17} /><span>{m.processEditor}</span><ChevronRight size={14} /></button><button data-panel-opener="experiments" onClick={event => setPanel('experiments', event.currentTarget)}><FlaskConical size={17} /><span>{m.experiments}</span><ChevronRight size={14} /></button><button data-panel-opener="budget" onClick={event => setPanel('budget', event.currentTarget)}><ShieldCheck size={17} /><span>{m.runLimits}</span><ChevronRight size={14} /></button><button data-panel-opener="history" onClick={event => setPanel('history', event.currentTarget)}><History size={17} /><span>{m.actionHistory}</span><ChevronRight size={14} /></button><button data-panel-opener="worlds" onClick={event => setPanel('worlds', event.currentTarget)}><Globe2 size={17} /><span>{m.exploreWorlds}</span><ChevronRight size={14} /></button><button data-panel-opener="help" onClick={event => setPanel('help', event.currentTarget)}><CircleHelp size={17} /><span>{m.aLittleGuidance}</span><ChevronRight size={14} /></button><div className="studio-tool-note"><ShieldCheck size={15} />{m.yourWorldStaysOnYourDevice}</div></div> : inspectorTab === 'steps' ? <ProcessList project={project} selectedId={selected} selectedIds={selection.ids} onSelect={(id, intent) => { if (intent === 'toggle') setSelected(id, intent); else if (id) editSceneNode(id); }} /> : selectedStep ? <fieldset className="studio-properties" aria-label={m.properties} disabled={revisionExhausted}>{!('next' in selectedStep) && <p className="ease-help">{processEaseMessages.noOutgoing}</p>}<QuickProperties key={`${project.id}:${selectedStep.id}`} project={project} node={selectedStep} result={shownResult} onChange={edit} onAdvanced={() => setPanel('model')} onPreviewConnection={to => { if (to) setBuildTrayOpen(false); setConnectionPreview(previous => to ? { owner: 'quick', from: selectedStep.id, to } : previous?.owner === 'quick' ? null : previous); }} /><EquipmentAppearance project={project} nodeId={selectedStep.id} onChange={edit} onLibrary={showBuildTray} /></fieldset> : <div className="studio-empty-properties"><MousePointer2 size={26} /><h2>{m.properties}</h2><p>{m.selectionEmpty}</p><button className="studio-button" onClick={event => showBuildTray(event.currentTarget)}><Plus size={15} />{m.processBlocks}</button></div>}
+        <div className="studio-inspector-tabs"><button className={inspectorTab === 'steps' ? 'selected' : ''} onClick={() => setInspectorTab('steps')}>{sx.steps}</button><button className={inspectorTab === 'object' ? 'selected' : ''} onClick={() => setInspectorTab('object')}>{m.properties}</button><button className={inspectorTab === 'tools' ? 'selected' : ''} onClick={() => setInspectorTab('tools')}>{m.toolsTool}</button><button className={inspectorTab === 'objects' ? 'selected' : ''} onClick={() => setInspectorTab('objects')}>{fm.placedTab}</button><button className="studio-inspector-close" data-object-details-close="" aria-label={m.closeObjectDetails} onClick={closeObjectDetails}><X size={16} /></button></div>
+        {inspectorTab === 'objects' ? <FacilityInspector onFocus={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:focus'))} project={project} selectedId={facilitySelection} onSelect={selectFacility} onChange={edit} onDuplicate={copyFacility} onRemove={deleteFacility} disabled={revisionExhausted || hasErrors} /> : inspectorTab === 'tools' ? <div className="studio-tool-list"><h2>{m.processTools}</h2><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><button data-panel-opener="model" onClick={event => setPanel('model', event.currentTarget)}><List size={17} /><span>{m.processEditor}</span><ChevronRight size={14} /></button><button data-panel-opener="experiments" onClick={event => setPanel('experiments', event.currentTarget)}><FlaskConical size={17} /><span>{m.experiments}</span><ChevronRight size={14} /></button><button data-panel-opener="budget" onClick={event => setPanel('budget', event.currentTarget)}><ShieldCheck size={17} /><span>{m.runLimits}</span><ChevronRight size={14} /></button><button data-panel-opener="history" onClick={event => setPanel('history', event.currentTarget)}><History size={17} /><span>{m.actionHistory}</span><ChevronRight size={14} /></button><button data-panel-opener="worlds" onClick={event => setPanel('worlds', event.currentTarget)}><Globe2 size={17} /><span>{m.exploreWorlds}</span><ChevronRight size={14} /></button><button data-panel-opener="help" onClick={event => setPanel('help', event.currentTarget)}><CircleHelp size={17} /><span>{m.aLittleGuidance}</span><ChevronRight size={14} /></button><div className="studio-tool-note"><ShieldCheck size={15} />{m.yourWorldStaysOnYourDevice}</div></div> : inspectorTab === 'steps' ? <ProcessList project={project} selectedId={selected} selectedIds={selection.ids} onSelect={(id, intent) => { if (intent === 'toggle') setSelected(id, intent); else if (id) editSceneNode(id); }} /> : selectedStep ? <fieldset className="studio-properties" aria-label={m.properties} disabled={revisionExhausted}>{!('next' in selectedStep) && <p className="ease-help">{processEaseMessages.noOutgoing}</p>}<QuickProperties key={`${project.id}:${selectedStep.id}`} project={project} node={selectedStep} result={shownResult} onChange={edit} onAdvanced={() => setPanel('model')} onPreviewConnection={to => { if (to) setBuildTrayOpen(false); setConnectionPreview(previous => to ? { owner: 'quick', from: selectedStep.id, to } : previous?.owner === 'quick' ? null : previous); }} /><EquipmentAppearance project={project} nodeId={selectedStep.id} onChange={edit} onLibrary={showBuildTray} /></fieldset> : <div className="studio-empty-properties"><MousePointer2 size={26} /><h2>{m.properties}</h2><p>{m.selectionEmpty}</p><button className="studio-button" onClick={event => showBuildTray(event.currentTarget)}><Plus size={15} />{m.processBlocks}</button></div>}
       </aside>}
     </div>
     {storageError && <button className="storage-warning" onClick={event => { setToast(storageError); setPanel('data', event.currentTarget); }}>{m.localSaveNeedsAttentionDownloadABackup}</button>}

@@ -10,4 +10,6 @@ Produced locally with [Hyperframes](https://github.com/heygen-com/hyperframes), 
 
 ## Facility screenshot
 
-`loopset-facility.png` captures the actual RC10 interface rendering the synthetic Workshop and dispatch example. It shows the unchanged Factory numerical process with 57 independently editable layout objects; the artwork does not establish real-world calibration. The source project is [`examples/facility.json`](../../examples/facility.json). NVIDIA CC BY 4.0 models, Quaternius/Poly Haven CC0 material and the existing font retain the creator/source/licence records linked above.
+`loopset-facility.png` captures the actual RC11 interface rendering the synthetic Workshop and dispatch example. It shows the unchanged Factory numerical process with 57 independently editable layout objects; the artwork does not establish real-world calibration. The source project is [`examples/facility.json`](../../examples/facility.json). NVIDIA CC BY 4.0 models, Quaternius/Poly Haven CC0 material and the existing font retain the creator/source/licence records linked above.
+
+The RC11 facility screenshot shows the docked model library and the editable synthetic Workshop and dispatch example. It is an actual browser capture with the local-origin status footer excluded. The comparison video/GIF remains the RC9 workflow recording; its model behavior is still supported.

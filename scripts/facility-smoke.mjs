@@ -3,7 +3,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { headerProjectInput, openPanel, runPlan } from './ui-actions.mjs';
+import { headerProjectInput, openPanel, runPlan, canvasDropPoint } from './ui-actions.mjs';
 
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use a separate loopback QA origin.');
@@ -19,6 +19,8 @@ async function fresh(width = 1440) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
   const page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
   await page.goto(origin.href); await ready(page);
+  // Use the original numerical fixture for these compatibility checks.
+  await page.locator('.studio-world-picker select').selectOption('factory'); await ready(page);
   const pause = page.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click();
   return { context, page };
 }
@@ -40,7 +42,7 @@ try {
   const first = await fresh(); page = first.page;
   const original = await download(page, 'original.json'), baseline = await state(page);
   await page.screenshot({ path: path.join(out, '01-start.png') });
-  const tray = await library(page); await tray.locator('.library-tabs').getByRole('button', { name: /^Objects/ }).click();
+  const tray = await library(page); await tray.locator('.library-tabs').getByRole('button', { name: '3D models', exact: true }).click();
   await page.screenshot({ path: path.join(out, '02-library.png') });
   await tray.locator('.library-category select').selectOption('storage');
   await tray.getByRole('searchbox', { name: 'Search equipment and objects', exact: true }).fill('Shelf basic');
@@ -61,11 +63,11 @@ try {
     await page.getByRole('button', { name: /^Undo / }).click(); assert.equal((await download(page, 'undo-remove.json')).facility.objects.length, 2);
     await page.getByRole('button', { name: /^Redo / }).click(); assert.equal((await download(page, 'redo-remove.json')).facility.objects.length, 1);
     checks.push('Object duplication/removal and logical Undo/Redo');
-    await library(page); await tray.locator('.library-tabs').getByRole('button', { name: /^Objects/ }).click();
+    await library(page); await tray.locator('.library-tabs').getByRole('button', { name: '3D models', exact: true }).click();
     await tray.getByRole('searchbox', { name: 'Search equipment and objects', exact: true }).fill('Rack bulk storage');
     const rack = tray.getByRole('button', { name: 'Rack bulk storage · A03', exact: true });
-    const canvas = page.locator('.world-scene canvas'), bounds = await canvas.boundingBox();
-    await rack.dragTo(canvas, { targetPosition: { x: bounds.width * .72, y: bounds.height * .68 } });
+    const canvas = page.locator('.world-scene canvas');
+    await rack.dragTo(canvas, { targetPosition: await canvasDropPoint(canvas) });
     await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).facility?.objects.length === 2);
     const dragged = await download(page, 'dragged.json'); assert.equal(dragged.facility.objects.length, 2); assert.deepEqual(dragged.model, original.model);
     checks.push('Native HTML drag/drop from the library onto the actual camera plane');
@@ -73,7 +75,7 @@ try {
     await tray.getByRole('button', { name: 'Inspection cell', exact: true }).click();
     await tray.getByRole('button', { name: 'Add process cell', exact: true }).click();
     const cell = await download(page, 'cell.json'); assert.equal(cell.model.nodes.length, original.model.nodes.length + 2); assert.equal(cell.model.resources.length, original.model.resources.length + 1);
-    await tray.getByRole('button', { name: 'Hide process blocks', exact: true }).click(); await runPlan(page);
+    await tray.getByRole('button', { name: 'Close asset library', exact: true }).click(); await runPlan(page);
     await openPanel(page, 'compare'); await page.getByRole('textbox', { name: 'Scenario name', exact: true }).fill('Original facility'); await page.getByRole('button', { name: 'Save baseline', exact: true }).click(); await page.getByRole('textbox', { name: 'Scenario name', exact: true }).fill('Synthetic facility'); await page.getByRole('button', { name: 'Save current plan', exact: true }).click(); await page.keyboard.press('Escape');
     const portable = await download(page, 'portable.json'); assert.deepEqual(portable.scenarios.at(-1).facility, portable.facility); assert.equal(portable.scenarios.find(s => s.name === 'Original facility').facility, undefined); checks.push('Functional cell, explicit team, real calculation/comparison and facility scenario');
     const reopened = await fresh();
