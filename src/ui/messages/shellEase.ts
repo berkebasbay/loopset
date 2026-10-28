@@ -5,7 +5,7 @@ export const shellEaseMessages = {
   quickSummary: (duration: string, arrivals: string, random: boolean, teams: number) => `${duration} · ${random ? '≈ ' : ''}${arrivals} arrivals · ${teams} teams`,
   pendingEdits: 'Apply or cancel the unfinished field before calculating. Your current model and previous results are preserved.',
   reviewInputs: 'Review inputs', editSettings: 'Open scenario settings',
-  renameProject: 'Rename project', projectName: 'Project name', rename: 'Rename',
+  renameProject: 'Rename project', renameProjectLabel: (name: string) => `Rename project: ${name}`, projectName: 'Project name', rename: 'Rename',
   renameScope: 'This changes the project label. The technical model name is separate in the model editor; saved run labels keep the name captured when they were calculated.',
   validName: 'Use a name of 1–160 characters.', downloadProject: 'Download project JSON', openProject: 'Open a project',
   openScope: 'Choose a JSON file or review a project saved in this browser before replacing your current draft.',

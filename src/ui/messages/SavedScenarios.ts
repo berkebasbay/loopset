@@ -3,7 +3,7 @@ export const savedScenariosMessages = {
   savedAModelSnapshotItIsIncludedInProject: "Saved a model snapshot. It is included in project files and local storage.",
   couldNotSaveThisScenario: "Could not save this scenario.",
   savedScenarios: "Saved scenarios",
-  keepAFewPossibilities: "Keep a few possibilities.",
+  keepAFewPossibilities: "Saved scenarios",
   namedModelSnapshotsTravelWithYourProjectRestoreOne: "Named model snapshots travel with your project. Restore one, change it, and run another experiment.",
   scenarioName: "Scenario name",
   saveCurrentPlan: "Save current plan",

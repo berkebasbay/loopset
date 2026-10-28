@@ -82,7 +82,7 @@ async function core() {
    const edited = await projectJSON(page, `${world}-edited.json`); assert.equal(edited.model.nodes.find(n => n.id === station.id).servers, station.servers + 1);
    await screenshot(page, `${world}-properties.png`);
    check([9, 11, 12, 13, 14], `${world}: pure parallel count; explicit team controls with requirements, affected stages and modeled cost`, `${world}-station-only.json`);
-   await page.getByRole('button', { name: 'Rename project', exact: true }).click(); await page.getByRole('textbox', { name: 'Project name', exact: true }).fill(`${world} alternate`); await page.getByRole('textbox', { name: 'Project name', exact: true }).press('Enter');
+   await page.locator('[data-panel-opener="rename"]').click(); await page.getByRole('textbox', { name: 'Project name', exact: true }).fill(`${world} alternate`); await page.getByRole('textbox', { name: 'Project name', exact: true }).press('Enter');
    assert.equal((await state(page)).result.hash, originalState.result.hash);
    await primaryRunButton(page).click(); await ready(page); const calculated = await state(page); assert.equal(calculated.result.status, 'completed');
    const dialog = page.getByRole('dialog', { name: 'Compare plans', exact: true }); await dialog.waitFor();

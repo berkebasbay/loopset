@@ -66,7 +66,7 @@ Start with an example or create a small **New model**. Every example uses synthe
 - Run independent replications, matched-input comparisons or a finite capacity search with separate verification runs. Search changes a resource pool's base availability; station counts and shift overrides stay explicit.
 - Inspect waiting distributions, work remaining, resource cost and observed bottleneck candidates. Export run JSON, CSV, PNG or HTML, or use the browser's print/PDF path.
 
-The complete DOM model editor remains available under **Tools**. Command search, a short optional guide and keyboard alternatives support the same workspace.
+[View the recorded-results screen](docs/media/loopset-insights.png). The complete DOM model editor remains available under **Tools**. Command search, a short optional guide and keyboard alternatives support the same workspace.
 
 ## Build your facility
 

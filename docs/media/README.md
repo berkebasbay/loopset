@@ -8,8 +8,10 @@ The MP4 is 1920×1080 at 30 fps, silent with English captions. The lighter anima
 
 Produced locally with [Hyperframes](https://github.com/heygen-com/hyperframes), with motion-direction guidance from [Cinetic](https://github.com/Leonxlnx/cinetic). The underlying art and fonts retain their own licences: see [third-party notices](../../THIRD_PARTY_NOTICES.md) and [asset provenance](../NVIDIA_ASSETS.md).
 
-## Facility screenshot
+## Current interface screenshots
 
-`loopset-facility.png` captures the actual RC11 interface rendering the synthetic Workshop and dispatch example. It shows the unchanged Factory numerical process with 57 independently editable layout objects; the artwork does not establish real-world calibration. The source project is [`examples/facility.json`](../../examples/facility.json). NVIDIA CC BY 4.0 models, Quaternius/Poly Haven CC0 material and the existing font retain the creator/source/licence records linked above.
+`loopset-facility.png` captures the actual RC12 interface rendering the synthetic Workshop and dispatch example: the unchanged Factory numerical process with 57 independently editable layout objects. The source project is [`examples/facility.json`](../../examples/facility.json). The local-origin footer is excluded from this capture.
 
-The RC11 facility screenshot shows the docked model library and the editable synthetic Workshop and dispatch example. It is an actual browser capture with the local-origin status footer excluded. The comparison video/GIF remains the RC9 workflow recording; its model behavior is still supported.
+`loopset-insights.png` shows recorded outcomes from the same synthetic process. `loopset-compare.png` shows its deliberate station/team comparison, 40 → 77 completed orders. These are browser captures with real inputs and calculated values; the examples are not calibrated business forecasts.
+
+The PNG previews in `public/previews/` are captured from the three real rendered example worlds, with editor chrome excluded. NVIDIA CC BY 4.0 models, Quaternius/Poly Haven CC0 material and the existing font retain the creator/source/licence records linked above. The comparison video/GIF remains the RC9 recording; its numerical workflow is still supported.
