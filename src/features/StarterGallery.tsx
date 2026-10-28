@@ -27,7 +27,7 @@ export function StarterGallery({ busy, blocked, onChoose }: Props) {
     {item ? <>
       <button type="button" className="starter-back" disabled={busy} onClick={() => setSelected(null)}><ArrowLeft size={15} />{m.back}</button>
       <div className="starter-detail">
-        <div className="starter-preview"><img src={assetURL(`/previews/templates/${item.id}.png?v=${inventory[item.id].sha256.slice(0, 16)}`)} alt={`${item.copy.title} facility layout`} width="1280" height="720" /><div className="starter-facts"><span>{m.categories[item.category]}</span><span><Clock3 size={13} />{m.duration(item.minutes)}</span><span>{m.steps(inventory[item.id].steps)}</span><span>{m.objects(inventory[item.id].objects)}</span></div></div>
+        <div className="starter-preview"><img src={assetURL(`/previews/templates/${item.id}.png?v=${inventory[item.id].sha256.slice(0, 16)}`)} alt={m.previewDescription(item.copy.title)} width="1280" height="720" /><div className="starter-facts"><span>{m.categories[item.category]}</span><span><Clock3 size={13} />{m.duration(item.minutes)}</span><span>{m.steps(inventory[item.id].steps)}</span><span>{m.objects(inventory[item.id].objects)}</span></div></div>
         <div className="starter-brief"><span className="eyebrow">{m.detail}</span><h3 tabIndex={-1} ref={detailHeading}>{item.copy.title}</h3><p className="starter-question">{item.copy.question}</p>
           <button type="button" className="ql-button ql-primary starter-open" disabled={busy || blocked} onClick={() => onChoose(item.id)}>{busy ? <LoaderCircle size={17} className="spin" /> : <ArrowRight size={17} />}{busy ? m.loading : m.open}</button>
           <p className="starter-scope">{m.scope}</p>

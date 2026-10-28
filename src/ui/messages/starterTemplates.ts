@@ -4,6 +4,7 @@ export const starterMessages = {
   search: 'Search starter templates', all: 'All templates',
   categories: { production: 'Production', logistics: 'Logistics', service: 'Service', events: 'Events' },
   detail: 'Template details', open: 'Open this template', back: 'All starter templates',
+  previewDescription: (title: string) => `${title} facility layout`,
   question: 'What will you explore?', assumptions: 'Starting assumptions', trials: 'Two experiments to try',
   scope: 'Synthetic teaching models. Timings, demand and staffing are illustrative; layout does not add travel time.',
   empty: 'No starter templates match your search.', loading: 'Opening template…',
