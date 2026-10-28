@@ -72,7 +72,7 @@ export function WorldScene(props: Props) {
   const [failed, setFailed] = useState(false), [attempt, setAttempt] = useState(0);
   const retryAssets = useRef<() => void>(() => setAttempt(value => value + 1));
   const [contextFailed, setContextFailed] = useState(false);
-  const geometryKey = JSON.stringify([props.project.world, props.project.model.nodes.map(node => [node.id, node.kind, node.samplingId]), props.project.facility?.nodeAssets, props.project.facility?.scenery]);
+  const geometryKey = JSON.stringify([props.project.world, props.project.workspaceMode, props.project.model.nodes.map(node => [node.id, node.kind, node.samplingId]), props.project.facility?.nodeAssets, props.project.facility?.scenery]);
 
   useEffect(() => {
     const host = mount.current; if (!host) return;
@@ -105,6 +105,14 @@ export function WorldScene(props: Props) {
     const resources = new Set<Disposable>(), cleanups: (() => void)[] = [];
     const own = <T extends Disposable>(value: T): T => { resources.add(value); return value; };
     const world = props.project.world, scene = new THREE.Scene();
+    if (props.project.workspaceMode === 'layout') {
+      const grid = new THREE.GridHelper(200, 100, '#a4aaa2', '#bdc2b8');
+      grid.position.y = -.02; own(grid.geometry);
+      for (const material of Array.isArray(grid.material) ? grid.material : [grid.material]) {
+        own(material); material.transparent = true; material.opacity = .45; material.depthWrite = false;
+      }
+      scene.add(grid);
+    }
     const people = new AnimatedPeople(scene), peopleMotion = new PeopleMotion(), loadedVariants = new Set<number>();
     const operatorAssignments = new Map<string, string>();
     let motionInitialized = false, motionRun = '', motionEpoch = -1, motionLayout = props.project.layout;
@@ -369,7 +377,7 @@ export function WorldScene(props: Props) {
         });
       }
     }
-    load(CATALOG_ASSETS.floor.file, template => {
+    if (props.project.workspaceMode !== 'layout') load(CATALOG_ASSETS.floor.file, template => {
       floor = template.clone(true); floorDimensions = new THREE.Box3().setFromObject(floor).getSize(new THREE.Vector3());
       const materials = new Map<THREE.Material, THREE.Material>();
       const adapt = (source: THREE.Material) => {

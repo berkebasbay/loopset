@@ -8,7 +8,7 @@ Free, client-side and account-free. Simulations run in your browser without a pa
 
 **[Try Loopset in your browser →](https://berkebasbay.github.io/loopset/)** · [Watch the demo](docs/media/loopset-demo.mp4)
 
-Start with an editable workshop, place models from the library, then define the process and compare plans. The Factory, Festival and Service examples remain available. No installation needed.
+Start with an editable workshop, place models from the library, then define the process and compare plans. Choose **Templates** for Workshop, Factory, Festival, Service or a completely blank site. Save your own starting points in **My templates**. No installation needed.
 
 [![Loopset facility workspace: searchable model library, editable workshop and recorded outcomes](docs/media/loopset-facility.png)](https://berkebasbay.github.io/loopset/)
 
@@ -70,11 +70,13 @@ Start with an example or create a small **New model**. Every example uses synthe
 
 ## Build your facility
 
-The workspace separates **Build facility**, **Define process** and **Review results**. The docked **Asset library → 3D models** lets you search and drag equipment, shelves, building parts and containers onto the site. **Empty site** starts a new facility. Layout objects have position, elevation, rotation and scale controls; process cells add connected waiting and processing stages with explicit team settings. Models load when used, and repeated instances share geometry.
+The workspace separates **Build facility**, **Define process** and **Review results**. The docked **Asset library → 3D models** lets you search and drag equipment, shelves, building parts and containers onto the site. **Empty site** starts with no objects or process steps. Add **Start a process** when ready to simulate. Layout objects have position, elevation, rotation and scale controls; process cells add connected waiting and processing stages with explicit team settings. Models load when used, and repeated instances share geometry.
+
+**Save as template** keeps a reusable snapshot in this browser. Each use creates an independent project. Templates can be downloaded or imported as project JSON.
 
 Facilities and their saved scenarios travel in project JSON. Artwork and arrangement remain separate from numerical behavior; a machine model does not supply real processing measurements or physical transport rules. See the [facility guide](docs/FACILITY_GUIDE.md) for building, comparing and reopening a complete project.
 
-Choose **Workshop example** in the library to open this layout, or use its [portable project JSON](examples/facility.json).
+Choose **Templates → Workshop** to open this layout, or use its [portable project JSON](examples/facility.json).
 
 Use **How it works** in the world for the optional three-step guide. Common edits preserve distribution shapes, separate stations from teams, and keep calendar changes explicit.
 

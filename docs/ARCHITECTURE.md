@@ -45,3 +45,9 @@ The scene consumes model/layout plus a recorded replay frame. It never decides t
 The facility layer batches repeated source meshes with instanced rendering. Parsed models have explicit scene leases; only inactive buffers can be evicted. Metadata/thumbnail browsing does not load the whole model library. Failed or pending invisible art does not block visible geometry's hit testing. Async model completion and subsequent layout edits invalidate shadows without applying numerical edits. Download, decoded-resource and rendering costs are separate budgets.
 
 Reports read the selected immutable run, including its status, measurement scope and provenance. Exporting an earlier run never substitutes current draft values. All runtime fonts, models and artwork are served locally with their source licences.
+
+## Reusable templates and empty layouts
+
+An explicit optional `workspaceMode: "layout"` admits a zero-node project for visual design. `validateModel` and the engine remain strict; only project/scenario validation accepts this explicit empty state. Process initialization uses the shared edit/history path.
+
+The separate `loopset-templates` IndexedDB database stores immutable project-JSON snapshots and bounded metadata. Read/write transactions atomically enforce the 50-template and 50-MB limits. Listing reads metadata; use/download validates one payload and creates a fresh document identity while preserving modeled inputs and sampling identities. Existing project storage is not migrated.
