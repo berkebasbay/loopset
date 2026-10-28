@@ -45,3 +45,4 @@
 .facility-workflow-steps>button>span{opacity:1;color:#526649}.facility-studio .quality-world-brief small{color:#546a49}
 /* Canvas labels stay beneath tools; actionable asset warnings retain priority. */
 .facility-canvas-tools{z-index:5}
+.facility-studio .studio-main>.ease-pending-banner{position:static;inset:auto;margin:0;flex:none;border:0;border-bottom:1px solid #dacda7;border-radius:0;box-shadow:none;padding:8px 16px;font-size:12px;line-height:1.5}

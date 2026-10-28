@@ -5,7 +5,7 @@ import { modelHash } from '../src/model/identity';
 import type { ModelNode } from '../src/model/types';
 import { validateProject } from '../src/model/validate';
 import { frameAt } from '../src/playback';
-import { connectionShapes, flowTopology, possibleFlow } from '../src/scene/flowPresentation';
+import { connectionShapes, flowTopology, previewFlowTopology, possibleFlow } from '../src/scene/flowPresentation';
 import { sceneLayout } from '../src/scene/graph';
 
 const source = (id: string, next: string): ModelNode => ({ id, samplingId: id, label: id, kind: 'source', next, arrival: { kind: 'schedule', times: [0] }, classes: [{ id: 'all', label: 'All', priority: 0, probability: 1 }] });
@@ -14,6 +14,22 @@ const exit = (id: string): ModelNode => ({ id, samplingId: id, label: id, kind: 
 const route = (id: string, branches: { to: string; probability: number }[]): ModelNode => ({ id, samplingId: id, label: id, kind: 'route', branches });
 
 describe('declared possible flow through the inspected primary', () => {
+  it('renders a reviewed destination at the reused edge index without changing the actual model', () => {
+    const project = createExample('factory'), original = structuredClone(project.model);
+    const before = flowTopology(project.model.nodes), reviewed = previewFlowTopology(project.model.nodes, { from: 'station-a', to: 'station-c' });
+    const old = before.links.find(link => link.from === 'station-a')!;
+    expect(old.to).toBe('queue-b');
+    expect(reviewed.links.find(link => link.index === old.index)?.to).toBe('station-c');
+    expect(possibleFlow(reviewed, 'station-a')?.ids).toEqual(['arrivals', 'queue-a', 'station-a', 'station-c', 'exit']);
+    expect(project.model).toEqual(original);
+    expect(flowTopology(project.model.nodes).links.find(link => link.index === old.index)?.to).toBe('queue-b');
+    expect(previewFlowTopology(project.model.nodes, { from: 'station-a', to: 'missing' }).links).toEqual(before.links);
+    const loop = previewFlowTopology(project.model.nodes, { from: 'station-a', to: 'station-a' });
+    expect(loop.links.find(link => link.from === 'station-a')?.to).toBe('station-a');
+    expect(possibleFlow(loop, 'station-a')?.hasExit).toBe(false);
+    expect(project.model).toEqual(original);
+  });
+
   it('contains upstream context and downstream exit without inventing skipped buffers', () => {
     const project = createExample('factory'), topology = flowTopology(project.model.nodes), flow = possibleFlow(topology, 'station-b')!;
     expect(flow.ids).toEqual(['arrivals', 'queue-a', 'station-a', 'queue-b', 'station-b', 'queue-c', 'station-c', 'exit']);

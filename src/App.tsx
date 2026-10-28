@@ -14,7 +14,7 @@ import { validateProject } from './model/validate';
 import type { ModelNode, Point, Project, RunResult, ServiceNode, World } from './model/types';
 import { frameAt, replayManifest } from './playback';
 import { FlowGuide } from './scene/FlowGuide';
-import { flowTopology, possibleFlow, sharedPositionLinks } from './scene/flowPresentation';
+import { flowTopology, previewFlowTopology, possibleFlow, sharedPositionLinks } from './scene/flowPresentation';
 import { sceneLayout } from './scene/graph';
 import { flowGuideMessages } from './ui/messages/FlowGuide';
 const WorldScene = lazy(() => import('./scene/WorldScene').then(module => ({ default: module.WorldScene })));
@@ -183,9 +183,8 @@ export default function App() {
       if (walk && anchor) return { walk, cursor: Math.max(0, walk.links.findIndex(link => link.from === anchor.id && link.to === anchor.next)) };
     }
     if (connectionPreview) {
-      const nodes = visualProject.model.nodes.map(node => node.id === connectionPreview.from && 'next' in node ? { ...node, next: connectionPreview.to } : node);
-      const previewWalk = possibleFlow(flowTopology(nodes), connectionPreview.from);
-      if (previewWalk) return { walk: previewWalk, cursor: Math.max(0, previewWalk.links.findIndex(link => link.from === connectionPreview.from && link.to === connectionPreview.to)) };
+      const previewWalk = possibleFlow(previewFlowTopology(visualProject.model.nodes, connectionPreview), connectionPreview.from);
+      if (previewWalk) return { walk: previewWalk, cursor: Math.max(0, previewWalk.links.findIndex(link => link.from === connectionPreview.from && link.to === connectionPreview.to)), preview: { from: connectionPreview.from, to: connectionPreview.to } };
     }
     return flowOpen && !flowSuspended && flowWalk ? { walk: flowWalk, cursor: flowCursor } : null;
   }, [panel, hasErrors, connectionPreview, buildTrayOpen, libraryTab, visualProject, selected, topology, flowOpen, flowSuspended, flowWalk, flowCursor]);
@@ -762,10 +761,16 @@ export default function App() {
               <span />
               <button type="button" aria-pressed={!moving && !linkFrom} title={m.selectTool} aria-label={m.selectTool} onClick={() => { setMoving(false); setLinkFrom(null); }}><MousePointer2 size={17} /></button>
               <button type="button" title={m.moveStations} aria-label={m.moveStations} aria-pressed={moving && !linkFrom} disabled={hasErrors} onClick={() => { setMoving(true); setLinkFrom(null); }}><Move size={17} /></button>
-              <button type="button" title={m.connectSelectedStep} aria-label={m.connectSelectedStep} aria-pressed={Boolean(linkFrom)} disabled={hasErrors || !selectedStep || !('next' in selectedStep)} onClick={() => { setMoving(false); setLinkFrom(linkFrom ? null : selected); }}><Link2 size={17} /></button>
+              <button type="button" title={m.connectSelectedStep} aria-label={m.connectSelectedStep} aria-pressed={Boolean(linkFrom)} disabled={hasErrors || !selectedStep || !('next' in selectedStep)} onClick={() => { setBuildTrayOpen(false); setMoving(false); setLinkFrom(linkFrom ? null : selected); }}><Link2 size={17} /></button>
               <span />
               <button type="button" title={sx.steps} aria-label={sx.steps} onClick={openStepList}><List size={17} /></button>
-              <button type="button" title={fm.showProperties} aria-label={fm.showProperties} aria-pressed={objectDetailsOpen} onClick={() => { setInspectorTab(facilitySelection ? 'objects' : 'object'); setObjectDetailsOpen(!objectDetailsOpen); }}><Layers3 size={17} /></button>
+              <button type="button" title={fm.showProperties} aria-label={fm.showProperties} aria-pressed={objectDetailsOpen && inspectorTab === (facilitySelection ? 'objects' : 'object')} onClick={event => {
+                objectDetailsOrigin.current = event.currentTarget;
+                const tab = facilitySelection ? 'objects' : 'object';
+                if (objectDetailsOpen && inspectorTab === tab) { closeObjectDetails(); return; }
+                setInspectorTab(tab); setObjectDetailsOpen(true);
+                revealNarrowSection('#object-properties', facilitySelection ? '[data-facility-heading]' : '[data-object-details-close]');
+              }}><Layers3 size={17} /></button>
               <button type="button" className="facility-mobile-tools" data-tools-opener="" aria-label={m.toolsTool} onClick={openTools}><List size={17} /></button>
               <button type="button" className="facility-mobile-tools" data-panel-opener="view" aria-label={sx.view} onClick={event => setPanel('view', event.currentTarget)}><Layers3 size={17} /></button>
               <button type="button" title={m.fitWorld} aria-label={m.fitWorld} onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={17} /></button>
