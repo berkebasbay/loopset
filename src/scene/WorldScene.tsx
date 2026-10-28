@@ -10,7 +10,7 @@ import type { SelectionIntent } from '../features/editorSelection';
 import { beginMoveGesture, type MoveGesture, type LayoutTranslation } from '../features/layoutCommands';
 import { sceneLayout } from './graph';
 import { capacityCell, capacityLayout, stationCopies, MAX_3D_CELLS } from './capacityFootprint';
-import { connectionFraming, connectionShapes, flowTopology, sharedPositionLinks, type FlowWalk } from './flowPresentation';
+import { connectionFraming, connectionShapes, previewFlowTopology, sharedPositionLinks, type FlowWalk, type PreviewConnection } from './flowPresentation';
 import { CATALOG_ASSETS, nodeCatalogAssets, type CatalogAsset, type AssetPlacement } from './catalogAssets';
 import { initialBrowserAssetURL, isDetailInspection } from './browserAssets';
 import { CatalogStore } from './CatalogStore';
@@ -34,7 +34,7 @@ interface Props {
   onSelect: (id: string | null, intent?: SelectionIntent) => void;
   onMove?: (ids: string[], delta: Point) => void;
   onCapacityChange?: (id: string, delta: number) => void; onEditNode?: (id: string) => void;
-  flow?: { walk: FlowWalk; cursor: number } | null;
+  flow?: { walk: FlowWalk; cursor: number; preview?: PreviewConnection } | null;
   playing?: boolean; playbackSpeed?: number; replayUntil?: number; runKey?: string; seekEpoch?: number; result?: RunResult | null;
   onMoveStart?: () => void;
   selectedFacilityId?: string | null;
@@ -595,7 +595,7 @@ export function WorldScene(props: Props) {
     const connection = (event: Event) => {
       const index: unknown = (event as CustomEvent).detail, current = latest.current;
       if (!Number.isInteger(index) || current.moving || current.editable === false) return;
-      const topology = flowTopology(current.project.model.nodes), link = topology.links.find(link => link.index === index);
+      const topology = previewFlowTopology(current.project.model.nodes, current.flow?.preview), link = topology.links.find(link => link.index === index);
       if (!link) return;
       const shape = connectionShapes(topology, Object.fromEntries([...visuals.keys()].map(id => [id, pointFor(id)]))).get(link.index);
       if (!shape) return;
@@ -742,9 +742,11 @@ export function WorldScene(props: Props) {
 
     function edges() {
       edgeOwned.forEach(resource => resource.dispose()); edgeOwned = []; edgeGroup.clear();
-      const topology = flowTopology(latest.current.project.model.nodes), shapes = connectionShapes(topology, Object.fromEntries([...visuals.keys()].map(id => [id, pointFor(id)])));
+      const topology = previewFlowTopology(latest.current.project.model.nodes, latest.current.flow?.preview), shapes = connectionShapes(topology, Object.fromEntries([...visuals.keys()].map(id => [id, pointFor(id)])));
       const chosen = new Set(latest.current.flow?.walk.links.map(link => link.index) ?? []);
-      const active = currentConnection ?? latest.current.flow?.walk.links[latest.current.flow.cursor]?.index;
+      const review = latest.current.flow?.preview;
+      const reviewedLink = review ? topology.links.find(link => link.from === review.from && link.to === review.to) : undefined;
+      const active = reviewedLink?.index ?? currentConnection ?? latest.current.flow?.walk.links[latest.current.flow.cursor]?.index;
       const activeLink = topology.links.find(link => link.index === active);
       viewedIds = new Set(activeLink ? [activeLink.from, activeLink.to] : []); viewingFrom = activeLink?.from ?? null;
       const selectedNodes = new Set(latest.current.selectedIds ?? (latest.current.selected ? [latest.current.selected] : []));
@@ -816,8 +818,8 @@ export function WorldScene(props: Props) {
       host.dataset.detailAssets = JSON.stringify([...foreground.values()].flatMap(parts => parts.filter(part => part.detail && part.model).map(part => part.definition.file)));
       if (floor) { floor.scale.set(extent.width / floorDimensions.x, 1, extent.depth / floorDimensions.z); floor.position.set(extent.x, -floorDimensions.y, extent.z); }
       if (surroundings.update(extent, camera)) renderer.shadowMap.needsUpdate = true;
-      if (manualContext && (manualContext.selected !== current.selected || manualContext.cursor !== current.flow?.cursor || manualContext.topology !== JSON.stringify(flowTopology(current.project.model.nodes).links))) { currentConnection = null; manualContext = null; delete host.dataset.connectionFit; }
-      const edgeKey = JSON.stringify([current.project.model.nodes.map(node => [node.id, 'next' in node ? node.next : node.kind === 'route' ? node.branches : null]), layout, [...preview], current.selected, current.selectedIds, current.flow?.cursor, current.flow?.walk.links, currentConnection]);
+      if (manualContext && (manualContext.selected !== current.selected || manualContext.cursor !== current.flow?.cursor || manualContext.topology !== JSON.stringify(previewFlowTopology(current.project.model.nodes, current.flow?.preview).links))) { currentConnection = null; manualContext = null; delete host.dataset.connectionFit; }
+      const edgeKey = JSON.stringify([current.project.model.nodes.map(node => [node.id, 'next' in node ? node.next : node.kind === 'route' ? node.branches : null]), layout, [...preview], current.selected, current.selectedIds, current.flow?.cursor, current.flow?.walk.links, current.flow?.preview, currentConnection]);
       if (edgeKey !== topologyKey) { topologyKey = edgeKey; edges(); }
       if (traceSnapshot !== current.result) {
         traceSnapshot = current.result; entities.clear(); completeLocations.clear();

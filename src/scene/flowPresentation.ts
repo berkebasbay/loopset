@@ -2,6 +2,7 @@ import type { ModelNode, Point } from '../model/types';
 import { modelLinks, type ModelLink } from './graph';
 
 export interface FlowLink extends ModelLink { index: number }
+export interface PreviewConnection { from: string; to: string }
 export interface FlowTopology {
   nodes: Map<string, ModelNode>;
   links: FlowLink[];
@@ -36,6 +37,12 @@ export function flowTopology(nodes: ModelNode[]): FlowTopology {
     incoming.get(link.to)?.push(link); outgoing.get(link.from)?.push(link);
   }
   return { nodes: byId, links, incoming, outgoing };
+}
+
+/** Render the reviewed destination without editing the model or reusing its old edge endpoint. */
+export function previewFlowTopology(nodes: ModelNode[], preview?: PreviewConnection): FlowTopology {
+  if (!preview || !nodes.some(node => node.id === preview.to)) return flowTopology(nodes);
+  return flowTopology(nodes.map(node => node.id === preview.from && 'next' in node ? { ...node, next: preview.to } : node));
 }
 
 function toward(topology: FlowTopology, anchor: string, direction: 'source' | 'exit'): FlowLink[] | null {

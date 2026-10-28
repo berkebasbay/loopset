@@ -32,6 +32,8 @@ QUEUELAB_URL=http://127.0.0.1:4173 npm run test:facility
 
 Run `QUEUELAB_URL=http://127.0.0.1:4173 node scripts/facility-workspace-smoke.mjs` for the facility-first workspace: fresh workshop, separate dock/canvas, visible placement/limits, metadata-only browsing, equipment defaulting to layout, explicit processing choice and narrow-screen controls.
 
+Run `QUEUELAB_URL=http://127.0.0.1:4173 node scripts/facility-navigation-smoke.mjs` for mobile Properties reveal/focus and connection-preview priority while leaving numerical inputs unchanged.
+
 The facility compatibility smoke checks real placement/transforms, unchanged numerical results for visual edits, object history, functional cells, captured baseline/current scenarios, actual project download/reopen and the existing worlds. It reuses an installed browser and never installs one automatically. Catalogue checks decode and validate prepared derivatives using public manifests, without needing local preparation logs. Numerical invariants and file/storage/recovery tests remain separate from browser/graphics evidence.
 
 | Area | Check |
