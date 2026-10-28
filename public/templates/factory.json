@@ -1,0 +1,3500 @@
+{
+  "schemaVersion": 1,
+  "id": "starter-factory",
+  "name": "Little Factory",
+  "world": "factory",
+  "model": {
+    "id": "factory-model",
+    "name": "Little Factory",
+    "horizon": 3600,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 300,
+    "currency": "USD",
+    "resources": [
+      {
+        "id": "team-a",
+        "label": "Machining team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      },
+      {
+        "id": "team-b",
+        "label": "Quality check team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 28,
+        "overtimeCostPerHour": 42
+      },
+      {
+        "id": "team-c",
+        "label": "Packing team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 22,
+        "overtimeCostPerHour": 33
+      }
+    ],
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "factory-arrivals",
+        "label": "Incoming orders",
+        "kind": "source",
+        "next": "queue-a",
+        "arrival": {
+          "kind": "poisson",
+          "segments": [
+            {
+              "start": 0,
+              "end": 900,
+              "perHour": 70
+            },
+            {
+              "start": 900,
+              "end": 2400,
+              "perHour": 110
+            },
+            {
+              "start": 2400,
+              "end": 3600,
+              "perHour": 70
+            }
+          ]
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-a",
+        "samplingId": "factory-queue-a",
+        "label": "Before machining",
+        "kind": "queue",
+        "next": "station-a",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "station-a",
+        "samplingId": "factory-station-a",
+        "label": "Machining",
+        "kind": "service",
+        "next": "queue-b",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 18,
+          "mode": 28,
+          "max": 40
+        },
+        "resources": [
+          {
+            "poolId": "team-a",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-b",
+        "samplingId": "factory-queue-b",
+        "label": "Before quality check",
+        "kind": "queue",
+        "next": "station-b",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "station-b",
+        "samplingId": "factory-station-b",
+        "label": "Quality check",
+        "kind": "service",
+        "next": "queue-c",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 12,
+          "mode": 18,
+          "max": 28
+        },
+        "resources": [
+          {
+            "poolId": "team-b",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-c",
+        "samplingId": "factory-queue-c",
+        "label": "Before packing",
+        "kind": "queue",
+        "next": "station-c",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "station-c",
+        "samplingId": "factory-station-c",
+        "label": "Packing",
+        "kind": "service",
+        "next": "exit",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 65,
+          "mode": 85,
+          "max": 110
+        },
+        "resources": [
+          {
+            "poolId": "team-c",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "factory-exit",
+        "label": "Ready to ship",
+        "kind": "sink"
+      }
+    ]
+  },
+  "revision": 0,
+  "description": "Three stages, one growing packing queue.\n\nDoes another station help when the same team must staff it?\n\nStarting assumptions\n• One hour of variable order arrivals; no warm-up period.\n• Machining, inspection and packing each need their own team.\n• Staff are occupied for the full service duration. Material stock and transport are not modeled.\n\nSynthetic teaching models. Timings, demand and staffing are illustrative; layout does not add travel time.",
+  "layout": {
+    "arrivals": {
+      "x": -9.5,
+      "z": 1.5
+    },
+    "queue-a": {
+      "x": -5.5,
+      "z": 1.5
+    },
+    "station-a": {
+      "x": -5.5,
+      "z": -2.8
+    },
+    "queue-b": {
+      "x": 0,
+      "z": 1.5
+    },
+    "station-b": {
+      "x": 0,
+      "z": -2.8
+    },
+    "queue-c": {
+      "x": 5.5,
+      "z": 1.5
+    },
+    "station-c": {
+      "x": 5.5,
+      "z": -2.8
+    },
+    "exit": {
+      "x": 9.5,
+      "z": -2.8
+    }
+  },
+  "facility": {
+    "version": 1,
+    "scenery": false,
+    "objects": [
+      {
+        "id": "factory-object-1",
+        "name": "Back wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -11,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-2",
+        "name": "Back wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -8.8,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-3",
+        "name": "Back wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -6.6,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-4",
+        "name": "Back wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -4.4,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-5",
+        "name": "Back wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -2.2,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-6",
+        "name": "Back wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 0,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-7",
+        "name": "Back wall 7",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 2.2,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-8",
+        "name": "Back wall 8",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 4.4,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-9",
+        "name": "Back wall 9",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 6.6,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-10",
+        "name": "Back wall 10",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 8.8,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-11",
+        "name": "Back wall 11",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 11,
+        "z": -9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-12",
+        "name": "Side wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -12.1,
+        "z": -7.9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-13",
+        "name": "Side wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -12.1,
+        "z": -5.7,
+        "y": 0
+      },
+      {
+        "id": "factory-object-14",
+        "name": "Side wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -12.1,
+        "z": -3.5,
+        "y": 0
+      },
+      {
+        "id": "factory-object-15",
+        "name": "Side wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -12.1,
+        "z": -1.3,
+        "y": 0
+      },
+      {
+        "id": "factory-object-16",
+        "name": "Side wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -12.1,
+        "z": 0.9,
+        "y": 0
+      },
+      {
+        "id": "factory-object-17",
+        "name": "Side wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -12.1,
+        "z": 3.1,
+        "y": 0
+      },
+      {
+        "id": "factory-object-18",
+        "name": "Materials rack 1",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8,
+        "z": -6.8,
+        "y": 0
+      },
+      {
+        "id": "factory-object-19",
+        "name": "Materials rack 1 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8,
+        "z": -6.8,
+        "y": 0.5
+      },
+      {
+        "id": "factory-object-20",
+        "name": "Materials rack 1 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8,
+        "z": -6.8,
+        "y": 1.15
+      },
+      {
+        "id": "factory-object-21",
+        "name": "Materials rack 1 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8,
+        "z": -6.8,
+        "y": 1.8
+      },
+      {
+        "id": "factory-object-22",
+        "name": "Materials rack 2",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -4,
+        "z": -6.8,
+        "y": 0
+      },
+      {
+        "id": "factory-object-23",
+        "name": "Materials rack 2 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -4,
+        "z": -6.8,
+        "y": 0.5
+      },
+      {
+        "id": "factory-object-24",
+        "name": "Materials rack 2 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -4,
+        "z": -6.8,
+        "y": 1.15
+      },
+      {
+        "id": "factory-object-25",
+        "name": "Materials rack 2 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -4,
+        "z": -6.8,
+        "y": 1.8
+      },
+      {
+        "id": "factory-object-26",
+        "name": "Materials rack 3",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -6.8,
+        "y": 0
+      },
+      {
+        "id": "factory-object-27",
+        "name": "Materials rack 3 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -6.8,
+        "y": 0.5
+      },
+      {
+        "id": "factory-object-28",
+        "name": "Materials rack 3 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -6.8,
+        "y": 1.15
+      },
+      {
+        "id": "factory-object-29",
+        "name": "Materials rack 3 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -6.8,
+        "y": 1.8
+      },
+      {
+        "id": "factory-object-30",
+        "name": "Materials rack 4",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 4,
+        "z": -6.8,
+        "y": 0
+      },
+      {
+        "id": "factory-object-31",
+        "name": "Materials rack 4 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 4,
+        "z": -6.8,
+        "y": 0.5
+      },
+      {
+        "id": "factory-object-32",
+        "name": "Materials rack 4 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 4,
+        "z": -6.8,
+        "y": 1.15
+      },
+      {
+        "id": "factory-object-33",
+        "name": "Materials rack 4 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 4,
+        "z": -6.8,
+        "y": 1.8
+      },
+      {
+        "id": "factory-object-34",
+        "name": "Materials rack 5",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8,
+        "z": -6.8,
+        "y": 0
+      },
+      {
+        "id": "factory-object-35",
+        "name": "Materials rack 5 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8,
+        "z": -6.8,
+        "y": 0.5
+      },
+      {
+        "id": "factory-object-36",
+        "name": "Materials rack 5 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8,
+        "z": -6.8,
+        "y": 1.15
+      },
+      {
+        "id": "factory-object-37",
+        "name": "Materials rack 5 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8,
+        "z": -6.8,
+        "y": 1.8
+      },
+      {
+        "id": "factory-object-38",
+        "name": "Dispatch pallet 1",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 3,
+        "z": 6,
+        "y": 0
+      },
+      {
+        "id": "factory-object-39",
+        "name": "Dispatch pallet 1 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 2.78,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "factory-object-40",
+        "name": "Dispatch pallet 1 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 3.22,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "factory-object-41",
+        "name": "Dispatch pallet 2",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5,
+        "z": 6,
+        "y": 0
+      },
+      {
+        "id": "factory-object-42",
+        "name": "Dispatch pallet 2 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 4.78,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "factory-object-43",
+        "name": "Dispatch pallet 2 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 5.22,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "factory-object-44",
+        "name": "Dispatch pallet 3",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 7,
+        "z": 6,
+        "y": 0
+      },
+      {
+        "id": "factory-object-45",
+        "name": "Dispatch pallet 3 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 6.78,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "factory-object-46",
+        "name": "Dispatch pallet 3 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 7.22,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "factory-object-47",
+        "name": "Dispatch pallet 4",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 9,
+        "z": 6,
+        "y": 0
+      },
+      {
+        "id": "factory-object-48",
+        "name": "Dispatch pallet 4 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 8.78,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "factory-object-49",
+        "name": "Dispatch pallet 4 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 9.22,
+        "z": 5.78,
+        "y": 0.21
+      },
+      {
+        "id": "factory-object-50",
+        "name": "Tool preparation bench",
+        "assetId": "furniture_workbench_standard_e01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": -90,
+        "scale": 1.25,
+        "x": -9,
+        "z": 5,
+        "y": 0
+      },
+      {
+        "id": "factory-object-51",
+        "name": "Bench inspection kit",
+        "assetId": "serviceTool_camera_inspectionKit_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -9,
+        "z": 5,
+        "y": 1.73
+      },
+      {
+        "id": "factory-object-52",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": -6,
+        "z": -2.8,
+        "y": 3.9
+      },
+      {
+        "id": "factory-object-53",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 0,
+        "z": -2.8,
+        "y": 3.9
+      },
+      {
+        "id": "factory-object-54",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 6,
+        "z": -2.8,
+        "y": 3.9
+      },
+      {
+        "id": "factory-object-55",
+        "name": "Entrance fire extinguisher",
+        "assetId": "fireProtection_extinguisher_portable_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5,
+        "x": -11.8,
+        "z": 3.6,
+        "y": 0
+      },
+      {
+        "id": "factory-object-56",
+        "name": "Dispatch fire extinguisher",
+        "assetId": "fireProtection_extinguisher_portable_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5,
+        "x": 10.8,
+        "z": -7.8,
+        "y": 0
+      },
+      {
+        "id": "factory-object-57",
+        "name": "Packing waste",
+        "assetId": "furniture_trashBin_lid_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8.5,
+        "z": -2.8,
+        "y": 0
+      }
+    ],
+    "nodeAssets": {
+      "station-c": {
+        "assetId": "table_deluxe_packing_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.4
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "id": "factory-original",
+      "name": "Original plan",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "factory-model",
+        "name": "Little Factory",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 300,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Machining team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "team-b",
+            "label": "Quality check team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "team-c",
+            "label": "Packing team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 22,
+            "overtimeCostPerHour": 33
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "factory-arrivals",
+            "label": "Incoming orders",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 70
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 110
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 70
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "factory-queue-a",
+            "label": "Before machining",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "factory-station-a",
+            "label": "Machining",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 28,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "factory-queue-b",
+            "label": "Before quality check",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "factory-station-b",
+            "label": "Quality check",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "team-b",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "factory-queue-c",
+            "label": "Before packing",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-c",
+            "samplingId": "factory-station-c",
+            "label": "Packing",
+            "kind": "service",
+            "next": "exit",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 65,
+              "mode": 85,
+              "max": 110
+            },
+            "resources": [
+              {
+                "poolId": "team-c",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "factory-exit",
+            "label": "Ready to ship",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -9.5,
+          "z": 1.5
+        },
+        "queue-a": {
+          "x": -5.5,
+          "z": 1.5
+        },
+        "station-a": {
+          "x": -5.5,
+          "z": -2.8
+        },
+        "queue-b": {
+          "x": 0,
+          "z": 1.5
+        },
+        "station-b": {
+          "x": 0,
+          "z": -2.8
+        },
+        "queue-c": {
+          "x": 5.5,
+          "z": 1.5
+        },
+        "station-c": {
+          "x": 5.5,
+          "z": -2.8
+        },
+        "exit": {
+          "x": 9.5,
+          "z": -2.8
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "factory-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -11,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8.8,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -6.6,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -4.4,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -2.2,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 2.2,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 4.4,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 6.6,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 8.8,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-12",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -12.1,
+            "z": -7.9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-13",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -12.1,
+            "z": -5.7,
+            "y": 0
+          },
+          {
+            "id": "factory-object-14",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -12.1,
+            "z": -3.5,
+            "y": 0
+          },
+          {
+            "id": "factory-object-15",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -12.1,
+            "z": -1.3,
+            "y": 0
+          },
+          {
+            "id": "factory-object-16",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -12.1,
+            "z": 0.9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-17",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -12.1,
+            "z": 3.1,
+            "y": 0
+          },
+          {
+            "id": "factory-object-18",
+            "name": "Materials rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-19",
+            "name": "Materials rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-20",
+            "name": "Materials rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-21",
+            "name": "Materials rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-22",
+            "name": "Materials rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -4,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-23",
+            "name": "Materials rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -4,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-24",
+            "name": "Materials rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -4,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-25",
+            "name": "Materials rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -4,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-26",
+            "name": "Materials rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-27",
+            "name": "Materials rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-28",
+            "name": "Materials rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-29",
+            "name": "Materials rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-30",
+            "name": "Materials rack 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 4,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-31",
+            "name": "Materials rack 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 4,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-32",
+            "name": "Materials rack 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 4,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-33",
+            "name": "Materials rack 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 4,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-34",
+            "name": "Materials rack 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-35",
+            "name": "Materials rack 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-36",
+            "name": "Materials rack 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-37",
+            "name": "Materials rack 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-38",
+            "name": "Dispatch pallet 1",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-39",
+            "name": "Dispatch pallet 1 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 2.78,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-40",
+            "name": "Dispatch pallet 1 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 3.22,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-41",
+            "name": "Dispatch pallet 2",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-42",
+            "name": "Dispatch pallet 2 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 4.78,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-43",
+            "name": "Dispatch pallet 2 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.22,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-44",
+            "name": "Dispatch pallet 3",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 7,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-45",
+            "name": "Dispatch pallet 3 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 6.78,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-46",
+            "name": "Dispatch pallet 3 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 7.22,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-47",
+            "name": "Dispatch pallet 4",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 9,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-48",
+            "name": "Dispatch pallet 4 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.78,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-49",
+            "name": "Dispatch pallet 4 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 9.22,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-50",
+            "name": "Tool preparation bench",
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.25,
+            "x": -9,
+            "z": 5,
+            "y": 0
+          },
+          {
+            "id": "factory-object-51",
+            "name": "Bench inspection kit",
+            "assetId": "serviceTool_camera_inspectionKit_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9,
+            "z": 5,
+            "y": 1.73
+          },
+          {
+            "id": "factory-object-52",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -6,
+            "z": -2.8,
+            "y": 3.9
+          },
+          {
+            "id": "factory-object-53",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": -2.8,
+            "y": 3.9
+          },
+          {
+            "id": "factory-object-54",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 6,
+            "z": -2.8,
+            "y": 3.9
+          },
+          {
+            "id": "factory-object-55",
+            "name": "Entrance fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -11.8,
+            "z": 3.6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-56",
+            "name": "Dispatch fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": 10.8,
+            "z": -7.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-57",
+            "name": "Packing waste",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8.5,
+            "z": -2.8,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {
+          "station-c": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4
+          }
+        }
+      }
+    },
+    {
+      "id": "factory-trial-1",
+      "name": "Extra packing station",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "factory-model",
+        "name": "Little Factory",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 300,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Machining team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "team-b",
+            "label": "Quality check team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "team-c",
+            "label": "Packing team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 22,
+            "overtimeCostPerHour": 33
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "factory-arrivals",
+            "label": "Incoming orders",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 70
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 110
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 70
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "factory-queue-a",
+            "label": "Before machining",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "factory-station-a",
+            "label": "Machining",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 28,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "factory-queue-b",
+            "label": "Before quality check",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "factory-station-b",
+            "label": "Quality check",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "team-b",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "factory-queue-c",
+            "label": "Before packing",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-c",
+            "samplingId": "factory-station-c",
+            "label": "Packing",
+            "kind": "service",
+            "next": "exit",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 65,
+              "mode": 85,
+              "max": 110
+            },
+            "resources": [
+              {
+                "poolId": "team-c",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "factory-exit",
+            "label": "Ready to ship",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -9.5,
+          "z": 1.5
+        },
+        "queue-a": {
+          "x": -5.5,
+          "z": 1.5
+        },
+        "station-a": {
+          "x": -5.5,
+          "z": -2.8
+        },
+        "queue-b": {
+          "x": 0,
+          "z": 1.5
+        },
+        "station-b": {
+          "x": 0,
+          "z": -2.8
+        },
+        "queue-c": {
+          "x": 5.5,
+          "z": 1.5
+        },
+        "station-c": {
+          "x": 5.5,
+          "z": -2.8
+        },
+        "exit": {
+          "x": 9.5,
+          "z": -2.8
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "factory-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-16",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -7.9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-17",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -5.7,
+            "y": 0
+          },
+          {
+            "id": "factory-object-18",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -3.5,
+            "y": 0
+          },
+          {
+            "id": "factory-object-19",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -1.3,
+            "y": 0
+          },
+          {
+            "id": "factory-object-20",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 0.9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-21",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 3.1,
+            "y": 0
+          },
+          {
+            "id": "factory-object-22",
+            "name": "Materials rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-23",
+            "name": "Materials rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-24",
+            "name": "Materials rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-25",
+            "name": "Materials rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-26",
+            "name": "Materials rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.6,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-27",
+            "name": "Materials rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.6,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-28",
+            "name": "Materials rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.6,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-29",
+            "name": "Materials rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.6,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-30",
+            "name": "Materials rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.6,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-31",
+            "name": "Materials rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.6,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-32",
+            "name": "Materials rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.6,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-33",
+            "name": "Materials rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.6,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-34",
+            "name": "Materials rack 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.018,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-35",
+            "name": "Materials rack 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.018,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-36",
+            "name": "Materials rack 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.018,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-37",
+            "name": "Materials rack 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.018,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-38",
+            "name": "Materials rack 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.25,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-39",
+            "name": "Materials rack 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.25,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-40",
+            "name": "Materials rack 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.25,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-41",
+            "name": "Materials rack 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.25,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-42",
+            "name": "Dispatch pallet 1",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1.364,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-43",
+            "name": "Dispatch pallet 1 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 1,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-44",
+            "name": "Dispatch pallet 1 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 1.728,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-45",
+            "name": "Dispatch pallet 2",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 4.673,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-46",
+            "name": "Dispatch pallet 2 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 4.309,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-47",
+            "name": "Dispatch pallet 2 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.037,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-48",
+            "name": "Dispatch pallet 3",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8.35,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-49",
+            "name": "Dispatch pallet 3 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 7.932,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-50",
+            "name": "Dispatch pallet 3 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.768,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-51",
+            "name": "Dispatch pallet 4",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.15,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-52",
+            "name": "Dispatch pallet 4 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 11.732,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-53",
+            "name": "Dispatch pallet 4 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 12.568,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-54",
+            "name": "Tool preparation bench",
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.25,
+            "x": -12.6,
+            "z": 5,
+            "y": 0
+          },
+          {
+            "id": "factory-object-55",
+            "name": "Bench inspection kit",
+            "assetId": "serviceTool_camera_inspectionKit_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": 5,
+            "y": 1.73
+          },
+          {
+            "id": "factory-object-56",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -9.6,
+            "z": -2.8,
+            "y": 3.9
+          },
+          {
+            "id": "factory-object-57",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -3.6,
+            "z": -2.8,
+            "y": 3.9
+          },
+          {
+            "id": "factory-object-58",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 6.45,
+            "z": -2.8,
+            "y": 3.9
+          },
+          {
+            "id": "factory-object-59",
+            "name": "Entrance fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -15.4,
+            "z": 3.6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-60",
+            "name": "Dispatch fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": 14.4,
+            "z": -7.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-61",
+            "name": "Packing waste",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.2,
+            "z": -2.8,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {
+          "station-c": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4
+          }
+        }
+      }
+    },
+    {
+      "id": "factory-trial-2",
+      "name": "Staff both stations",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "factory-model",
+        "name": "Little Factory",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 300,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Machining team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "team-b",
+            "label": "Quality check team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "team-c",
+            "label": "Packing team",
+            "capacity": 2,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 22,
+            "overtimeCostPerHour": 33
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "factory-arrivals",
+            "label": "Incoming orders",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 70
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 110
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 70
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "factory-queue-a",
+            "label": "Before machining",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "factory-station-a",
+            "label": "Machining",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 28,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "factory-queue-b",
+            "label": "Before quality check",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "factory-station-b",
+            "label": "Quality check",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "team-b",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "factory-queue-c",
+            "label": "Before packing",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-c",
+            "samplingId": "factory-station-c",
+            "label": "Packing",
+            "kind": "service",
+            "next": "exit",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 65,
+              "mode": 85,
+              "max": 110
+            },
+            "resources": [
+              {
+                "poolId": "team-c",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "factory-exit",
+            "label": "Ready to ship",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -9.5,
+          "z": 1.5
+        },
+        "queue-a": {
+          "x": -5.5,
+          "z": 1.5
+        },
+        "station-a": {
+          "x": -5.5,
+          "z": -2.8
+        },
+        "queue-b": {
+          "x": 0,
+          "z": 1.5
+        },
+        "station-b": {
+          "x": 0,
+          "z": -2.8
+        },
+        "queue-c": {
+          "x": 5.5,
+          "z": 1.5
+        },
+        "station-c": {
+          "x": 5.5,
+          "z": -2.8
+        },
+        "exit": {
+          "x": 9.5,
+          "z": -2.8
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "factory-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-16",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -7.9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-17",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -5.7,
+            "y": 0
+          },
+          {
+            "id": "factory-object-18",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -3.5,
+            "y": 0
+          },
+          {
+            "id": "factory-object-19",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -1.3,
+            "y": 0
+          },
+          {
+            "id": "factory-object-20",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 0.9,
+            "y": 0
+          },
+          {
+            "id": "factory-object-21",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 3.1,
+            "y": 0
+          },
+          {
+            "id": "factory-object-22",
+            "name": "Materials rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-23",
+            "name": "Materials rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-24",
+            "name": "Materials rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-25",
+            "name": "Materials rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-26",
+            "name": "Materials rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.6,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-27",
+            "name": "Materials rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.6,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-28",
+            "name": "Materials rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.6,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-29",
+            "name": "Materials rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.6,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-30",
+            "name": "Materials rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.6,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-31",
+            "name": "Materials rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.6,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-32",
+            "name": "Materials rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.6,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-33",
+            "name": "Materials rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.6,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-34",
+            "name": "Materials rack 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.018,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-35",
+            "name": "Materials rack 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.018,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-36",
+            "name": "Materials rack 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.018,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-37",
+            "name": "Materials rack 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.018,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-38",
+            "name": "Materials rack 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.25,
+            "z": -6.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-39",
+            "name": "Materials rack 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.25,
+            "z": -6.8,
+            "y": 0.5
+          },
+          {
+            "id": "factory-object-40",
+            "name": "Materials rack 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.25,
+            "z": -6.8,
+            "y": 1.15
+          },
+          {
+            "id": "factory-object-41",
+            "name": "Materials rack 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.25,
+            "z": -6.8,
+            "y": 1.8
+          },
+          {
+            "id": "factory-object-42",
+            "name": "Dispatch pallet 1",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1.364,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-43",
+            "name": "Dispatch pallet 1 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 1,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-44",
+            "name": "Dispatch pallet 1 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 1.728,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-45",
+            "name": "Dispatch pallet 2",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 4.673,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-46",
+            "name": "Dispatch pallet 2 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 4.309,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-47",
+            "name": "Dispatch pallet 2 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.037,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-48",
+            "name": "Dispatch pallet 3",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8.35,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-49",
+            "name": "Dispatch pallet 3 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 7.932,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-50",
+            "name": "Dispatch pallet 3 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.768,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-51",
+            "name": "Dispatch pallet 4",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12.15,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-52",
+            "name": "Dispatch pallet 4 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 11.732,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-53",
+            "name": "Dispatch pallet 4 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 12.568,
+            "z": 5.78,
+            "y": 0.21
+          },
+          {
+            "id": "factory-object-54",
+            "name": "Tool preparation bench",
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.25,
+            "x": -12.6,
+            "z": 5,
+            "y": 0
+          },
+          {
+            "id": "factory-object-55",
+            "name": "Bench inspection kit",
+            "assetId": "serviceTool_camera_inspectionKit_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.6,
+            "z": 5,
+            "y": 1.73
+          },
+          {
+            "id": "factory-object-56",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -9.6,
+            "z": -2.8,
+            "y": 3.9
+          },
+          {
+            "id": "factory-object-57",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -3.6,
+            "z": -2.8,
+            "y": 3.9
+          },
+          {
+            "id": "factory-object-58",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 6.45,
+            "z": -2.8,
+            "y": 3.9
+          },
+          {
+            "id": "factory-object-59",
+            "name": "Entrance fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -15.4,
+            "z": 3.6,
+            "y": 0
+          },
+          {
+            "id": "factory-object-60",
+            "name": "Dispatch fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": 14.4,
+            "z": -7.8,
+            "y": 0
+          },
+          {
+            "id": "factory-object-61",
+            "name": "Packing waste",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.2,
+            "z": -2.8,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {
+          "station-c": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4
+          }
+        }
+      }
+    }
+  ]
+}

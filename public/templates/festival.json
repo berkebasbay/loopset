@@ -1,0 +1,1950 @@
+{
+  "schemaVersion": 1,
+  "id": "starter-festival",
+  "name": "Festival Gate",
+  "world": "festival",
+  "model": {
+    "id": "festival-model",
+    "name": "Festival Gate",
+    "horizon": 3600,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 180,
+    "currency": "USD",
+    "resources": [
+      {
+        "id": "team-a",
+        "label": "Wristbands team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      },
+      {
+        "id": "team-b",
+        "label": "Ticket check team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 28,
+        "overtimeCostPerHour": 42
+      },
+      {
+        "id": "team-c",
+        "label": "Security team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 22,
+        "overtimeCostPerHour": 33
+      }
+    ],
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "festival-arrivals",
+        "label": "Visitors arrive",
+        "kind": "source",
+        "next": "queue-a",
+        "arrival": {
+          "kind": "poisson",
+          "segments": [
+            {
+              "start": 0,
+              "end": 900,
+              "perHour": 80
+            },
+            {
+              "start": 900,
+              "end": 2400,
+              "perHour": 125
+            },
+            {
+              "start": 2400,
+              "end": 3600,
+              "perHour": 85
+            }
+          ]
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-a",
+        "samplingId": "festival-queue-a",
+        "label": "Before wristbands",
+        "kind": "queue",
+        "next": "station-a",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "station-a",
+        "samplingId": "festival-station-a",
+        "label": "Wristbands",
+        "kind": "service",
+        "next": "queue-b",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 18,
+          "mode": 22,
+          "max": 40
+        },
+        "resources": [
+          {
+            "poolId": "team-a",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-b",
+        "samplingId": "festival-queue-b",
+        "label": "Before ticket check",
+        "kind": "queue",
+        "next": "station-b",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "station-b",
+        "samplingId": "festival-station-b",
+        "label": "Ticket check",
+        "kind": "service",
+        "next": "queue-c",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 12,
+          "mode": 18,
+          "max": 28
+        },
+        "resources": [
+          {
+            "poolId": "team-b",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-c",
+        "samplingId": "festival-queue-c",
+        "label": "Before security",
+        "kind": "queue",
+        "next": "station-c",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": {
+          "kind": "constant",
+          "value": 900
+        }
+      },
+      {
+        "id": "station-c",
+        "samplingId": "festival-station-c",
+        "label": "Security",
+        "kind": "service",
+        "next": "exit",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 50,
+          "mode": 75,
+          "max": 100
+        },
+        "resources": [
+          {
+            "poolId": "team-c",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "festival-exit",
+        "label": "Inside the festival",
+        "kind": "sink"
+      }
+    ]
+  },
+  "revision": 0,
+  "description": "Arrival waves meet three staffed checkpoints.\n\nHow much security coverage is useful during the entrance rush?\n\nStarting assumptions\n• One hour of visitor arrivals, with a busier middle period.\n• Visitors leave the final queue after 15 minutes without service.\n• Lane capacity and staff availability are independent. Walking and crowd collisions are illustrative.\n\nSynthetic teaching models. Timings, demand and staffing are illustrative; layout does not add travel time.",
+  "layout": {
+    "arrivals": {
+      "x": -9.5,
+      "z": 1.5
+    },
+    "queue-a": {
+      "x": -5.5,
+      "z": 1.5
+    },
+    "station-a": {
+      "x": -5.5,
+      "z": -2.8
+    },
+    "queue-b": {
+      "x": 0,
+      "z": 1.5
+    },
+    "station-b": {
+      "x": 0,
+      "z": -2.8
+    },
+    "queue-c": {
+      "x": 5.5,
+      "z": 1.5
+    },
+    "station-c": {
+      "x": 5.5,
+      "z": -2.8
+    },
+    "exit": {
+      "x": 9.5,
+      "z": -2.8
+    }
+  },
+  "facility": {
+    "version": 1,
+    "scenery": true,
+    "objects": [
+      {
+        "id": "festival-object-1",
+        "name": "Entrance queue rail 2.8-0",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -11,
+        "z": 2.8,
+        "y": 0
+      },
+      {
+        "id": "festival-object-2",
+        "name": "Entrance queue rail 2.8-1",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -9.78,
+        "z": 2.8,
+        "y": 0
+      },
+      {
+        "id": "festival-object-3",
+        "name": "Entrance queue rail 2.8-2",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.56,
+        "z": 2.8,
+        "y": 0
+      },
+      {
+        "id": "festival-object-4",
+        "name": "Entrance queue rail 2.8-3",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -7.34,
+        "z": 2.8,
+        "y": 0
+      },
+      {
+        "id": "festival-object-5",
+        "name": "Entrance queue rail 2.8-4",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -6.12,
+        "z": 2.8,
+        "y": 0
+      },
+      {
+        "id": "festival-object-6",
+        "name": "Entrance queue rail 2.8-5",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -4.9,
+        "z": 2.8,
+        "y": 0
+      },
+      {
+        "id": "festival-object-7",
+        "name": "Entrance queue rail 2.8-6",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -3.68,
+        "z": 2.8,
+        "y": 0
+      },
+      {
+        "id": "festival-object-8",
+        "name": "Entrance queue rail 5.2-0",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -11,
+        "z": 5.2,
+        "y": 0
+      },
+      {
+        "id": "festival-object-9",
+        "name": "Entrance queue rail 5.2-1",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -9.78,
+        "z": 5.2,
+        "y": 0
+      },
+      {
+        "id": "festival-object-10",
+        "name": "Entrance queue rail 5.2-2",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.56,
+        "z": 5.2,
+        "y": 0
+      },
+      {
+        "id": "festival-object-11",
+        "name": "Entrance queue rail 5.2-3",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -7.34,
+        "z": 5.2,
+        "y": 0
+      },
+      {
+        "id": "festival-object-12",
+        "name": "Entrance queue rail 5.2-4",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -6.12,
+        "z": 5.2,
+        "y": 0
+      },
+      {
+        "id": "festival-object-13",
+        "name": "Entrance queue rail 5.2-5",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -4.9,
+        "z": 5.2,
+        "y": 0
+      },
+      {
+        "id": "festival-object-14",
+        "name": "Entrance queue rail 5.2-6",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -3.68,
+        "z": 5.2,
+        "y": 0
+      },
+      {
+        "id": "festival-object-15",
+        "name": "Security approach rail 1",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5.2,
+        "z": 4.4,
+        "y": 0
+      },
+      {
+        "id": "festival-object-16",
+        "name": "Security approach rail 2",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 6.42,
+        "z": 4.4,
+        "y": 0
+      },
+      {
+        "id": "festival-object-17",
+        "name": "Security approach rail 3",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 7.64,
+        "z": 4.4,
+        "y": 0
+      },
+      {
+        "id": "festival-object-18",
+        "name": "Security approach rail 4",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8.86,
+        "z": 4.4,
+        "y": 0
+      },
+      {
+        "id": "festival-object-19",
+        "name": "Security approach rail 5",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 10.08,
+        "z": 4.4,
+        "y": 0
+      },
+      {
+        "id": "festival-object-20",
+        "name": "Staff lockers",
+        "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.1,
+        "x": -3,
+        "z": -5.8,
+        "y": 0
+      },
+      {
+        "id": "festival-object-21",
+        "name": "Entrance recycling",
+        "assetId": "furniture_trashBin_lid_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -12,
+        "z": 6.5,
+        "y": 0
+      },
+      {
+        "id": "festival-object-22",
+        "name": "Exit recycling",
+        "assetId": "furniture_trashBin_lid_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 12,
+        "z": -4.5,
+        "y": 0
+      },
+      {
+        "id": "festival-object-23",
+        "name": "Visitor assistance table",
+        "assetId": "table_metal_stainless_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.2,
+        "x": -12,
+        "z": -3.5,
+        "y": 0
+      },
+      {
+        "id": "festival-object-24",
+        "name": "Assistance chair",
+        "assetId": "chair_office_amf_black_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 1.2,
+        "x": -13,
+        "z": -3.5,
+        "y": 0
+      }
+    ],
+    "nodeAssets": {}
+  },
+  "scenarios": [
+    {
+      "id": "festival-original",
+      "name": "Original plan",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "festival",
+      "model": {
+        "id": "festival-model",
+        "name": "Festival Gate",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 180,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Wristbands team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "team-b",
+            "label": "Ticket check team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "team-c",
+            "label": "Security team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 22,
+            "overtimeCostPerHour": 33
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "festival-arrivals",
+            "label": "Visitors arrive",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 80
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 125
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 85
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "festival-queue-a",
+            "label": "Before wristbands",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "festival-station-a",
+            "label": "Wristbands",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 22,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "festival-queue-b",
+            "label": "Before ticket check",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "festival-station-b",
+            "label": "Ticket check",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "team-b",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "festival-queue-c",
+            "label": "Before security",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": {
+              "kind": "constant",
+              "value": 900
+            }
+          },
+          {
+            "id": "station-c",
+            "samplingId": "festival-station-c",
+            "label": "Security",
+            "kind": "service",
+            "next": "exit",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 50,
+              "mode": 75,
+              "max": 100
+            },
+            "resources": [
+              {
+                "poolId": "team-c",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "festival-exit",
+            "label": "Inside the festival",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -9.5,
+          "z": 1.5
+        },
+        "queue-a": {
+          "x": -5.5,
+          "z": 1.5
+        },
+        "station-a": {
+          "x": -5.5,
+          "z": -2.8
+        },
+        "queue-b": {
+          "x": 0,
+          "z": 1.5
+        },
+        "station-b": {
+          "x": 0,
+          "z": -2.8
+        },
+        "queue-c": {
+          "x": 5.5,
+          "z": 1.5
+        },
+        "station-c": {
+          "x": 5.5,
+          "z": -2.8
+        },
+        "exit": {
+          "x": 9.5,
+          "z": -2.8
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": true,
+        "objects": [
+          {
+            "id": "festival-object-1",
+            "name": "Entrance queue rail 2.8-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-2",
+            "name": "Entrance queue rail 2.8-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9.78,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-3",
+            "name": "Entrance queue rail 2.8-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.56,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-4",
+            "name": "Entrance queue rail 2.8-3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.34,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-5",
+            "name": "Entrance queue rail 2.8-4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -6.12,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-6",
+            "name": "Entrance queue rail 2.8-5",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -4.9,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-7",
+            "name": "Entrance queue rail 2.8-6",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.68,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-8",
+            "name": "Entrance queue rail 5.2-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-9",
+            "name": "Entrance queue rail 5.2-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9.78,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-10",
+            "name": "Entrance queue rail 5.2-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.56,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-11",
+            "name": "Entrance queue rail 5.2-3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.34,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-12",
+            "name": "Entrance queue rail 5.2-4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -6.12,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-13",
+            "name": "Entrance queue rail 5.2-5",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -4.9,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-14",
+            "name": "Entrance queue rail 5.2-6",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.68,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-15",
+            "name": "Security approach rail 1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.2,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-16",
+            "name": "Security approach rail 2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.42,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-17",
+            "name": "Security approach rail 3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 7.64,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-18",
+            "name": "Security approach rail 4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8.86,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-19",
+            "name": "Security approach rail 5",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.08,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-20",
+            "name": "Staff lockers",
+            "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.1,
+            "x": -3,
+            "z": -5.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-21",
+            "name": "Entrance recycling",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12,
+            "z": 6.5,
+            "y": 0
+          },
+          {
+            "id": "festival-object-22",
+            "name": "Exit recycling",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "festival-object-23",
+            "name": "Visitor assistance table",
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -12,
+            "z": -3.5,
+            "y": 0
+          },
+          {
+            "id": "festival-object-24",
+            "name": "Assistance chair",
+            "assetId": "chair_office_amf_black_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -13,
+            "z": -3.5,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {}
+      }
+    },
+    {
+      "id": "festival-trial-1",
+      "name": "Peak security cover",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "festival",
+      "model": {
+        "id": "festival-model",
+        "name": "Festival Gate",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 180,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Wristbands team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "team-b",
+            "label": "Ticket check team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "team-c",
+            "label": "Security team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [
+              {
+                "start": 600,
+                "end": 3000,
+                "capacity": 2
+              }
+            ],
+            "costPerHour": 22,
+            "overtimeCostPerHour": 33
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "festival-arrivals",
+            "label": "Visitors arrive",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 80
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 125
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 85
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "festival-queue-a",
+            "label": "Before wristbands",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "festival-station-a",
+            "label": "Wristbands",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 22,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "festival-queue-b",
+            "label": "Before ticket check",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "festival-station-b",
+            "label": "Ticket check",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "team-b",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "festival-queue-c",
+            "label": "Before security",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": {
+              "kind": "constant",
+              "value": 900
+            }
+          },
+          {
+            "id": "station-c",
+            "samplingId": "festival-station-c",
+            "label": "Security",
+            "kind": "service",
+            "next": "exit",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 50,
+              "mode": 75,
+              "max": 100
+            },
+            "resources": [
+              {
+                "poolId": "team-c",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "festival-exit",
+            "label": "Inside the festival",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -9.5,
+          "z": 1.5
+        },
+        "queue-a": {
+          "x": -5.5,
+          "z": 1.5
+        },
+        "station-a": {
+          "x": -5.5,
+          "z": -2.8
+        },
+        "queue-b": {
+          "x": 0,
+          "z": 1.5
+        },
+        "station-b": {
+          "x": 0,
+          "z": -2.8
+        },
+        "queue-c": {
+          "x": 5.5,
+          "z": 1.5
+        },
+        "station-c": {
+          "x": 5.5,
+          "z": -2.8
+        },
+        "exit": {
+          "x": 9.5,
+          "z": -2.8
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": true,
+        "objects": [
+          {
+            "id": "festival-object-1",
+            "name": "Entrance queue rail 2.8-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -14.6,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-2",
+            "name": "Entrance queue rail 2.8-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.38,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-3",
+            "name": "Entrance queue rail 2.8-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.16,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-4",
+            "name": "Entrance queue rail 2.8-3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -10.94,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-5",
+            "name": "Entrance queue rail 2.8-4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9.72,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-6",
+            "name": "Entrance queue rail 2.8-5",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.5,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-7",
+            "name": "Entrance queue rail 2.8-6",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.28,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-8",
+            "name": "Entrance queue rail 5.2-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -14.6,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-9",
+            "name": "Entrance queue rail 5.2-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.38,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-10",
+            "name": "Entrance queue rail 5.2-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.16,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-11",
+            "name": "Entrance queue rail 5.2-3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -10.94,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-12",
+            "name": "Entrance queue rail 5.2-4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9.72,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-13",
+            "name": "Entrance queue rail 5.2-5",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.5,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-14",
+            "name": "Entrance queue rail 5.2-6",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.28,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-15",
+            "name": "Security approach rail 1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.004,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-16",
+            "name": "Security approach rail 2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 7.248,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-17",
+            "name": "Security approach rail 3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 9.566,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-18",
+            "name": "Security approach rail 4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.884,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-19",
+            "name": "Security approach rail 5",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.68,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-20",
+            "name": "Staff lockers",
+            "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.1,
+            "x": -6.6,
+            "z": -5.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-21",
+            "name": "Entrance recycling",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -15.6,
+            "z": 6.5,
+            "y": 0
+          },
+          {
+            "id": "festival-object-22",
+            "name": "Exit recycling",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 15.6,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "festival-object-23",
+            "name": "Visitor assistance table",
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -15.6,
+            "z": -3.5,
+            "y": 0
+          },
+          {
+            "id": "festival-object-24",
+            "name": "Assistance chair",
+            "assetId": "chair_office_amf_black_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -16.6,
+            "z": -3.5,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {}
+      }
+    },
+    {
+      "id": "festival-trial-2",
+      "name": "All-hour security cover",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "festival",
+      "model": {
+        "id": "festival-model",
+        "name": "Festival Gate",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 180,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Wristbands team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "team-b",
+            "label": "Ticket check team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          },
+          {
+            "id": "team-c",
+            "label": "Security team",
+            "capacity": 2,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 22,
+            "overtimeCostPerHour": 33
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "festival-arrivals",
+            "label": "Visitors arrive",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 80
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 125
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 85
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "festival-queue-a",
+            "label": "Before wristbands",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "festival-station-a",
+            "label": "Wristbands",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 22,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "festival-queue-b",
+            "label": "Before ticket check",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "festival-station-b",
+            "label": "Ticket check",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "team-b",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "festival-queue-c",
+            "label": "Before security",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": {
+              "kind": "constant",
+              "value": 900
+            }
+          },
+          {
+            "id": "station-c",
+            "samplingId": "festival-station-c",
+            "label": "Security",
+            "kind": "service",
+            "next": "exit",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 50,
+              "mode": 75,
+              "max": 100
+            },
+            "resources": [
+              {
+                "poolId": "team-c",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "festival-exit",
+            "label": "Inside the festival",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -9.5,
+          "z": 1.5
+        },
+        "queue-a": {
+          "x": -5.5,
+          "z": 1.5
+        },
+        "station-a": {
+          "x": -5.5,
+          "z": -2.8
+        },
+        "queue-b": {
+          "x": 0,
+          "z": 1.5
+        },
+        "station-b": {
+          "x": 0,
+          "z": -2.8
+        },
+        "queue-c": {
+          "x": 5.5,
+          "z": 1.5
+        },
+        "station-c": {
+          "x": 5.5,
+          "z": -2.8
+        },
+        "exit": {
+          "x": 9.5,
+          "z": -2.8
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": true,
+        "objects": [
+          {
+            "id": "festival-object-1",
+            "name": "Entrance queue rail 2.8-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -14.6,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-2",
+            "name": "Entrance queue rail 2.8-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.38,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-3",
+            "name": "Entrance queue rail 2.8-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.16,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-4",
+            "name": "Entrance queue rail 2.8-3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -10.94,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-5",
+            "name": "Entrance queue rail 2.8-4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9.72,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-6",
+            "name": "Entrance queue rail 2.8-5",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.5,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-7",
+            "name": "Entrance queue rail 2.8-6",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.28,
+            "z": 2.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-8",
+            "name": "Entrance queue rail 5.2-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -14.6,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-9",
+            "name": "Entrance queue rail 5.2-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.38,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-10",
+            "name": "Entrance queue rail 5.2-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -12.16,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-11",
+            "name": "Entrance queue rail 5.2-3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -10.94,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-12",
+            "name": "Entrance queue rail 5.2-4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9.72,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-13",
+            "name": "Entrance queue rail 5.2-5",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.5,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-14",
+            "name": "Entrance queue rail 5.2-6",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.28,
+            "z": 5.2,
+            "y": 0
+          },
+          {
+            "id": "festival-object-15",
+            "name": "Security approach rail 1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.004,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-16",
+            "name": "Security approach rail 2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 7.248,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-17",
+            "name": "Security approach rail 3",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 9.566,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-18",
+            "name": "Security approach rail 4",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.884,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-19",
+            "name": "Security approach rail 5",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.68,
+            "z": 4.4,
+            "y": 0
+          },
+          {
+            "id": "festival-object-20",
+            "name": "Staff lockers",
+            "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.1,
+            "x": -6.6,
+            "z": -5.8,
+            "y": 0
+          },
+          {
+            "id": "festival-object-21",
+            "name": "Entrance recycling",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -15.6,
+            "z": 6.5,
+            "y": 0
+          },
+          {
+            "id": "festival-object-22",
+            "name": "Exit recycling",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 15.6,
+            "z": -4.5,
+            "y": 0
+          },
+          {
+            "id": "festival-object-23",
+            "name": "Visitor assistance table",
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -15.6,
+            "z": -3.5,
+            "y": 0
+          },
+          {
+            "id": "festival-object-24",
+            "name": "Assistance chair",
+            "assetId": "chair_office_amf_black_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -16.6,
+            "z": -3.5,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {}
+      }
+    }
+  ]
+}

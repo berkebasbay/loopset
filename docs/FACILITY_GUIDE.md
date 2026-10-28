@@ -8,7 +8,7 @@ The workspace follows **Build facility → Define process → Review results**. 
 
 Choose **Templates → Blank** or **Empty site** for zero objects and zero process steps. Arrange the site freely; **Start a process** adds arrivals, a waiting area, one processing step and an exit as one undoable edit, keeping placed objects and existing resource pools. The new processing step has no shared-team requirement until you assign one. Your previous project follows the normal save/recovery path. The three example worlds remain available under **Templates**. **View → Show example surroundings** controls their decorative setting; it does not add numerical resources.
 
-**Templates → Workshop** opens Workshop and dispatch: the existing synthetic Factory process with an editable cutaway building, material racks, staging pallets, cartons and lighting. It is a starting layout to explore, not a calibrated business forecast. The portable version is [`examples/facility.json`](../examples/facility.json).
+**Templates** offers twelve facilities with real scene previews, assumptions and two saved experiments each. **Little Factory** keeps the original Factory process in an updated 57-object layout; its portable version is [`examples/facility.json`](../examples/facility.json). **Workshop** uses a distinct shared-operator and curing process. Open **Project brief** to apply an alternative, then calculate and compare it. See the [template collection](TEMPLATES.md).
 
 ## Place and arrange objects
 

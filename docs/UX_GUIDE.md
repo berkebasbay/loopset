@@ -10,9 +10,11 @@ The team’s base availability is visible in Properties. Installed capacity, cos
 
 ## Start from a template
 
-**Templates** keeps Workshop, Factory, Festival and Service alongside **Blank**, a site with no objects or process steps. The Asset library also offers **Empty site**. Place objects first; choose **Start a process** when ready to add a runnable flow.
+**Templates** contains twelve facilities, including Workshop, Factory, Festival and Service, alongside **Blank**, a site with no objects or process steps. Search or filter by category, inspect a preview and its assumptions, then choose **Open this template**. The Asset library also offers **Empty site**. Place objects first; choose **Start a process** when ready to add a runnable flow.
 
 **Save as template** creates a named, independent snapshot. Open **My templates** to reuse, search, download, import or remove starting points. Reusing one creates a new project. Templates stay at the current browser/site address; download their JSON for backup or transfer.
+
+**Project brief** gives the starting notes and saved alternatives. Review exact input changes before **Apply this plan**, then **Run & compare**. Applying a plan restores its layout too; Undo returns to the previous draft.
 
 ## Find a setting
 

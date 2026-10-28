@@ -1,0 +1,3856 @@
+{
+  "schemaVersion": 1,
+  "id": "starter-machining",
+  "name": "Machining Cell",
+  "world": "factory",
+  "revision": 0,
+  "description": "Two job routes compete for shared operators.\n\nIs the limiting factor the slower machine or the operator pool?\n\nStarting assumptions\n• Two hours of fixed job releases; jobs take one of two machining routes.\n• Each occupied machine holds one operator throughout its service.\n• Equipment is illustrative sourced metalworking artwork; toolpaths, changeovers and CNC control are not modeled.\n\nSynthetic teaching models. Timings, demand and staffing are illustrative; layout does not add travel time.",
+  "layout": {
+    "arrivals": {
+      "x": -14,
+      "z": 4
+    },
+    "q-prepare": {
+      "x": -11,
+      "z": 1
+    },
+    "prepare": {
+      "x": -11,
+      "z": -3
+    },
+    "route": {
+      "x": -8,
+      "z": -5
+    },
+    "q-fast": {
+      "x": -4,
+      "z": 2
+    },
+    "fast": {
+      "x": -4,
+      "z": -2
+    },
+    "q-slow": {
+      "x": 3,
+      "z": 2
+    },
+    "slow": {
+      "x": 3,
+      "z": -2
+    },
+    "q-inspect": {
+      "x": 8,
+      "z": 4
+    },
+    "inspect": {
+      "x": 11,
+      "z": 1
+    },
+    "exit": {
+      "x": 14,
+      "z": 5
+    }
+  },
+  "model": {
+    "id": "machining-model",
+    "name": "Machining Cell",
+    "horizon": 7200,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 600,
+    "currency": "USD",
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "machining-arrivals",
+        "label": "Incoming jobs",
+        "kind": "source",
+        "next": "q-prepare",
+        "arrival": {
+          "kind": "fixed",
+          "perHour": 36
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 1
+          }
+        ]
+      },
+      {
+        "id": "q-prepare",
+        "samplingId": "machining-q-prepare",
+        "label": "Preparation queue",
+        "kind": "queue",
+        "next": "prepare",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "prepare",
+        "samplingId": "machining-prepare",
+        "label": "Preparation",
+        "kind": "service",
+        "next": "route",
+        "duration": {
+          "kind": "constant",
+          "value": 60
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "prep",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "route",
+        "samplingId": "machining-route",
+        "label": "Job routing",
+        "kind": "route",
+        "branches": [
+          {
+            "to": "q-fast",
+            "probability": 0.6
+          },
+          {
+            "to": "q-slow",
+            "probability": 0.4
+          }
+        ]
+      },
+      {
+        "id": "q-fast",
+        "samplingId": "machining-q-fast",
+        "label": "Short-job queue",
+        "kind": "queue",
+        "next": "fast",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "fast",
+        "samplingId": "machining-fast",
+        "label": "Short machining",
+        "kind": "service",
+        "next": "q-inspect",
+        "duration": {
+          "kind": "triangular",
+          "min": 100,
+          "mode": 140,
+          "max": 180
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "operators",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "q-slow",
+        "samplingId": "machining-q-slow",
+        "label": "Long-job queue",
+        "kind": "queue",
+        "next": "slow",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "slow",
+        "samplingId": "machining-slow",
+        "label": "Long machining",
+        "kind": "service",
+        "next": "q-inspect",
+        "duration": {
+          "kind": "triangular",
+          "min": 220,
+          "mode": 300,
+          "max": 380
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "operators",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "q-inspect",
+        "samplingId": "machining-q-inspect",
+        "label": "Inspection queue",
+        "kind": "queue",
+        "next": "inspect",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "inspect",
+        "samplingId": "machining-inspect",
+        "label": "Final inspection",
+        "kind": "service",
+        "next": "exit",
+        "duration": {
+          "kind": "constant",
+          "value": 45
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "inspection",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "machining-exit",
+        "label": "Inspected parts",
+        "kind": "sink"
+      }
+    ],
+    "resources": [
+      {
+        "id": "prep",
+        "label": "Preparation team",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      },
+      {
+        "id": "operators",
+        "label": "Shared machine operators",
+        "installedCapacity": 6,
+        "capacity": 2,
+        "calendar": [],
+        "costPerHour": 30,
+        "overtimeCostPerHour": 45
+      },
+      {
+        "id": "inspection",
+        "label": "Inspection team",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 28,
+        "overtimeCostPerHour": 42
+      }
+    ]
+  },
+  "facility": {
+    "version": 1,
+    "scenery": false,
+    "objects": [
+      {
+        "id": "machining-object-1",
+        "name": "Back wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -15.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-2",
+        "name": "Back wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -13.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-3",
+        "name": "Back wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -11,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-4",
+        "name": "Back wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -8.8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-5",
+        "name": "Back wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -6.6,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-6",
+        "name": "Back wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -4.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-7",
+        "name": "Back wall 7",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -2.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-8",
+        "name": "Back wall 8",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 0,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-9",
+        "name": "Back wall 9",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 2.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-10",
+        "name": "Back wall 10",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 4.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-11",
+        "name": "Back wall 11",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 6.6,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-12",
+        "name": "Back wall 12",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 8.8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-13",
+        "name": "Back wall 13",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 11,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-14",
+        "name": "Back wall 14",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 13.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-15",
+        "name": "Back wall 15",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 15.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "machining-object-16",
+        "name": "Side wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": -10.9,
+        "y": 0
+      },
+      {
+        "id": "machining-object-17",
+        "name": "Side wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": -8.7,
+        "y": 0
+      },
+      {
+        "id": "machining-object-18",
+        "name": "Side wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": -6.5,
+        "y": 0
+      },
+      {
+        "id": "machining-object-19",
+        "name": "Side wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": -4.3,
+        "y": 0
+      },
+      {
+        "id": "machining-object-20",
+        "name": "Side wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": -2.1,
+        "y": 0
+      },
+      {
+        "id": "machining-object-21",
+        "name": "Side wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": 0.1,
+        "y": 0
+      },
+      {
+        "id": "machining-object-22",
+        "name": "Tooling rack 1",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -10,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "machining-object-23",
+        "name": "Tooling rack 1 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -10,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "machining-object-24",
+        "name": "Tooling rack 1 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -10,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "machining-object-25",
+        "name": "Tooling rack 1 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -10,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "machining-object-26",
+        "name": "Tooling rack 2",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -5,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "machining-object-27",
+        "name": "Tooling rack 2 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -5,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "machining-object-28",
+        "name": "Tooling rack 2 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -5,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "machining-object-29",
+        "name": "Tooling rack 2 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -5,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "machining-object-30",
+        "name": "Tooling rack 3",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "machining-object-31",
+        "name": "Tooling rack 3 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "machining-object-32",
+        "name": "Tooling rack 3 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "machining-object-33",
+        "name": "Tooling rack 3 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "machining-object-34",
+        "name": "Tooling rack 4",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "machining-object-35",
+        "name": "Tooling rack 4 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "machining-object-36",
+        "name": "Tooling rack 4 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "machining-object-37",
+        "name": "Tooling rack 4 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "machining-object-38",
+        "name": "Tooling rack 5",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 10,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "machining-object-39",
+        "name": "Tooling rack 5 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 10,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "machining-object-40",
+        "name": "Tooling rack 5 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 10,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "machining-object-41",
+        "name": "Tooling rack 5 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 10,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "machining-object-42",
+        "name": "Machine perimeter -5-0",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -6.2,
+        "z": -6.3,
+        "y": 0
+      },
+      {
+        "id": "machining-object-43",
+        "name": "Machine perimeter -5-1",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -4.98,
+        "z": -6.3,
+        "y": 0
+      },
+      {
+        "id": "machining-object-44",
+        "name": "Machine perimeter -5-2",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -3.76,
+        "z": -6.3,
+        "y": 0
+      },
+      {
+        "id": "machining-object-45",
+        "name": "Machine perimeter 4-0",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 2.8,
+        "z": -6.3,
+        "y": 0
+      },
+      {
+        "id": "machining-object-46",
+        "name": "Machine perimeter 4-1",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 4.02,
+        "z": -6.3,
+        "y": 0
+      },
+      {
+        "id": "machining-object-47",
+        "name": "Machine perimeter 4-2",
+        "assetId": "barrier_fence_metal_a02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5.24,
+        "z": -6.3,
+        "y": 0
+      },
+      {
+        "id": "machining-object-48",
+        "name": "Raw blanks",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": -14,
+        "z": 7,
+        "y": 0
+      },
+      {
+        "id": "machining-object-49",
+        "name": "Raw blanks · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -14.22,
+        "z": 6.78,
+        "y": 0.21
+      },
+      {
+        "id": "machining-object-50",
+        "name": "Raw blanks · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -13.78,
+        "z": 6.78,
+        "y": 0.21
+      },
+      {
+        "id": "machining-object-51",
+        "name": "Raw blanks · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -14.22,
+        "z": 7.22,
+        "y": 0.21
+      },
+      {
+        "id": "machining-object-52",
+        "name": "Inspected parts",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 12,
+        "z": 7,
+        "y": 0
+      },
+      {
+        "id": "machining-object-53",
+        "name": "Inspected parts · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 11.78,
+        "z": 6.78,
+        "y": 0.21
+      },
+      {
+        "id": "machining-object-54",
+        "name": "Inspected parts · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 12.22,
+        "z": 6.78,
+        "y": 0.21
+      },
+      {
+        "id": "machining-object-55",
+        "name": "Inspected parts · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 11.78,
+        "z": 7.22,
+        "y": 0.21
+      },
+      {
+        "id": "machining-object-56",
+        "name": "Wall-side fire extinguisher",
+        "assetId": "fireProtection_extinguisher_portable_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5,
+        "x": -16,
+        "z": 1,
+        "y": 0
+      },
+      {
+        "id": "machining-object-57",
+        "name": "Waste collection",
+        "assetId": "furniture_trashBin_lid_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -15.1,
+        "z": 1,
+        "y": 0
+      },
+      {
+        "id": "machining-object-58",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": -5,
+        "z": -2,
+        "y": 3.9
+      },
+      {
+        "id": "machining-object-59",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 4,
+        "z": -2,
+        "y": 3.9
+      },
+      {
+        "id": "machining-object-60",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 11,
+        "z": 3,
+        "y": 3.9
+      }
+    ],
+    "nodeAssets": {
+      "prepare": {
+        "assetId": "furniture_workbench_standard_e01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": -90,
+        "scale": 1.6
+      },
+      "fast": {
+        "assetId": "serviceTool_brake_lathe_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.9
+      },
+      "slow": {
+        "assetId": "serviceTool_brake_lathe_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.7
+      },
+      "inspect": {
+        "assetId": "table_metal_stainless_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.7
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "id": "machining-original",
+      "name": "Original plan",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "machining-model",
+        "name": "Machining Cell",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "machining-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-prepare",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 36
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-prepare",
+            "samplingId": "machining-q-prepare",
+            "label": "Preparation queue",
+            "kind": "queue",
+            "next": "prepare",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "prepare",
+            "samplingId": "machining-prepare",
+            "label": "Preparation",
+            "kind": "service",
+            "next": "route",
+            "duration": {
+              "kind": "constant",
+              "value": 60
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "prep",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "route",
+            "samplingId": "machining-route",
+            "label": "Job routing",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "q-fast",
+                "probability": 0.6
+              },
+              {
+                "to": "q-slow",
+                "probability": 0.4
+              }
+            ]
+          },
+          {
+            "id": "q-fast",
+            "samplingId": "machining-q-fast",
+            "label": "Short-job queue",
+            "kind": "queue",
+            "next": "fast",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "fast",
+            "samplingId": "machining-fast",
+            "label": "Short machining",
+            "kind": "service",
+            "next": "q-inspect",
+            "duration": {
+              "kind": "triangular",
+              "min": 100,
+              "mode": 140,
+              "max": 180
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-slow",
+            "samplingId": "machining-q-slow",
+            "label": "Long-job queue",
+            "kind": "queue",
+            "next": "slow",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "slow",
+            "samplingId": "machining-slow",
+            "label": "Long machining",
+            "kind": "service",
+            "next": "q-inspect",
+            "duration": {
+              "kind": "triangular",
+              "min": 220,
+              "mode": 300,
+              "max": 380
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-inspect",
+            "samplingId": "machining-q-inspect",
+            "label": "Inspection queue",
+            "kind": "queue",
+            "next": "inspect",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "inspect",
+            "samplingId": "machining-inspect",
+            "label": "Final inspection",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "constant",
+              "value": 45
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "inspection",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "machining-exit",
+            "label": "Inspected parts",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "prep",
+            "label": "Preparation team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "operators",
+            "label": "Shared machine operators",
+            "installedCapacity": 6,
+            "capacity": 2,
+            "calendar": [],
+            "costPerHour": 30,
+            "overtimeCostPerHour": 45
+          },
+          {
+            "id": "inspection",
+            "label": "Inspection team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -14,
+          "z": 4
+        },
+        "q-prepare": {
+          "x": -11,
+          "z": 1
+        },
+        "prepare": {
+          "x": -11,
+          "z": -3
+        },
+        "route": {
+          "x": -8,
+          "z": -5
+        },
+        "q-fast": {
+          "x": -4,
+          "z": 2
+        },
+        "fast": {
+          "x": -4,
+          "z": -2
+        },
+        "q-slow": {
+          "x": 3,
+          "z": 2
+        },
+        "slow": {
+          "x": 3,
+          "z": -2
+        },
+        "q-inspect": {
+          "x": 8,
+          "z": 4
+        },
+        "inspect": {
+          "x": 11,
+          "z": 1
+        },
+        "exit": {
+          "x": 14,
+          "z": 5
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "machining-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -15.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -13.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -11,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -6.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -4.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -2.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 2.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 4.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 6.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 8.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 13.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 15.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-16",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "machining-object-17",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "machining-object-18",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-19",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-20",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-21",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": 0.1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-22",
+            "name": "Tooling rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -10,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-23",
+            "name": "Tooling rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -10,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-24",
+            "name": "Tooling rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -10,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-25",
+            "name": "Tooling rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -10,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-26",
+            "name": "Tooling rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-27",
+            "name": "Tooling rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-28",
+            "name": "Tooling rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-29",
+            "name": "Tooling rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-30",
+            "name": "Tooling rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-31",
+            "name": "Tooling rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-32",
+            "name": "Tooling rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-33",
+            "name": "Tooling rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-34",
+            "name": "Tooling rack 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-35",
+            "name": "Tooling rack 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-36",
+            "name": "Tooling rack 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-37",
+            "name": "Tooling rack 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-38",
+            "name": "Tooling rack 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-39",
+            "name": "Tooling rack 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-40",
+            "name": "Tooling rack 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-41",
+            "name": "Tooling rack 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-42",
+            "name": "Machine perimeter -5-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -6.2,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-43",
+            "name": "Machine perimeter -5-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -4.98,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-44",
+            "name": "Machine perimeter -5-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.76,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-45",
+            "name": "Machine perimeter 4-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 2.8,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-46",
+            "name": "Machine perimeter 4-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 4.02,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-47",
+            "name": "Machine perimeter 4-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.24,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-48",
+            "name": "Raw blanks",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -14,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "machining-object-49",
+            "name": "Raw blanks · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -14.22,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-50",
+            "name": "Raw blanks · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -13.78,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-51",
+            "name": "Raw blanks · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -14.22,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-52",
+            "name": "Inspected parts",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 12,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "machining-object-53",
+            "name": "Inspected parts · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 11.78,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-54",
+            "name": "Inspected parts · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 12.22,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-55",
+            "name": "Inspected parts · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 11.78,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-56",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -16,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-57",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -15.1,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-58",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -5,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "machining-object-59",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 4,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "machining-object-60",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 11,
+            "z": 3,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "prepare": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.6
+          },
+          "fast": {
+            "assetId": "serviceTool_brake_lathe_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.9
+          },
+          "slow": {
+            "assetId": "serviceTool_brake_lathe_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.7
+          },
+          "inspect": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.7
+          }
+        }
+      }
+    },
+    {
+      "id": "machining-trial-1",
+      "name": "Duplicate the slow station",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "machining-model",
+        "name": "Machining Cell",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "machining-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-prepare",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 36
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-prepare",
+            "samplingId": "machining-q-prepare",
+            "label": "Preparation queue",
+            "kind": "queue",
+            "next": "prepare",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "prepare",
+            "samplingId": "machining-prepare",
+            "label": "Preparation",
+            "kind": "service",
+            "next": "route",
+            "duration": {
+              "kind": "constant",
+              "value": 60
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "prep",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "route",
+            "samplingId": "machining-route",
+            "label": "Job routing",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "q-fast",
+                "probability": 0.6
+              },
+              {
+                "to": "q-slow",
+                "probability": 0.4
+              }
+            ]
+          },
+          {
+            "id": "q-fast",
+            "samplingId": "machining-q-fast",
+            "label": "Short-job queue",
+            "kind": "queue",
+            "next": "fast",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "fast",
+            "samplingId": "machining-fast",
+            "label": "Short machining",
+            "kind": "service",
+            "next": "q-inspect",
+            "duration": {
+              "kind": "triangular",
+              "min": 100,
+              "mode": 140,
+              "max": 180
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-slow",
+            "samplingId": "machining-q-slow",
+            "label": "Long-job queue",
+            "kind": "queue",
+            "next": "slow",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "slow",
+            "samplingId": "machining-slow",
+            "label": "Long machining",
+            "kind": "service",
+            "next": "q-inspect",
+            "duration": {
+              "kind": "triangular",
+              "min": 220,
+              "mode": 300,
+              "max": 380
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-inspect",
+            "samplingId": "machining-q-inspect",
+            "label": "Inspection queue",
+            "kind": "queue",
+            "next": "inspect",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "inspect",
+            "samplingId": "machining-inspect",
+            "label": "Final inspection",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "constant",
+              "value": 45
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "inspection",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "machining-exit",
+            "label": "Inspected parts",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "prep",
+            "label": "Preparation team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "operators",
+            "label": "Shared machine operators",
+            "installedCapacity": 6,
+            "capacity": 2,
+            "calendar": [],
+            "costPerHour": 30,
+            "overtimeCostPerHour": 45
+          },
+          {
+            "id": "inspection",
+            "label": "Inspection team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -14,
+          "z": 4
+        },
+        "q-prepare": {
+          "x": -11,
+          "z": 1
+        },
+        "prepare": {
+          "x": -11,
+          "z": -3
+        },
+        "route": {
+          "x": -8,
+          "z": -5
+        },
+        "q-fast": {
+          "x": -4,
+          "z": 2
+        },
+        "fast": {
+          "x": -4,
+          "z": -2
+        },
+        "q-slow": {
+          "x": 3,
+          "z": 2
+        },
+        "slow": {
+          "x": 3,
+          "z": -2
+        },
+        "q-inspect": {
+          "x": 8,
+          "z": 4
+        },
+        "inspect": {
+          "x": 11,
+          "z": 1
+        },
+        "exit": {
+          "x": 14,
+          "z": 5
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "machining-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -19,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-18",
+            "name": "Back wall 18",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 18.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-19",
+            "name": "Back wall 19",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 20.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-20",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "machining-object-21",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "machining-object-22",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-23",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-24",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-25",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": 0.1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-26",
+            "name": "Tooling rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-27",
+            "name": "Tooling rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-28",
+            "name": "Tooling rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-29",
+            "name": "Tooling rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-30",
+            "name": "Tooling rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-31",
+            "name": "Tooling rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-32",
+            "name": "Tooling rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-33",
+            "name": "Tooling rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-34",
+            "name": "Tooling rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1.543,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-35",
+            "name": "Tooling rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1.543,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-36",
+            "name": "Tooling rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1.543,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-37",
+            "name": "Tooling rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1.543,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-38",
+            "name": "Tooling rack 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.44,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-39",
+            "name": "Tooling rack 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.44,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-40",
+            "name": "Tooling rack 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.44,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-41",
+            "name": "Tooling rack 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.44,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-42",
+            "name": "Tooling rack 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-43",
+            "name": "Tooling rack 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-44",
+            "name": "Tooling rack 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-45",
+            "name": "Tooling rack 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-46",
+            "name": "Machine perimeter -5-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9.8,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-47",
+            "name": "Machine perimeter -5-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.58,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-48",
+            "name": "Machine perimeter -5-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.237,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-49",
+            "name": "Machine perimeter 4-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 2.697,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-50",
+            "name": "Machine perimeter 4-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 4.754,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-51",
+            "name": "Machine perimeter 4-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.853,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-52",
+            "name": "Raw blanks",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -17.6,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "machining-object-53",
+            "name": "Raw blanks · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -17.82,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-54",
+            "name": "Raw blanks · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -17.38,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-55",
+            "name": "Raw blanks · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -17.82,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-56",
+            "name": "Inspected parts",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 15.6,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "machining-object-57",
+            "name": "Inspected parts · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 15.38,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-58",
+            "name": "Inspected parts · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 15.82,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-59",
+            "name": "Inspected parts · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 15.38,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-60",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -19.6,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-61",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -18.7,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-62",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -8.6,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "machining-object-63",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 4.72,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "machining-object-64",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 14.6,
+            "z": 3,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "prepare": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.6
+          },
+          "fast": {
+            "assetId": "serviceTool_brake_lathe_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.9
+          },
+          "slow": {
+            "assetId": "serviceTool_brake_lathe_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.7
+          },
+          "inspect": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.7
+          }
+        }
+      }
+    },
+    {
+      "id": "machining-trial-2",
+      "name": "Staff the added station",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "machining-model",
+        "name": "Machining Cell",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "machining-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-prepare",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 36
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-prepare",
+            "samplingId": "machining-q-prepare",
+            "label": "Preparation queue",
+            "kind": "queue",
+            "next": "prepare",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "prepare",
+            "samplingId": "machining-prepare",
+            "label": "Preparation",
+            "kind": "service",
+            "next": "route",
+            "duration": {
+              "kind": "constant",
+              "value": 60
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "prep",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "route",
+            "samplingId": "machining-route",
+            "label": "Job routing",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "q-fast",
+                "probability": 0.6
+              },
+              {
+                "to": "q-slow",
+                "probability": 0.4
+              }
+            ]
+          },
+          {
+            "id": "q-fast",
+            "samplingId": "machining-q-fast",
+            "label": "Short-job queue",
+            "kind": "queue",
+            "next": "fast",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "fast",
+            "samplingId": "machining-fast",
+            "label": "Short machining",
+            "kind": "service",
+            "next": "q-inspect",
+            "duration": {
+              "kind": "triangular",
+              "min": 100,
+              "mode": 140,
+              "max": 180
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-slow",
+            "samplingId": "machining-q-slow",
+            "label": "Long-job queue",
+            "kind": "queue",
+            "next": "slow",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "slow",
+            "samplingId": "machining-slow",
+            "label": "Long machining",
+            "kind": "service",
+            "next": "q-inspect",
+            "duration": {
+              "kind": "triangular",
+              "min": 220,
+              "mode": 300,
+              "max": 380
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "operators",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-inspect",
+            "samplingId": "machining-q-inspect",
+            "label": "Inspection queue",
+            "kind": "queue",
+            "next": "inspect",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "inspect",
+            "samplingId": "machining-inspect",
+            "label": "Final inspection",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "constant",
+              "value": 45
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "inspection",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "machining-exit",
+            "label": "Inspected parts",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "prep",
+            "label": "Preparation team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "operators",
+            "label": "Shared machine operators",
+            "installedCapacity": 6,
+            "capacity": 3,
+            "calendar": [],
+            "costPerHour": 30,
+            "overtimeCostPerHour": 45
+          },
+          {
+            "id": "inspection",
+            "label": "Inspection team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 28,
+            "overtimeCostPerHour": 42
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -14,
+          "z": 4
+        },
+        "q-prepare": {
+          "x": -11,
+          "z": 1
+        },
+        "prepare": {
+          "x": -11,
+          "z": -3
+        },
+        "route": {
+          "x": -8,
+          "z": -5
+        },
+        "q-fast": {
+          "x": -4,
+          "z": 2
+        },
+        "fast": {
+          "x": -4,
+          "z": -2
+        },
+        "q-slow": {
+          "x": 3,
+          "z": 2
+        },
+        "slow": {
+          "x": 3,
+          "z": -2
+        },
+        "q-inspect": {
+          "x": 8,
+          "z": 4
+        },
+        "inspect": {
+          "x": 11,
+          "z": 1
+        },
+        "exit": {
+          "x": 14,
+          "z": 5
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "machining-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -19,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-18",
+            "name": "Back wall 18",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 18.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-19",
+            "name": "Back wall 19",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 20.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "machining-object-20",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "machining-object-21",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "machining-object-22",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-23",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-24",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-25",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": 0.1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-26",
+            "name": "Tooling rack 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-27",
+            "name": "Tooling rack 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-28",
+            "name": "Tooling rack 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-29",
+            "name": "Tooling rack 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-30",
+            "name": "Tooling rack 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-31",
+            "name": "Tooling rack 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-32",
+            "name": "Tooling rack 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-33",
+            "name": "Tooling rack 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-34",
+            "name": "Tooling rack 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1.543,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-35",
+            "name": "Tooling rack 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1.543,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-36",
+            "name": "Tooling rack 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1.543,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-37",
+            "name": "Tooling rack 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -1.543,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-38",
+            "name": "Tooling rack 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.44,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-39",
+            "name": "Tooling rack 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.44,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-40",
+            "name": "Tooling rack 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.44,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-41",
+            "name": "Tooling rack 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.44,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-42",
+            "name": "Tooling rack 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "machining-object-43",
+            "name": "Tooling rack 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "machining-object-44",
+            "name": "Tooling rack 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "machining-object-45",
+            "name": "Tooling rack 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "machining-object-46",
+            "name": "Machine perimeter -5-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -9.8,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-47",
+            "name": "Machine perimeter -5-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.58,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-48",
+            "name": "Machine perimeter -5-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.237,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-49",
+            "name": "Machine perimeter 4-0",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 2.697,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-50",
+            "name": "Machine perimeter 4-1",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 4.754,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-51",
+            "name": "Machine perimeter 4-2",
+            "assetId": "barrier_fence_metal_a02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 6.853,
+            "z": -6.3,
+            "y": 0
+          },
+          {
+            "id": "machining-object-52",
+            "name": "Raw blanks",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -17.6,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "machining-object-53",
+            "name": "Raw blanks · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -17.82,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-54",
+            "name": "Raw blanks · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -17.38,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-55",
+            "name": "Raw blanks · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -17.82,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-56",
+            "name": "Inspected parts",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 15.6,
+            "z": 7,
+            "y": 0
+          },
+          {
+            "id": "machining-object-57",
+            "name": "Inspected parts · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 15.38,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-58",
+            "name": "Inspected parts · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 15.82,
+            "z": 6.78,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-59",
+            "name": "Inspected parts · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 15.38,
+            "z": 7.22,
+            "y": 0.21
+          },
+          {
+            "id": "machining-object-60",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -19.6,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-61",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -18.7,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "machining-object-62",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -8.6,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "machining-object-63",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 4.72,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "machining-object-64",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 14.6,
+            "z": 3,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "prepare": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.6
+          },
+          "fast": {
+            "assetId": "serviceTool_brake_lathe_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.9
+          },
+          "slow": {
+            "assetId": "serviceTool_brake_lathe_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.7
+          },
+          "inspect": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.7
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,4092 @@
+{
+  "schemaVersion": 1,
+  "id": "starter-packing",
+  "name": "Packing Hall",
+  "world": "factory",
+  "revision": 0,
+  "description": "Standard and bulky parcels use separate benches.\n\nWhere should the next packing resource go?\n\nStarting assumptions\n• Two hours of demand, routed 75% to standard packing and 25% to bulky packing.\n• Both lanes share a packing crew before a common label-check step.\n• Routing probabilities represent a synthetic parcel mix; packing materials and inventory are unlimited.\n\nSynthetic teaching models. Timings, demand and staffing are illustrative; layout does not add travel time.",
+  "layout": {
+    "arrivals": {
+      "x": -13,
+      "z": 1
+    },
+    "route": {
+      "x": -9,
+      "z": 0
+    },
+    "q-standard": {
+      "x": -5,
+      "z": -4
+    },
+    "standard": {
+      "x": 0,
+      "z": -4
+    },
+    "q-bulky": {
+      "x": -5,
+      "z": 3
+    },
+    "bulky": {
+      "x": 0,
+      "z": 3
+    },
+    "q-check": {
+      "x": 6,
+      "z": 1
+    },
+    "check": {
+      "x": 10,
+      "z": 0
+    },
+    "exit": {
+      "x": 13,
+      "z": 4
+    }
+  },
+  "model": {
+    "id": "packing-model",
+    "name": "Packing Hall",
+    "horizon": 7200,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 600,
+    "currency": "USD",
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "packing-arrivals",
+        "label": "Incoming jobs",
+        "kind": "source",
+        "next": "route",
+        "arrival": {
+          "kind": "fixed",
+          "perHour": 100
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 1
+          }
+        ]
+      },
+      {
+        "id": "route",
+        "samplingId": "packing-route",
+        "label": "Parcel format",
+        "kind": "route",
+        "branches": [
+          {
+            "to": "q-standard",
+            "probability": 0.75
+          },
+          {
+            "to": "q-bulky",
+            "probability": 0.25
+          }
+        ]
+      },
+      {
+        "id": "q-standard",
+        "samplingId": "packing-q-standard",
+        "label": "Standard parcel queue",
+        "kind": "queue",
+        "next": "standard",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "standard",
+        "samplingId": "packing-standard",
+        "label": "Standard packing",
+        "kind": "service",
+        "next": "q-check",
+        "duration": {
+          "kind": "triangular",
+          "min": 35,
+          "mode": 45,
+          "max": 55
+        },
+        "servers": 2,
+        "resources": [
+          {
+            "poolId": "packers",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "q-bulky",
+        "samplingId": "packing-q-bulky",
+        "label": "Bulky parcel queue",
+        "kind": "queue",
+        "next": "bulky",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "bulky",
+        "samplingId": "packing-bulky",
+        "label": "Bulky packing",
+        "kind": "service",
+        "next": "q-check",
+        "duration": {
+          "kind": "triangular",
+          "min": 100,
+          "mode": 140,
+          "max": 180
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "packers",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "q-check",
+        "samplingId": "packing-q-check",
+        "label": "Label-check queue",
+        "kind": "queue",
+        "next": "check",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "check",
+        "samplingId": "packing-check",
+        "label": "Label and weight check",
+        "kind": "service",
+        "next": "exit",
+        "duration": {
+          "kind": "constant",
+          "value": 20
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "checkers",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "packing-exit",
+        "label": "Ready parcels",
+        "kind": "sink"
+      }
+    ],
+    "resources": [
+      {
+        "id": "packers",
+        "label": "Shared packing crew",
+        "installedCapacity": 6,
+        "capacity": 2,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      },
+      {
+        "id": "checkers",
+        "label": "Label check",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      }
+    ]
+  },
+  "facility": {
+    "version": 1,
+    "scenery": false,
+    "objects": [
+      {
+        "id": "packing-object-1",
+        "name": "Back wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -19,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-2",
+        "name": "Back wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -16.8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-3",
+        "name": "Back wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -14.6,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-4",
+        "name": "Back wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -12.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-5",
+        "name": "Back wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -10.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-6",
+        "name": "Back wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-7",
+        "name": "Back wall 7",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -5.8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-8",
+        "name": "Back wall 8",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -3.6,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-9",
+        "name": "Back wall 9",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -1.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-10",
+        "name": "Back wall 10",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 0.8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-11",
+        "name": "Back wall 11",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 3,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-12",
+        "name": "Back wall 12",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 5.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-13",
+        "name": "Back wall 13",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 7.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-14",
+        "name": "Back wall 14",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 9.6,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-15",
+        "name": "Back wall 15",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 11.8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-16",
+        "name": "Back wall 16",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 14,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-17",
+        "name": "Back wall 17",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 16.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-18",
+        "name": "Back wall 18",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 18.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-19",
+        "name": "Back wall 19",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 20.6,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "packing-object-20",
+        "name": "Side wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -20.1,
+        "z": -10.9,
+        "y": 0
+      },
+      {
+        "id": "packing-object-21",
+        "name": "Side wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -20.1,
+        "z": -8.7,
+        "y": 0
+      },
+      {
+        "id": "packing-object-22",
+        "name": "Side wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -20.1,
+        "z": -6.5,
+        "y": 0
+      },
+      {
+        "id": "packing-object-23",
+        "name": "Side wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -20.1,
+        "z": -4.3,
+        "y": 0
+      },
+      {
+        "id": "packing-object-24",
+        "name": "Side wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -20.1,
+        "z": -2.1,
+        "y": 0
+      },
+      {
+        "id": "packing-object-25",
+        "name": "Side wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -20.1,
+        "z": 0.1,
+        "y": 0
+      },
+      {
+        "id": "packing-object-26",
+        "name": "Packaging supplies 1",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -13.6,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "packing-object-27",
+        "name": "Packaging supplies 1 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -13.6,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "packing-object-28",
+        "name": "Packaging supplies 1 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -13.6,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "packing-object-29",
+        "name": "Packaging supplies 1 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -13.6,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "packing-object-30",
+        "name": "Packaging supplies 2",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.6,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "packing-object-31",
+        "name": "Packaging supplies 2 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.6,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "packing-object-32",
+        "name": "Packaging supplies 2 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.6,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "packing-object-33",
+        "name": "Packaging supplies 2 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8.6,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "packing-object-34",
+        "name": "Packaging supplies 3",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "packing-object-35",
+        "name": "Packaging supplies 3 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "packing-object-36",
+        "name": "Packaging supplies 3 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "packing-object-37",
+        "name": "Packaging supplies 3 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "packing-object-38",
+        "name": "Packaging supplies 4",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "packing-object-39",
+        "name": "Packaging supplies 4 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "packing-object-40",
+        "name": "Packaging supplies 4 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "packing-object-41",
+        "name": "Packaging supplies 4 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "packing-object-42",
+        "name": "Packaging supplies 5",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 13.6,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "packing-object-43",
+        "name": "Packaging supplies 5 · tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 13.6,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "packing-object-44",
+        "name": "Packaging supplies 5 · tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 13.6,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "packing-object-45",
+        "name": "Packaging supplies 5 · tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 13.6,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "packing-object-46",
+        "name": "Outbound parcel bay 1",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": -5.16,
+        "z": 8,
+        "y": 0
+      },
+      {
+        "id": "packing-object-47",
+        "name": "Outbound parcel bay 1 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -5.538,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-48",
+        "name": "Outbound parcel bay 1 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -4.782,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-49",
+        "name": "Outbound parcel bay 1 · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -5.538,
+        "z": 8.22,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-50",
+        "name": "Outbound parcel bay 1 · carton 4",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -4.782,
+        "z": 8.22,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-51",
+        "name": "Outbound parcel bay 2",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 0.32,
+        "z": 8,
+        "y": 0
+      },
+      {
+        "id": "packing-object-52",
+        "name": "Outbound parcel bay 2 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": -0.034,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-53",
+        "name": "Outbound parcel bay 2 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 0.672,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-54",
+        "name": "Outbound parcel bay 3",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5.44,
+        "z": 8,
+        "y": 0
+      },
+      {
+        "id": "packing-object-55",
+        "name": "Outbound parcel bay 3 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 5.088,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-56",
+        "name": "Outbound parcel bay 3 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 5.792,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-57",
+        "name": "Outbound parcel bay 3 · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 5.088,
+        "z": 8.22,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-58",
+        "name": "Outbound parcel bay 3 · carton 4",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 5.792,
+        "z": 8.22,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-59",
+        "name": "Outbound parcel bay 4",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 10.2,
+        "z": 8,
+        "y": 0
+      },
+      {
+        "id": "packing-object-60",
+        "name": "Outbound parcel bay 4 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 9.98,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-61",
+        "name": "Outbound parcel bay 4 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 10.42,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-62",
+        "name": "Outbound parcel bay 5",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 13.4,
+        "z": 8,
+        "y": 0
+      },
+      {
+        "id": "packing-object-63",
+        "name": "Outbound parcel bay 5 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 13.18,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-64",
+        "name": "Outbound parcel bay 5 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 13.62,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-65",
+        "name": "Outbound parcel bay 5 · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 13.18,
+        "z": 8.22,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-66",
+        "name": "Outbound parcel bay 5 · carton 4",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 13.62,
+        "z": 8.22,
+        "y": 0.21
+      },
+      {
+        "id": "packing-object-67",
+        "name": "Label scanner",
+        "assetId": "computer_scanner_barcode_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 13.6,
+        "z": 0,
+        "y": 1.275
+      },
+      {
+        "id": "packing-object-68",
+        "name": "Wall-side fire extinguisher",
+        "assetId": "fireProtection_extinguisher_portable_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5,
+        "x": -19.6,
+        "z": 2,
+        "y": 0
+      },
+      {
+        "id": "packing-object-69",
+        "name": "Waste collection",
+        "assetId": "furniture_trashBin_lid_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -18.7,
+        "z": 2,
+        "y": 0
+      },
+      {
+        "id": "packing-object-70",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 0,
+        "z": -4,
+        "y": 3.9
+      },
+      {
+        "id": "packing-object-71",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 0,
+        "z": 3,
+        "y": 3.9
+      },
+      {
+        "id": "packing-object-72",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 13.6,
+        "z": 0,
+        "y": 3.9
+      }
+    ],
+    "nodeAssets": {
+      "standard": {
+        "assetId": "table_deluxe_packing_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5
+      },
+      "bulky": {
+        "assetId": "table_deluxe_packing_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.7
+      },
+      "check": {
+        "assetId": "table_metal_stainless_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.5
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "id": "packing-original",
+      "name": "Original plan",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "packing-model",
+        "name": "Packing Hall",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "packing-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "route",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 100
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "route",
+            "samplingId": "packing-route",
+            "label": "Parcel format",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "q-standard",
+                "probability": 0.75
+              },
+              {
+                "to": "q-bulky",
+                "probability": 0.25
+              }
+            ]
+          },
+          {
+            "id": "q-standard",
+            "samplingId": "packing-q-standard",
+            "label": "Standard parcel queue",
+            "kind": "queue",
+            "next": "standard",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "standard",
+            "samplingId": "packing-standard",
+            "label": "Standard packing",
+            "kind": "service",
+            "next": "q-check",
+            "duration": {
+              "kind": "triangular",
+              "min": 35,
+              "mode": 45,
+              "max": 55
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "packers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-bulky",
+            "samplingId": "packing-q-bulky",
+            "label": "Bulky parcel queue",
+            "kind": "queue",
+            "next": "bulky",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "bulky",
+            "samplingId": "packing-bulky",
+            "label": "Bulky packing",
+            "kind": "service",
+            "next": "q-check",
+            "duration": {
+              "kind": "triangular",
+              "min": 100,
+              "mode": 140,
+              "max": 180
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "packers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-check",
+            "samplingId": "packing-q-check",
+            "label": "Label-check queue",
+            "kind": "queue",
+            "next": "check",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "check",
+            "samplingId": "packing-check",
+            "label": "Label and weight check",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "constant",
+              "value": 20
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "checkers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "packing-exit",
+            "label": "Ready parcels",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "packers",
+            "label": "Shared packing crew",
+            "installedCapacity": 6,
+            "capacity": 2,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "checkers",
+            "label": "Label check",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -13,
+          "z": 1
+        },
+        "route": {
+          "x": -9,
+          "z": 0
+        },
+        "q-standard": {
+          "x": -5,
+          "z": -4
+        },
+        "standard": {
+          "x": 0,
+          "z": -4
+        },
+        "q-bulky": {
+          "x": -5,
+          "z": 3
+        },
+        "bulky": {
+          "x": 0,
+          "z": 3
+        },
+        "q-check": {
+          "x": 6,
+          "z": 1
+        },
+        "check": {
+          "x": 10,
+          "z": 0
+        },
+        "exit": {
+          "x": 13,
+          "z": 4
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "packing-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -19,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-18",
+            "name": "Back wall 18",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 18.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-19",
+            "name": "Back wall 19",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 20.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-20",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "packing-object-21",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "packing-object-22",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-23",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "packing-object-24",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "packing-object-25",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": 0.1,
+            "y": 0
+          },
+          {
+            "id": "packing-object-26",
+            "name": "Packaging supplies 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-27",
+            "name": "Packaging supplies 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-28",
+            "name": "Packaging supplies 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-29",
+            "name": "Packaging supplies 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-30",
+            "name": "Packaging supplies 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-31",
+            "name": "Packaging supplies 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-32",
+            "name": "Packaging supplies 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-33",
+            "name": "Packaging supplies 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-34",
+            "name": "Packaging supplies 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-35",
+            "name": "Packaging supplies 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-36",
+            "name": "Packaging supplies 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-37",
+            "name": "Packaging supplies 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-38",
+            "name": "Packaging supplies 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-39",
+            "name": "Packaging supplies 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-40",
+            "name": "Packaging supplies 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-41",
+            "name": "Packaging supplies 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-42",
+            "name": "Packaging supplies 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-43",
+            "name": "Packaging supplies 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-44",
+            "name": "Packaging supplies 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-45",
+            "name": "Packaging supplies 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-46",
+            "name": "Outbound parcel bay 1",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5.16,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-47",
+            "name": "Outbound parcel bay 1 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -5.538,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-48",
+            "name": "Outbound parcel bay 1 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -4.782,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-49",
+            "name": "Outbound parcel bay 1 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -5.538,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-50",
+            "name": "Outbound parcel bay 1 · carton 4",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -4.782,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-51",
+            "name": "Outbound parcel bay 2",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0.32,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-52",
+            "name": "Outbound parcel bay 2 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -0.034,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-53",
+            "name": "Outbound parcel bay 2 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 0.672,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-54",
+            "name": "Outbound parcel bay 3",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.44,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-55",
+            "name": "Outbound parcel bay 3 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.088,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-56",
+            "name": "Outbound parcel bay 3 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.792,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-57",
+            "name": "Outbound parcel bay 3 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.088,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-58",
+            "name": "Outbound parcel bay 3 · carton 4",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.792,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-59",
+            "name": "Outbound parcel bay 4",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.2,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-60",
+            "name": "Outbound parcel bay 4 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 9.98,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-61",
+            "name": "Outbound parcel bay 4 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 10.42,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-62",
+            "name": "Outbound parcel bay 5",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.4,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-63",
+            "name": "Outbound parcel bay 5 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.18,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-64",
+            "name": "Outbound parcel bay 5 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.62,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-65",
+            "name": "Outbound parcel bay 5 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.18,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-66",
+            "name": "Outbound parcel bay 5 · carton 4",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.62,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-67",
+            "name": "Label scanner",
+            "assetId": "computer_scanner_barcode_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": 0,
+            "y": 1.275
+          },
+          {
+            "id": "packing-object-68",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -19.6,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "packing-object-69",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -18.7,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "packing-object-70",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": -4,
+            "y": 3.9
+          },
+          {
+            "id": "packing-object-71",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": 3,
+            "y": 3.9
+          },
+          {
+            "id": "packing-object-72",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 13.6,
+            "z": 0,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "standard": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5
+          },
+          "bulky": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.7
+          },
+          "check": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.5
+          }
+        }
+      }
+    },
+    {
+      "id": "packing-trial-1",
+      "name": "Extra bulky bench",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "packing-model",
+        "name": "Packing Hall",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "packing-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "route",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 100
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "route",
+            "samplingId": "packing-route",
+            "label": "Parcel format",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "q-standard",
+                "probability": 0.75
+              },
+              {
+                "to": "q-bulky",
+                "probability": 0.25
+              }
+            ]
+          },
+          {
+            "id": "q-standard",
+            "samplingId": "packing-q-standard",
+            "label": "Standard parcel queue",
+            "kind": "queue",
+            "next": "standard",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "standard",
+            "samplingId": "packing-standard",
+            "label": "Standard packing",
+            "kind": "service",
+            "next": "q-check",
+            "duration": {
+              "kind": "triangular",
+              "min": 35,
+              "mode": 45,
+              "max": 55
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "packers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-bulky",
+            "samplingId": "packing-q-bulky",
+            "label": "Bulky parcel queue",
+            "kind": "queue",
+            "next": "bulky",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "bulky",
+            "samplingId": "packing-bulky",
+            "label": "Bulky packing",
+            "kind": "service",
+            "next": "q-check",
+            "duration": {
+              "kind": "triangular",
+              "min": 100,
+              "mode": 140,
+              "max": 180
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "packers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-check",
+            "samplingId": "packing-q-check",
+            "label": "Label-check queue",
+            "kind": "queue",
+            "next": "check",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "check",
+            "samplingId": "packing-check",
+            "label": "Label and weight check",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "constant",
+              "value": 20
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "checkers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "packing-exit",
+            "label": "Ready parcels",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "packers",
+            "label": "Shared packing crew",
+            "installedCapacity": 6,
+            "capacity": 2,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "checkers",
+            "label": "Label check",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -13,
+          "z": 1
+        },
+        "route": {
+          "x": -9,
+          "z": 0
+        },
+        "q-standard": {
+          "x": -5,
+          "z": -4
+        },
+        "standard": {
+          "x": 0,
+          "z": -4
+        },
+        "q-bulky": {
+          "x": -5,
+          "z": 3
+        },
+        "bulky": {
+          "x": 0,
+          "z": 3
+        },
+        "q-check": {
+          "x": 6,
+          "z": 1
+        },
+        "check": {
+          "x": 10,
+          "z": 0
+        },
+        "exit": {
+          "x": 13,
+          "z": 4
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "packing-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -19,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-18",
+            "name": "Back wall 18",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 18.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-19",
+            "name": "Back wall 19",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 20.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-20",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "packing-object-21",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "packing-object-22",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-23",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "packing-object-24",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "packing-object-25",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": 0.1,
+            "y": 0
+          },
+          {
+            "id": "packing-object-26",
+            "name": "Packaging supplies 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-27",
+            "name": "Packaging supplies 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-28",
+            "name": "Packaging supplies 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-29",
+            "name": "Packaging supplies 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-30",
+            "name": "Packaging supplies 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-31",
+            "name": "Packaging supplies 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-32",
+            "name": "Packaging supplies 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-33",
+            "name": "Packaging supplies 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-34",
+            "name": "Packaging supplies 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-35",
+            "name": "Packaging supplies 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-36",
+            "name": "Packaging supplies 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-37",
+            "name": "Packaging supplies 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-38",
+            "name": "Packaging supplies 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-39",
+            "name": "Packaging supplies 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-40",
+            "name": "Packaging supplies 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-41",
+            "name": "Packaging supplies 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-42",
+            "name": "Packaging supplies 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-43",
+            "name": "Packaging supplies 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-44",
+            "name": "Packaging supplies 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-45",
+            "name": "Packaging supplies 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-46",
+            "name": "Outbound parcel bay 1",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5.16,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-47",
+            "name": "Outbound parcel bay 1 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -5.538,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-48",
+            "name": "Outbound parcel bay 1 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -4.782,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-49",
+            "name": "Outbound parcel bay 1 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -5.538,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-50",
+            "name": "Outbound parcel bay 1 · carton 4",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -4.782,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-51",
+            "name": "Outbound parcel bay 2",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0.32,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-52",
+            "name": "Outbound parcel bay 2 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -0.034,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-53",
+            "name": "Outbound parcel bay 2 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 0.672,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-54",
+            "name": "Outbound parcel bay 3",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.44,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-55",
+            "name": "Outbound parcel bay 3 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.088,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-56",
+            "name": "Outbound parcel bay 3 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.792,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-57",
+            "name": "Outbound parcel bay 3 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.088,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-58",
+            "name": "Outbound parcel bay 3 · carton 4",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.792,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-59",
+            "name": "Outbound parcel bay 4",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.2,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-60",
+            "name": "Outbound parcel bay 4 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 9.98,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-61",
+            "name": "Outbound parcel bay 4 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 10.42,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-62",
+            "name": "Outbound parcel bay 5",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.4,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-63",
+            "name": "Outbound parcel bay 5 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.18,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-64",
+            "name": "Outbound parcel bay 5 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.62,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-65",
+            "name": "Outbound parcel bay 5 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.18,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-66",
+            "name": "Outbound parcel bay 5 · carton 4",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.62,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-67",
+            "name": "Label scanner",
+            "assetId": "computer_scanner_barcode_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": 0,
+            "y": 1.275
+          },
+          {
+            "id": "packing-object-68",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -19.6,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "packing-object-69",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -18.7,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "packing-object-70",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": -4,
+            "y": 3.9
+          },
+          {
+            "id": "packing-object-71",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": 3,
+            "y": 3.9
+          },
+          {
+            "id": "packing-object-72",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 13.6,
+            "z": 0,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "standard": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5
+          },
+          "bulky": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.7
+          },
+          "check": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.5
+          }
+        }
+      }
+    },
+    {
+      "id": "packing-trial-2",
+      "name": "Larger packing crew",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "packing-model",
+        "name": "Packing Hall",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "packing-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "route",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 100
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "route",
+            "samplingId": "packing-route",
+            "label": "Parcel format",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "q-standard",
+                "probability": 0.75
+              },
+              {
+                "to": "q-bulky",
+                "probability": 0.25
+              }
+            ]
+          },
+          {
+            "id": "q-standard",
+            "samplingId": "packing-q-standard",
+            "label": "Standard parcel queue",
+            "kind": "queue",
+            "next": "standard",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "standard",
+            "samplingId": "packing-standard",
+            "label": "Standard packing",
+            "kind": "service",
+            "next": "q-check",
+            "duration": {
+              "kind": "triangular",
+              "min": 35,
+              "mode": 45,
+              "max": 55
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "packers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-bulky",
+            "samplingId": "packing-q-bulky",
+            "label": "Bulky parcel queue",
+            "kind": "queue",
+            "next": "bulky",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "bulky",
+            "samplingId": "packing-bulky",
+            "label": "Bulky packing",
+            "kind": "service",
+            "next": "q-check",
+            "duration": {
+              "kind": "triangular",
+              "min": 100,
+              "mode": 140,
+              "max": 180
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "packers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "q-check",
+            "samplingId": "packing-q-check",
+            "label": "Label-check queue",
+            "kind": "queue",
+            "next": "check",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "check",
+            "samplingId": "packing-check",
+            "label": "Label and weight check",
+            "kind": "service",
+            "next": "exit",
+            "duration": {
+              "kind": "constant",
+              "value": 20
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "checkers",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "packing-exit",
+            "label": "Ready parcels",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "packers",
+            "label": "Shared packing crew",
+            "installedCapacity": 6,
+            "capacity": 3,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "checkers",
+            "label": "Label check",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -13,
+          "z": 1
+        },
+        "route": {
+          "x": -9,
+          "z": 0
+        },
+        "q-standard": {
+          "x": -5,
+          "z": -4
+        },
+        "standard": {
+          "x": 0,
+          "z": -4
+        },
+        "q-bulky": {
+          "x": -5,
+          "z": 3
+        },
+        "bulky": {
+          "x": 0,
+          "z": 3
+        },
+        "q-check": {
+          "x": 6,
+          "z": 1
+        },
+        "check": {
+          "x": 10,
+          "z": 0
+        },
+        "exit": {
+          "x": 13,
+          "z": 4
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "packing-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -19,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-18",
+            "name": "Back wall 18",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 18.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-19",
+            "name": "Back wall 19",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 20.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "packing-object-20",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "packing-object-21",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "packing-object-22",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-23",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "packing-object-24",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "packing-object-25",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": 0.1,
+            "y": 0
+          },
+          {
+            "id": "packing-object-26",
+            "name": "Packaging supplies 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-27",
+            "name": "Packaging supplies 1 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-28",
+            "name": "Packaging supplies 1 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-29",
+            "name": "Packaging supplies 1 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -13.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-30",
+            "name": "Packaging supplies 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-31",
+            "name": "Packaging supplies 2 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-32",
+            "name": "Packaging supplies 2 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-33",
+            "name": "Packaging supplies 2 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-34",
+            "name": "Packaging supplies 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-35",
+            "name": "Packaging supplies 3 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-36",
+            "name": "Packaging supplies 3 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-37",
+            "name": "Packaging supplies 3 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-38",
+            "name": "Packaging supplies 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-39",
+            "name": "Packaging supplies 4 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-40",
+            "name": "Packaging supplies 4 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-41",
+            "name": "Packaging supplies 4 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-42",
+            "name": "Packaging supplies 5",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "packing-object-43",
+            "name": "Packaging supplies 5 · tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "packing-object-44",
+            "name": "Packaging supplies 5 · tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "packing-object-45",
+            "name": "Packaging supplies 5 · tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "packing-object-46",
+            "name": "Outbound parcel bay 1",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -5.16,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-47",
+            "name": "Outbound parcel bay 1 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -5.538,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-48",
+            "name": "Outbound parcel bay 1 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -4.782,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-49",
+            "name": "Outbound parcel bay 1 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -5.538,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-50",
+            "name": "Outbound parcel bay 1 · carton 4",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -4.782,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-51",
+            "name": "Outbound parcel bay 2",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 0.32,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-52",
+            "name": "Outbound parcel bay 2 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -0.034,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-53",
+            "name": "Outbound parcel bay 2 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 0.672,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-54",
+            "name": "Outbound parcel bay 3",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.44,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-55",
+            "name": "Outbound parcel bay 3 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.088,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-56",
+            "name": "Outbound parcel bay 3 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.792,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-57",
+            "name": "Outbound parcel bay 3 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.088,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-58",
+            "name": "Outbound parcel bay 3 · carton 4",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.792,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-59",
+            "name": "Outbound parcel bay 4",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 10.2,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-60",
+            "name": "Outbound parcel bay 4 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 9.98,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-61",
+            "name": "Outbound parcel bay 4 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 10.42,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-62",
+            "name": "Outbound parcel bay 5",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.4,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "packing-object-63",
+            "name": "Outbound parcel bay 5 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.18,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-64",
+            "name": "Outbound parcel bay 5 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.62,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-65",
+            "name": "Outbound parcel bay 5 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.18,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-66",
+            "name": "Outbound parcel bay 5 · carton 4",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.62,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "packing-object-67",
+            "name": "Label scanner",
+            "assetId": "computer_scanner_barcode_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.6,
+            "z": 0,
+            "y": 1.275
+          },
+          {
+            "id": "packing-object-68",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -19.6,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "packing-object-69",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -18.7,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "packing-object-70",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": -4,
+            "y": 3.9
+          },
+          {
+            "id": "packing-object-71",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": 3,
+            "y": 3.9
+          },
+          {
+            "id": "packing-object-72",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 13.6,
+            "z": 0,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "standard": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5
+          },
+          "bulky": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.7
+          },
+          "check": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.5
+          }
+        }
+      }
+    }
+  ]
+}

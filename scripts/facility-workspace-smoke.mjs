@@ -11,7 +11,7 @@ let installed = true; try { await fs.access(chromium.executablePath()); } catch 
 const browser = await chromium.launch({ headless: true, ...(installed ? { executablePath: chromium.executablePath() } : { channel: 'chrome' }) });
 const checks = [], errors = [];
 const state = p => p.evaluate(() => JSON.parse(window.render_game_to_text()));
-const ready = p => p.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !s.running && s.result?.status === 'completed' && !s.result.stale; });
+const ready = p => p.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !document.querySelector('.studio-world-picker select')?.disabled && !s.running && s.result?.status === 'completed' && !s.result.stale; });
 async function artwork(p) { await p.waitForFunction(() => { const e = document.querySelector('.world-scene'), s = JSON.parse(e?.getAttribute('data-facility') || '{}'); return e?.getAttribute('data-status') === 'ready' && s.pending === 0 && s.failed === 0; }); }
 async function fresh(width) { const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce', acceptDownloads: true }); const page = await context.newPage(); page.on('pageerror', e => errors.push(String(e))); await page.goto(origin.href); await ready(page); await artwork(page); const pause = page.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click(); return { context, page }; }
 async function download(p, name) { const next = p.waitForEvent('download'); await p.locator('.studio-save').click(); const file = await next, target = path.join(out, name); await file.saveAs(target); return JSON.parse(await fs.readFile(target, 'utf8')); }
@@ -34,9 +34,9 @@ try {
   assert(await tray.isVisible(), 'The desktop library stays available for repeated building.');
   await page.screenshot({ path: path.join(out, '02-placed.png') }); checks.push('Fresh workshop, persistent dock, visible placement/limits, metadata-only browse and equipment drag defaults to visual placement');
   await page.locator('.facility-object-browser summary').click();
-  await page.getByRole('searchbox', { name: 'Find a placed object', exact: true }).fill('Workshop back wall 1');
-  await page.locator('.facility-object-list').getByRole('button', { name: 'Workshop back wall 1', exact: true }).press('Enter');
-  await page.waitForFunction(() => document.activeElement?.matches('[data-facility-heading]') && document.activeElement.textContent === 'Workshop back wall 1');
+  await page.getByRole('searchbox', { name: 'Find a placed object', exact: true }).fill('Back wall 1');
+  await page.locator('.facility-object-list').getByRole('button', { name: 'Back wall 1', exact: true }).press('Enter');
+  await page.waitForFunction(() => document.activeElement?.matches('[data-facility-heading]') && document.activeElement.textContent === 'Back wall 1');
   checks.push('Keyboard selection in the bounded placed-object browser keeps focus on the selected object heading');
   await tray.getByLabel('Use as', { exact: true }).selectOption('process'); await tray.getByLabel('Processing time (seconds)', { exact: true }).fill('75'); await tray.getByLabel('Team for this cell', { exact: true }).selectOption('none');
   await tray.getByRole('button', { name: 'Add processing step', exact: true }).click();

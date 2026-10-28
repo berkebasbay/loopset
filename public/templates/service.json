@@ -1,0 +1,2572 @@
+{
+  "schemaVersion": 1,
+  "id": "starter-service",
+  "name": "Service Studio",
+  "world": "service",
+  "model": {
+    "id": "service-model",
+    "name": "Service Studio",
+    "horizon": 3600,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 180,
+    "currency": "USD",
+    "resources": [
+      {
+        "id": "team-a",
+        "label": "Reception team",
+        "capacity": 1,
+        "installedCapacity": 12,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      },
+      {
+        "id": "specialists",
+        "label": "Shared specialists",
+        "capacity": 2,
+        "installedCapacity": 12,
+        "calendar": [
+          {
+            "start": 1800,
+            "end": 2100,
+            "capacity": 1
+          }
+        ],
+        "costPerHour": 32,
+        "overtimeCostPerHour": 48
+      }
+    ],
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "service-arrivals",
+        "label": "New requests",
+        "kind": "source",
+        "next": "queue-a",
+        "arrival": {
+          "kind": "poisson",
+          "segments": [
+            {
+              "start": 0,
+              "end": 900,
+              "perHour": 80
+            },
+            {
+              "start": 900,
+              "end": 2400,
+              "perHour": 125
+            },
+            {
+              "start": 2400,
+              "end": 3600,
+              "perHour": 85
+            }
+          ]
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 0.85
+          },
+          {
+            "id": "priority",
+            "label": "Priority",
+            "priority": -1,
+            "probability": 0.15
+          }
+        ]
+      },
+      {
+        "id": "queue-a",
+        "samplingId": "service-queue-a",
+        "label": "Before reception",
+        "kind": "queue",
+        "next": "station-a",
+        "capacity": null,
+        "discipline": "priority",
+        "patience": null
+      },
+      {
+        "id": "station-a",
+        "samplingId": "service-station-a",
+        "label": "Reception",
+        "kind": "service",
+        "next": "queue-b",
+        "servers": 1,
+        "duration": {
+          "kind": "triangular",
+          "min": 18,
+          "mode": 22,
+          "max": 40
+        },
+        "resources": [
+          {
+            "poolId": "team-a",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-b",
+        "samplingId": "service-queue-b",
+        "label": "Before specialists",
+        "kind": "queue",
+        "next": "station-b",
+        "capacity": null,
+        "discipline": "priority",
+        "patience": null
+      },
+      {
+        "id": "station-b",
+        "samplingId": "service-station-b",
+        "label": "Specialists",
+        "kind": "service",
+        "next": "queue-c",
+        "servers": 2,
+        "duration": {
+          "kind": "triangular",
+          "min": 12,
+          "mode": 18,
+          "max": 28
+        },
+        "resources": [
+          {
+            "poolId": "specialists",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "queue-c",
+        "samplingId": "service-queue-c",
+        "label": "Before resolution",
+        "kind": "queue",
+        "next": "station-c",
+        "capacity": null,
+        "discipline": "priority",
+        "patience": {
+          "kind": "constant",
+          "value": 900
+        }
+      },
+      {
+        "id": "station-c",
+        "samplingId": "service-station-c",
+        "label": "Resolution",
+        "kind": "service",
+        "next": "exit",
+        "servers": 2,
+        "duration": {
+          "kind": "triangular",
+          "min": 50,
+          "mode": 75,
+          "max": 100
+        },
+        "resources": [
+          {
+            "poolId": "specialists",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "samplingId": "service-exit",
+        "label": "Resolved",
+        "kind": "sink"
+      }
+    ]
+  },
+  "revision": 0,
+  "description": "Priority requests share a specialist team.\n\nWhat changes when you cover the break or serve requests in arrival order?\n\nStarting assumptions\n• One hour of requests; 15% have higher queue priority.\n• Two specialist stages share two staff; one is unavailable during a five-minute break.\n• Queue priority does not interrupt work already in service.\n\nSynthetic teaching models. Timings, demand and staffing are illustrative; layout does not add travel time.",
+  "layout": {
+    "arrivals": {
+      "x": -11,
+      "z": 4
+    },
+    "queue-a": {
+      "x": -7,
+      "z": 2
+    },
+    "station-a": {
+      "x": -7,
+      "z": -2
+    },
+    "queue-b": {
+      "x": -3,
+      "z": 0
+    },
+    "station-b": {
+      "x": 0,
+      "z": -2
+    },
+    "queue-c": {
+      "x": -3,
+      "z": 5
+    },
+    "station-c": {
+      "x": 0,
+      "z": 5
+    },
+    "exit": {
+      "x": 6,
+      "z": 7
+    }
+  },
+  "facility": {
+    "version": 1,
+    "scenery": false,
+    "objects": [
+      {
+        "id": "service-object-1",
+        "name": "Back wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -14.6,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-2",
+        "name": "Back wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -12.4,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-3",
+        "name": "Back wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -10.2,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-4",
+        "name": "Back wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -8,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-5",
+        "name": "Back wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -5.8,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-6",
+        "name": "Back wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -3.6,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-7",
+        "name": "Back wall 7",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -1.4,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-8",
+        "name": "Back wall 8",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 0.8,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-9",
+        "name": "Back wall 9",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 3,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-10",
+        "name": "Back wall 10",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 5.2,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-11",
+        "name": "Back wall 11",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 7.4,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-12",
+        "name": "Back wall 12",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 9.6,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-13",
+        "name": "Back wall 13",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 11.8,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-14",
+        "name": "Back wall 14",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 14,
+        "z": -8,
+        "y": 0
+      },
+      {
+        "id": "service-object-15",
+        "name": "Side wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -15.7,
+        "z": -6.9,
+        "y": 0
+      },
+      {
+        "id": "service-object-16",
+        "name": "Side wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -15.7,
+        "z": -4.7,
+        "y": 0
+      },
+      {
+        "id": "service-object-17",
+        "name": "Side wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -15.7,
+        "z": -2.5,
+        "y": 0
+      },
+      {
+        "id": "service-object-18",
+        "name": "Side wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -15.7,
+        "z": -0.3,
+        "y": 0
+      },
+      {
+        "id": "service-object-19",
+        "name": "Side wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -15.7,
+        "z": 1.9,
+        "y": 0
+      },
+      {
+        "id": "service-object-20",
+        "name": "Side wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -15.7,
+        "z": 4.1,
+        "y": 0
+      },
+      {
+        "id": "service-object-21",
+        "name": "Side wall 7",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -15.7,
+        "z": 6.3,
+        "y": 0
+      },
+      {
+        "id": "service-object-22",
+        "name": "Reception sofa 1",
+        "assetId": "sofa_soft_b02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.4,
+        "x": -12.6,
+        "z": 6,
+        "y": 0
+      },
+      {
+        "id": "service-object-23",
+        "name": "Reception sofa 2",
+        "assetId": "sofa_soft_b02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.4,
+        "x": -9.6,
+        "z": 6,
+        "y": 0
+      },
+      {
+        "id": "service-object-24",
+        "name": "Reception coffee table",
+        "assetId": "furniture_table_coffee_low_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.3,
+        "x": -11.1,
+        "z": 4.6,
+        "y": 0
+      },
+      {
+        "id": "service-object-25",
+        "name": "Reception information table",
+        "assetId": "table_metal_stainless_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.1,
+        "x": -12.6,
+        "z": -5,
+        "y": 0
+      },
+      {
+        "id": "service-object-26",
+        "name": "Reception information screen",
+        "assetId": "computer_monitor_office_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 1.2,
+        "x": -12.6,
+        "z": -5,
+        "y": 0.94
+      },
+      {
+        "id": "service-object-27",
+        "name": "Staff coffee corner",
+        "assetId": "machine_coffee_vending_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 11.1,
+        "z": -5.6,
+        "y": 0
+      },
+      {
+        "id": "service-object-28",
+        "name": "Staff storage",
+        "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.15,
+        "x": 8.96,
+        "z": -5.8,
+        "y": 0
+      },
+      {
+        "id": "service-object-29",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": -10.6,
+        "z": -2,
+        "y": 3.9
+      },
+      {
+        "id": "service-object-30",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 0,
+        "z": -2,
+        "y": 3.9
+      },
+      {
+        "id": "service-object-31",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 0,
+        "z": 5,
+        "y": 3.9
+      },
+      {
+        "id": "service-object-32",
+        "name": "Case preparation desk",
+        "assetId": "desk_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 1.3,
+        "x": -4.4,
+        "z": -5.8,
+        "y": 0
+      },
+      {
+        "id": "service-object-33",
+        "name": "Case preparation screen",
+        "assetId": "computer_monitor_office_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 1.2,
+        "x": -4.4,
+        "z": -5.8,
+        "y": 0.99
+      },
+      {
+        "id": "service-object-34",
+        "name": "Wall-side fire extinguisher",
+        "assetId": "fireProtection_extinguisher_portable_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5,
+        "x": -15.6,
+        "z": 1,
+        "y": 0
+      },
+      {
+        "id": "service-object-35",
+        "name": "Waste collection",
+        "assetId": "furniture_trashBin_lid_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -14.7,
+        "z": 1,
+        "y": 0
+      },
+      {
+        "id": "service-object-36",
+        "name": "Quiet consultation table",
+        "assetId": "furniture_table_coffee_low_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.5,
+        "x": 11.6,
+        "z": 3,
+        "y": 0
+      },
+      {
+        "id": "service-object-37",
+        "name": "Consultation seating",
+        "assetId": "sofa_soft_b02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": -90,
+        "scale": 1.4,
+        "x": 11.6,
+        "z": 1.5,
+        "y": 0
+      },
+      {
+        "id": "service-object-38",
+        "name": "Consultation seating",
+        "assetId": "sofa_soft_b02",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.4,
+        "x": 11.6,
+        "z": 4.5,
+        "y": 0
+      }
+    ],
+    "nodeAssets": {}
+  },
+  "scenarios": [
+    {
+      "id": "service-original",
+      "name": "Original plan",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "service",
+      "model": {
+        "id": "service-model",
+        "name": "Service Studio",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 180,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Reception team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "specialists",
+            "label": "Shared specialists",
+            "capacity": 2,
+            "installedCapacity": 12,
+            "calendar": [
+              {
+                "start": 1800,
+                "end": 2100,
+                "capacity": 1
+              }
+            ],
+            "costPerHour": 32,
+            "overtimeCostPerHour": 48
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "service-arrivals",
+            "label": "New requests",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 80
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 125
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 85
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 0.85
+              },
+              {
+                "id": "priority",
+                "label": "Priority",
+                "priority": -1,
+                "probability": 0.15
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "service-queue-a",
+            "label": "Before reception",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "priority",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "service-station-a",
+            "label": "Reception",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 22,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "service-queue-b",
+            "label": "Before specialists",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "priority",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "service-station-b",
+            "label": "Specialists",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "specialists",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "service-queue-c",
+            "label": "Before resolution",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "priority",
+            "patience": {
+              "kind": "constant",
+              "value": 900
+            }
+          },
+          {
+            "id": "station-c",
+            "samplingId": "service-station-c",
+            "label": "Resolution",
+            "kind": "service",
+            "next": "exit",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 50,
+              "mode": 75,
+              "max": 100
+            },
+            "resources": [
+              {
+                "poolId": "specialists",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "service-exit",
+            "label": "Resolved",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -11,
+          "z": 4
+        },
+        "queue-a": {
+          "x": -7,
+          "z": 2
+        },
+        "station-a": {
+          "x": -7,
+          "z": -2
+        },
+        "queue-b": {
+          "x": -3,
+          "z": 0
+        },
+        "station-b": {
+          "x": 0,
+          "z": -2
+        },
+        "queue-c": {
+          "x": -3,
+          "z": 5
+        },
+        "station-c": {
+          "x": 0,
+          "z": 5
+        },
+        "exit": {
+          "x": 6,
+          "z": 7
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "service-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-15",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -6.9,
+            "y": 0
+          },
+          {
+            "id": "service-object-16",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -4.7,
+            "y": 0
+          },
+          {
+            "id": "service-object-17",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -2.5,
+            "y": 0
+          },
+          {
+            "id": "service-object-18",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -0.3,
+            "y": 0
+          },
+          {
+            "id": "service-object-19",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 1.9,
+            "y": 0
+          },
+          {
+            "id": "service-object-20",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 4.1,
+            "y": 0
+          },
+          {
+            "id": "service-object-21",
+            "name": "Side wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 6.3,
+            "y": 0
+          },
+          {
+            "id": "service-object-22",
+            "name": "Reception sofa 1",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": -12.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "service-object-23",
+            "name": "Reception sofa 2",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": -9.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "service-object-24",
+            "name": "Reception coffee table",
+            "assetId": "furniture_table_coffee_low_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.3,
+            "x": -11.1,
+            "z": 4.6,
+            "y": 0
+          },
+          {
+            "id": "service-object-25",
+            "name": "Reception information table",
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.1,
+            "x": -12.6,
+            "z": -5,
+            "y": 0
+          },
+          {
+            "id": "service-object-26",
+            "name": "Reception information screen",
+            "assetId": "computer_monitor_office_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -12.6,
+            "z": -5,
+            "y": 0.94
+          },
+          {
+            "id": "service-object-27",
+            "name": "Staff coffee corner",
+            "assetId": "machine_coffee_vending_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.1,
+            "z": -5.6,
+            "y": 0
+          },
+          {
+            "id": "service-object-28",
+            "name": "Staff storage",
+            "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.15,
+            "x": 8.96,
+            "z": -5.8,
+            "y": 0
+          },
+          {
+            "id": "service-object-29",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -10.6,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "service-object-30",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "service-object-31",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": 5,
+            "y": 3.9
+          },
+          {
+            "id": "service-object-32",
+            "name": "Case preparation desk",
+            "assetId": "desk_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.3,
+            "x": -4.4,
+            "z": -5.8,
+            "y": 0
+          },
+          {
+            "id": "service-object-33",
+            "name": "Case preparation screen",
+            "assetId": "computer_monitor_office_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -4.4,
+            "z": -5.8,
+            "y": 0.99
+          },
+          {
+            "id": "service-object-34",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -15.6,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "service-object-35",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -14.7,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "service-object-36",
+            "name": "Quiet consultation table",
+            "assetId": "furniture_table_coffee_low_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.5,
+            "x": 11.6,
+            "z": 3,
+            "y": 0
+          },
+          {
+            "id": "service-object-37",
+            "name": "Consultation seating",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": -90,
+            "scale": 1.4,
+            "x": 11.6,
+            "z": 1.5,
+            "y": 0
+          },
+          {
+            "id": "service-object-38",
+            "name": "Consultation seating",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": 11.6,
+            "z": 4.5,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {}
+      }
+    },
+    {
+      "id": "service-trial-1",
+      "name": "Cover the team break",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "service",
+      "model": {
+        "id": "service-model",
+        "name": "Service Studio",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 180,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Reception team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "specialists",
+            "label": "Shared specialists",
+            "capacity": 2,
+            "installedCapacity": 12,
+            "calendar": [
+              {
+                "start": 1800,
+                "end": 2100,
+                "capacity": 2
+              }
+            ],
+            "costPerHour": 32,
+            "overtimeCostPerHour": 48
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "service-arrivals",
+            "label": "New requests",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 80
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 125
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 85
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 0.85
+              },
+              {
+                "id": "priority",
+                "label": "Priority",
+                "priority": -1,
+                "probability": 0.15
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "service-queue-a",
+            "label": "Before reception",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "priority",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "service-station-a",
+            "label": "Reception",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 22,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "service-queue-b",
+            "label": "Before specialists",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "priority",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "service-station-b",
+            "label": "Specialists",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "specialists",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "service-queue-c",
+            "label": "Before resolution",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "priority",
+            "patience": {
+              "kind": "constant",
+              "value": 900
+            }
+          },
+          {
+            "id": "station-c",
+            "samplingId": "service-station-c",
+            "label": "Resolution",
+            "kind": "service",
+            "next": "exit",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 50,
+              "mode": 75,
+              "max": 100
+            },
+            "resources": [
+              {
+                "poolId": "specialists",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "service-exit",
+            "label": "Resolved",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -11,
+          "z": 4
+        },
+        "queue-a": {
+          "x": -7,
+          "z": 2
+        },
+        "station-a": {
+          "x": -7,
+          "z": -2
+        },
+        "queue-b": {
+          "x": -3,
+          "z": 0
+        },
+        "station-b": {
+          "x": 0,
+          "z": -2
+        },
+        "queue-c": {
+          "x": -3,
+          "z": 5
+        },
+        "station-c": {
+          "x": 0,
+          "z": 5
+        },
+        "exit": {
+          "x": 6,
+          "z": 7
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "service-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-15",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -6.9,
+            "y": 0
+          },
+          {
+            "id": "service-object-16",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -4.7,
+            "y": 0
+          },
+          {
+            "id": "service-object-17",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -2.5,
+            "y": 0
+          },
+          {
+            "id": "service-object-18",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -0.3,
+            "y": 0
+          },
+          {
+            "id": "service-object-19",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 1.9,
+            "y": 0
+          },
+          {
+            "id": "service-object-20",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 4.1,
+            "y": 0
+          },
+          {
+            "id": "service-object-21",
+            "name": "Side wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 6.3,
+            "y": 0
+          },
+          {
+            "id": "service-object-22",
+            "name": "Reception sofa 1",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": -12.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "service-object-23",
+            "name": "Reception sofa 2",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": -9.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "service-object-24",
+            "name": "Reception coffee table",
+            "assetId": "furniture_table_coffee_low_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.3,
+            "x": -11.1,
+            "z": 4.6,
+            "y": 0
+          },
+          {
+            "id": "service-object-25",
+            "name": "Reception information table",
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.1,
+            "x": -12.6,
+            "z": -5,
+            "y": 0
+          },
+          {
+            "id": "service-object-26",
+            "name": "Reception information screen",
+            "assetId": "computer_monitor_office_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -12.6,
+            "z": -5,
+            "y": 0.94
+          },
+          {
+            "id": "service-object-27",
+            "name": "Staff coffee corner",
+            "assetId": "machine_coffee_vending_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.1,
+            "z": -5.6,
+            "y": 0
+          },
+          {
+            "id": "service-object-28",
+            "name": "Staff storage",
+            "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.15,
+            "x": 8.96,
+            "z": -5.8,
+            "y": 0
+          },
+          {
+            "id": "service-object-29",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -10.6,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "service-object-30",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "service-object-31",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": 5,
+            "y": 3.9
+          },
+          {
+            "id": "service-object-32",
+            "name": "Case preparation desk",
+            "assetId": "desk_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.3,
+            "x": -4.4,
+            "z": -5.8,
+            "y": 0
+          },
+          {
+            "id": "service-object-33",
+            "name": "Case preparation screen",
+            "assetId": "computer_monitor_office_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -4.4,
+            "z": -5.8,
+            "y": 0.99
+          },
+          {
+            "id": "service-object-34",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -15.6,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "service-object-35",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -14.7,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "service-object-36",
+            "name": "Quiet consultation table",
+            "assetId": "furniture_table_coffee_low_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.5,
+            "x": 11.6,
+            "z": 3,
+            "y": 0
+          },
+          {
+            "id": "service-object-37",
+            "name": "Consultation seating",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": -90,
+            "scale": 1.4,
+            "x": 11.6,
+            "z": 1.5,
+            "y": 0
+          },
+          {
+            "id": "service-object-38",
+            "name": "Consultation seating",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": 11.6,
+            "z": 4.5,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {}
+      }
+    },
+    {
+      "id": "service-trial-2",
+      "name": "First come, first served",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "service",
+      "model": {
+        "id": "service-model",
+        "name": "Service Studio",
+        "horizon": 3600,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 180,
+        "currency": "USD",
+        "resources": [
+          {
+            "id": "team-a",
+            "label": "Reception team",
+            "capacity": 1,
+            "installedCapacity": 12,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "specialists",
+            "label": "Shared specialists",
+            "capacity": 2,
+            "installedCapacity": 12,
+            "calendar": [
+              {
+                "start": 1800,
+                "end": 2100,
+                "capacity": 1
+              }
+            ],
+            "costPerHour": 32,
+            "overtimeCostPerHour": 48
+          }
+        ],
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "service-arrivals",
+            "label": "New requests",
+            "kind": "source",
+            "next": "queue-a",
+            "arrival": {
+              "kind": "poisson",
+              "segments": [
+                {
+                  "start": 0,
+                  "end": 900,
+                  "perHour": 80
+                },
+                {
+                  "start": 900,
+                  "end": 2400,
+                  "perHour": 125
+                },
+                {
+                  "start": 2400,
+                  "end": 3600,
+                  "perHour": 85
+                }
+              ]
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 0.85
+              },
+              {
+                "id": "priority",
+                "label": "Priority",
+                "priority": -1,
+                "probability": 0.15
+              }
+            ]
+          },
+          {
+            "id": "queue-a",
+            "samplingId": "service-queue-a",
+            "label": "Before reception",
+            "kind": "queue",
+            "next": "station-a",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-a",
+            "samplingId": "service-station-a",
+            "label": "Reception",
+            "kind": "service",
+            "next": "queue-b",
+            "servers": 1,
+            "duration": {
+              "kind": "triangular",
+              "min": 18,
+              "mode": 22,
+              "max": 40
+            },
+            "resources": [
+              {
+                "poolId": "team-a",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-b",
+            "samplingId": "service-queue-b",
+            "label": "Before specialists",
+            "kind": "queue",
+            "next": "station-b",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "station-b",
+            "samplingId": "service-station-b",
+            "label": "Specialists",
+            "kind": "service",
+            "next": "queue-c",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 12,
+              "mode": 18,
+              "max": 28
+            },
+            "resources": [
+              {
+                "poolId": "specialists",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "queue-c",
+            "samplingId": "service-queue-c",
+            "label": "Before resolution",
+            "kind": "queue",
+            "next": "station-c",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": {
+              "kind": "constant",
+              "value": 900
+            }
+          },
+          {
+            "id": "station-c",
+            "samplingId": "service-station-c",
+            "label": "Resolution",
+            "kind": "service",
+            "next": "exit",
+            "servers": 2,
+            "duration": {
+              "kind": "triangular",
+              "min": 50,
+              "mode": 75,
+              "max": 100
+            },
+            "resources": [
+              {
+                "poolId": "specialists",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "exit",
+            "samplingId": "service-exit",
+            "label": "Resolved",
+            "kind": "sink"
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -11,
+          "z": 4
+        },
+        "queue-a": {
+          "x": -7,
+          "z": 2
+        },
+        "station-a": {
+          "x": -7,
+          "z": -2
+        },
+        "queue-b": {
+          "x": -3,
+          "z": 0
+        },
+        "station-b": {
+          "x": 0,
+          "z": -2
+        },
+        "queue-c": {
+          "x": -3,
+          "z": 5
+        },
+        "station-c": {
+          "x": 0,
+          "z": 5
+        },
+        "exit": {
+          "x": 6,
+          "z": 7
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "service-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -8,
+            "y": 0
+          },
+          {
+            "id": "service-object-15",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -6.9,
+            "y": 0
+          },
+          {
+            "id": "service-object-16",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -4.7,
+            "y": 0
+          },
+          {
+            "id": "service-object-17",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -2.5,
+            "y": 0
+          },
+          {
+            "id": "service-object-18",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": -0.3,
+            "y": 0
+          },
+          {
+            "id": "service-object-19",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 1.9,
+            "y": 0
+          },
+          {
+            "id": "service-object-20",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 4.1,
+            "y": 0
+          },
+          {
+            "id": "service-object-21",
+            "name": "Side wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -15.7,
+            "z": 6.3,
+            "y": 0
+          },
+          {
+            "id": "service-object-22",
+            "name": "Reception sofa 1",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": -12.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "service-object-23",
+            "name": "Reception sofa 2",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": -9.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "service-object-24",
+            "name": "Reception coffee table",
+            "assetId": "furniture_table_coffee_low_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.3,
+            "x": -11.1,
+            "z": 4.6,
+            "y": 0
+          },
+          {
+            "id": "service-object-25",
+            "name": "Reception information table",
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.1,
+            "x": -12.6,
+            "z": -5,
+            "y": 0
+          },
+          {
+            "id": "service-object-26",
+            "name": "Reception information screen",
+            "assetId": "computer_monitor_office_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -12.6,
+            "z": -5,
+            "y": 0.94
+          },
+          {
+            "id": "service-object-27",
+            "name": "Staff coffee corner",
+            "assetId": "machine_coffee_vending_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.1,
+            "z": -5.6,
+            "y": 0
+          },
+          {
+            "id": "service-object-28",
+            "name": "Staff storage",
+            "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.15,
+            "x": 8.96,
+            "z": -5.8,
+            "y": 0
+          },
+          {
+            "id": "service-object-29",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -10.6,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "service-object-30",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": -2,
+            "y": 3.9
+          },
+          {
+            "id": "service-object-31",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 0,
+            "z": 5,
+            "y": 3.9
+          },
+          {
+            "id": "service-object-32",
+            "name": "Case preparation desk",
+            "assetId": "desk_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.3,
+            "x": -4.4,
+            "z": -5.8,
+            "y": 0
+          },
+          {
+            "id": "service-object-33",
+            "name": "Case preparation screen",
+            "assetId": "computer_monitor_office_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 1.2,
+            "x": -4.4,
+            "z": -5.8,
+            "y": 0.99
+          },
+          {
+            "id": "service-object-34",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -15.6,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "service-object-35",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -14.7,
+            "z": 1,
+            "y": 0
+          },
+          {
+            "id": "service-object-36",
+            "name": "Quiet consultation table",
+            "assetId": "furniture_table_coffee_low_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.5,
+            "x": 11.6,
+            "z": 3,
+            "y": 0
+          },
+          {
+            "id": "service-object-37",
+            "name": "Consultation seating",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": -90,
+            "scale": 1.4,
+            "x": 11.6,
+            "z": 1.5,
+            "y": 0
+          },
+          {
+            "id": "service-object-38",
+            "name": "Consultation seating",
+            "assetId": "sofa_soft_b02",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.4,
+            "x": 11.6,
+            "z": 4.5,
+            "y": 0
+          }
+        ],
+        "nodeAssets": {}
+      }
+    }
+  ]
+}

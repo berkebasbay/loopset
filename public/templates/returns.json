@@ -1,0 +1,3808 @@
+{
+  "schemaVersion": 1,
+  "id": "starter-returns",
+  "name": "Returns Center",
+  "world": "factory",
+  "revision": 0,
+  "description": "Triage separates restocking from refurbishment.\n\nShould you speed up intake or add refurbishment capacity?\n\nStarting assumptions\n• Two hours of arrivals; 60% go to restocking and 40% to refurbishment.\n• The two outcomes use independent teams and exits.\n• The model follows individual return jobs; refunds, stock balances and resale value are excluded.\n\nSynthetic teaching models. Timings, demand and staffing are illustrative; layout does not add travel time.",
+  "layout": {
+    "arrivals": {
+      "x": -13,
+      "z": 4
+    },
+    "q-triage": {
+      "x": -9,
+      "z": 1
+    },
+    "triage": {
+      "x": -5,
+      "z": 0
+    },
+    "route": {
+      "x": 0,
+      "z": 0
+    },
+    "q-restock": {
+      "x": 4,
+      "z": 3
+    },
+    "restock": {
+      "x": 8,
+      "z": 3
+    },
+    "restocked": {
+      "x": 13,
+      "z": 5
+    },
+    "q-refurbish": {
+      "x": 4,
+      "z": -4
+    },
+    "refurbish": {
+      "x": 8,
+      "z": -4
+    },
+    "refurbished": {
+      "x": 13,
+      "z": -2
+    }
+  },
+  "model": {
+    "id": "returns-model",
+    "name": "Returns Center",
+    "horizon": 7200,
+    "warmup": 0,
+    "seed": 4207,
+    "slaSeconds": 600,
+    "currency": "USD",
+    "nodes": [
+      {
+        "id": "arrivals",
+        "samplingId": "returns-arrivals",
+        "label": "Incoming jobs",
+        "kind": "source",
+        "next": "q-triage",
+        "arrival": {
+          "kind": "fixed",
+          "perHour": 70
+        },
+        "classes": [
+          {
+            "id": "standard",
+            "label": "Standard",
+            "priority": 0,
+            "probability": 1
+          }
+        ]
+      },
+      {
+        "id": "q-triage",
+        "samplingId": "returns-q-triage",
+        "label": "Returns intake queue",
+        "kind": "queue",
+        "next": "triage",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "triage",
+        "samplingId": "returns-triage",
+        "label": "Condition triage",
+        "kind": "service",
+        "next": "route",
+        "duration": {
+          "kind": "constant",
+          "value": 60
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "intake",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "route",
+        "samplingId": "returns-route",
+        "label": "Return outcome",
+        "kind": "route",
+        "branches": [
+          {
+            "to": "q-restock",
+            "probability": 0.6
+          },
+          {
+            "to": "q-refurbish",
+            "probability": 0.4
+          }
+        ]
+      },
+      {
+        "id": "q-restock",
+        "samplingId": "returns-q-restock",
+        "label": "Restock queue",
+        "kind": "queue",
+        "next": "restock",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "restock",
+        "samplingId": "returns-restock",
+        "label": "Repack for restock",
+        "kind": "service",
+        "next": "restocked",
+        "duration": {
+          "kind": "constant",
+          "value": 75
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "restock",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "restocked",
+        "samplingId": "returns-restocked",
+        "label": "Ready for restock",
+        "kind": "sink"
+      },
+      {
+        "id": "q-refurbish",
+        "samplingId": "returns-q-refurbish",
+        "label": "Refurbishment queue",
+        "kind": "queue",
+        "next": "refurbish",
+        "capacity": null,
+        "discipline": "fifo",
+        "patience": null
+      },
+      {
+        "id": "refurbish",
+        "samplingId": "returns-refurbish",
+        "label": "Refurbishment",
+        "kind": "service",
+        "next": "refurbished",
+        "duration": {
+          "kind": "triangular",
+          "min": 120,
+          "mode": 180,
+          "max": 240
+        },
+        "servers": 1,
+        "resources": [
+          {
+            "poolId": "repair",
+            "units": 1
+          }
+        ]
+      },
+      {
+        "id": "refurbished",
+        "samplingId": "returns-refurbished",
+        "label": "Refurbished items",
+        "kind": "sink"
+      }
+    ],
+    "resources": [
+      {
+        "id": "intake",
+        "label": "Returns intake",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      },
+      {
+        "id": "restock",
+        "label": "Restock team",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 24,
+        "overtimeCostPerHour": 36
+      },
+      {
+        "id": "repair",
+        "label": "Refurbishment team",
+        "installedCapacity": 6,
+        "capacity": 1,
+        "calendar": [],
+        "costPerHour": 30,
+        "overtimeCostPerHour": 45
+      }
+    ]
+  },
+  "facility": {
+    "version": 1,
+    "scenery": false,
+    "objects": [
+      {
+        "id": "returns-object-1",
+        "name": "Back wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -15.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-2",
+        "name": "Back wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -13.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-3",
+        "name": "Back wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -11,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-4",
+        "name": "Back wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -8.8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-5",
+        "name": "Back wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -6.6,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-6",
+        "name": "Back wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -4.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-7",
+        "name": "Back wall 7",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": -2.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-8",
+        "name": "Back wall 8",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 0,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-9",
+        "name": "Back wall 9",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 2.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-10",
+        "name": "Back wall 10",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 4.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-11",
+        "name": "Back wall 11",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 6.6,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-12",
+        "name": "Back wall 12",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 8.8,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-13",
+        "name": "Back wall 13",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 11,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-14",
+        "name": "Back wall 14",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 13.2,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-15",
+        "name": "Back wall 15",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 90,
+        "scale": 0.36,
+        "x": 15.4,
+        "z": -12,
+        "y": 0
+      },
+      {
+        "id": "returns-object-16",
+        "name": "Side wall 1",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": -10.9,
+        "y": 0
+      },
+      {
+        "id": "returns-object-17",
+        "name": "Side wall 2",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": -8.7,
+        "y": 0
+      },
+      {
+        "id": "returns-object-18",
+        "name": "Side wall 3",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": -6.5,
+        "y": 0
+      },
+      {
+        "id": "returns-object-19",
+        "name": "Side wall 4",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": -4.3,
+        "y": 0
+      },
+      {
+        "id": "returns-object-20",
+        "name": "Side wall 5",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": -2.1,
+        "y": 0
+      },
+      {
+        "id": "returns-object-21",
+        "name": "Side wall 6",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": 0.1,
+        "y": 0
+      },
+      {
+        "id": "returns-object-22",
+        "name": "Side wall 7",
+        "assetId": "structure_wall_straight_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 0.36,
+        "x": -16.5,
+        "z": 2.3,
+        "y": 0
+      },
+      {
+        "id": "returns-object-23",
+        "name": "Refurbishment storage 1",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "returns-object-24",
+        "name": "Refurbishment storage 1 · tote 1",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "returns-object-25",
+        "name": "Refurbishment storage 1 · tote 2",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "returns-object-26",
+        "name": "Refurbishment storage 1 · tote 3",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -8,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "returns-object-27",
+        "name": "Refurbishment storage 2",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -3.5,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "returns-object-28",
+        "name": "Refurbishment storage 2 · tote 1",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -3.5,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "returns-object-29",
+        "name": "Refurbishment storage 2 · tote 2",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -3.5,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "returns-object-30",
+        "name": "Refurbishment storage 2 · tote 3",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -3.5,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "returns-object-31",
+        "name": "Refurbishment storage 3",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 1,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "returns-object-32",
+        "name": "Refurbishment storage 3 · tote 1",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 1,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "returns-object-33",
+        "name": "Refurbishment storage 3 · tote 2",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 1,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "returns-object-34",
+        "name": "Refurbishment storage 3 · tote 3",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 1,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "returns-object-35",
+        "name": "Refurbishment storage 4",
+        "assetId": "rack_bulk_storage_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5.5,
+        "z": -9.5,
+        "y": 0
+      },
+      {
+        "id": "returns-object-36",
+        "name": "Refurbishment storage 4 · tote 1",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5.5,
+        "z": -9.5,
+        "y": 0.5
+      },
+      {
+        "id": "returns-object-37",
+        "name": "Refurbishment storage 4 · tote 2",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5.5,
+        "z": -9.5,
+        "y": 1.15
+      },
+      {
+        "id": "returns-object-38",
+        "name": "Refurbishment storage 4 · tote 3",
+        "assetId": "crate_green_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5.5,
+        "z": -9.5,
+        "y": 1.8
+      },
+      {
+        "id": "returns-object-39",
+        "name": "Restock staging 1",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 3,
+        "z": 8,
+        "y": 0
+      },
+      {
+        "id": "returns-object-40",
+        "name": "Restock staging 1 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 2.78,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-41",
+        "name": "Restock staging 1 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 3.22,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-42",
+        "name": "Restock staging 1 · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 2.78,
+        "z": 8.22,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-43",
+        "name": "Restock staging 2",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 5.8,
+        "z": 8,
+        "y": 0
+      },
+      {
+        "id": "returns-object-44",
+        "name": "Restock staging 2 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 5.58,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-45",
+        "name": "Restock staging 2 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 6.02,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-46",
+        "name": "Restock staging 2 · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 5.58,
+        "z": 8.22,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-47",
+        "name": "Restock staging 3",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 8.6,
+        "z": 8,
+        "y": 0
+      },
+      {
+        "id": "returns-object-48",
+        "name": "Restock staging 3 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 8.38,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-49",
+        "name": "Restock staging 3 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 8.82,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-50",
+        "name": "Restock staging 3 · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 8.38,
+        "z": 8.22,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-51",
+        "name": "Restock staging 4",
+        "assetId": "pallet_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1,
+        "x": 11.4,
+        "z": 8,
+        "y": 0
+      },
+      {
+        "id": "returns-object-52",
+        "name": "Restock staging 4 · carton 1",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 11.18,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-53",
+        "name": "Restock staging 4 · carton 2",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 11.62,
+        "z": 7.78,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-54",
+        "name": "Restock staging 4 · carton 3",
+        "assetId": "box_corrugated_brown_b08",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.25,
+        "x": 11.18,
+        "z": 8.22,
+        "y": 0.21
+      },
+      {
+        "id": "returns-object-55",
+        "name": "Unsorted return tote 1",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.4,
+        "x": -12,
+        "z": 4,
+        "y": 0
+      },
+      {
+        "id": "returns-object-56",
+        "name": "Unsorted return tote 2",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.4,
+        "x": -12,
+        "z": 5,
+        "y": 0
+      },
+      {
+        "id": "returns-object-57",
+        "name": "Unsorted return tote 3",
+        "assetId": "crate_blue_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.4,
+        "x": -12,
+        "z": 6,
+        "y": 0
+      },
+      {
+        "id": "returns-object-58",
+        "name": "Parts storage",
+        "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.1,
+        "x": 12,
+        "z": -7,
+        "y": 0
+      },
+      {
+        "id": "returns-object-59",
+        "name": "Wall-side fire extinguisher",
+        "assetId": "fireProtection_extinguisher_portable_b01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.5,
+        "x": -16,
+        "z": 2,
+        "y": 0
+      },
+      {
+        "id": "returns-object-60",
+        "name": "Waste collection",
+        "assetId": "furniture_trashBin_lid_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1,
+        "x": -15.1,
+        "z": 2,
+        "y": 0
+      },
+      {
+        "id": "returns-object-61",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": -5,
+        "z": 0,
+        "y": 3.9
+      },
+      {
+        "id": "returns-object-62",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 5,
+        "z": -4,
+        "y": 3.9
+      },
+      {
+        "id": "returns-object-63",
+        "name": "Overhead work light",
+        "assetId": "lamp_ceiling_1m_rectangle_a01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": 0,
+        "scale": 1.8,
+        "x": 5,
+        "z": 3,
+        "y": 3.9
+      }
+    ],
+    "nodeAssets": {
+      "triage": {
+        "assetId": "table_metal_stainless_a03",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 90,
+        "scale": 1.6
+      },
+      "restock": {
+        "assetId": "table_deluxe_packing_a01",
+        "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+        "rotation": 0,
+        "scale": 1.4
+      },
+      "refurbish": {
+        "assetId": "furniture_workbench_standard_e01",
+        "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+        "rotation": -90,
+        "scale": 1.7
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "id": "returns-original",
+      "name": "Original plan",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "returns-model",
+        "name": "Returns Center",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "returns-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-triage",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 70
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-triage",
+            "samplingId": "returns-q-triage",
+            "label": "Returns intake queue",
+            "kind": "queue",
+            "next": "triage",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "triage",
+            "samplingId": "returns-triage",
+            "label": "Condition triage",
+            "kind": "service",
+            "next": "route",
+            "duration": {
+              "kind": "constant",
+              "value": 60
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "intake",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "route",
+            "samplingId": "returns-route",
+            "label": "Return outcome",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "q-restock",
+                "probability": 0.6
+              },
+              {
+                "to": "q-refurbish",
+                "probability": 0.4
+              }
+            ]
+          },
+          {
+            "id": "q-restock",
+            "samplingId": "returns-q-restock",
+            "label": "Restock queue",
+            "kind": "queue",
+            "next": "restock",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "restock",
+            "samplingId": "returns-restock",
+            "label": "Repack for restock",
+            "kind": "service",
+            "next": "restocked",
+            "duration": {
+              "kind": "constant",
+              "value": 75
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "restock",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "restocked",
+            "samplingId": "returns-restocked",
+            "label": "Ready for restock",
+            "kind": "sink"
+          },
+          {
+            "id": "q-refurbish",
+            "samplingId": "returns-q-refurbish",
+            "label": "Refurbishment queue",
+            "kind": "queue",
+            "next": "refurbish",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "refurbish",
+            "samplingId": "returns-refurbish",
+            "label": "Refurbishment",
+            "kind": "service",
+            "next": "refurbished",
+            "duration": {
+              "kind": "triangular",
+              "min": 120,
+              "mode": 180,
+              "max": 240
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "repair",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "refurbished",
+            "samplingId": "returns-refurbished",
+            "label": "Refurbished items",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "intake",
+            "label": "Returns intake",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "restock",
+            "label": "Restock team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "repair",
+            "label": "Refurbishment team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 30,
+            "overtimeCostPerHour": 45
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -13,
+          "z": 4
+        },
+        "q-triage": {
+          "x": -9,
+          "z": 1
+        },
+        "triage": {
+          "x": -5,
+          "z": 0
+        },
+        "route": {
+          "x": 0,
+          "z": 0
+        },
+        "q-restock": {
+          "x": 4,
+          "z": 3
+        },
+        "restock": {
+          "x": 8,
+          "z": 3
+        },
+        "restocked": {
+          "x": 13,
+          "z": 5
+        },
+        "q-refurbish": {
+          "x": 4,
+          "z": -4
+        },
+        "refurbish": {
+          "x": 8,
+          "z": -4
+        },
+        "refurbished": {
+          "x": 13,
+          "z": -2
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "returns-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -15.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -13.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -11,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -6.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -4.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -2.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 2.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 4.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 6.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 8.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 13.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 15.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-16",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "returns-object-17",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "returns-object-18",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-19",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "returns-object-20",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "returns-object-21",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": 0.1,
+            "y": 0
+          },
+          {
+            "id": "returns-object-22",
+            "name": "Side wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": 2.3,
+            "y": 0
+          },
+          {
+            "id": "returns-object-23",
+            "name": "Refurbishment storage 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-24",
+            "name": "Refurbishment storage 1 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-25",
+            "name": "Refurbishment storage 1 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-26",
+            "name": "Refurbishment storage 1 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-27",
+            "name": "Refurbishment storage 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.5,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-28",
+            "name": "Refurbishment storage 2 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.5,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-29",
+            "name": "Refurbishment storage 2 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.5,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-30",
+            "name": "Refurbishment storage 2 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.5,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-31",
+            "name": "Refurbishment storage 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-32",
+            "name": "Refurbishment storage 3 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-33",
+            "name": "Refurbishment storage 3 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-34",
+            "name": "Refurbishment storage 3 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-35",
+            "name": "Refurbishment storage 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.5,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-36",
+            "name": "Refurbishment storage 4 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.5,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-37",
+            "name": "Refurbishment storage 4 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.5,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-38",
+            "name": "Refurbishment storage 4 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.5,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-39",
+            "name": "Restock staging 1",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-40",
+            "name": "Restock staging 1 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 2.78,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-41",
+            "name": "Restock staging 1 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 3.22,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-42",
+            "name": "Restock staging 1 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 2.78,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-43",
+            "name": "Restock staging 2",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.8,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-44",
+            "name": "Restock staging 2 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.58,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-45",
+            "name": "Restock staging 2 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 6.02,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-46",
+            "name": "Restock staging 2 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.58,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-47",
+            "name": "Restock staging 3",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8.6,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-48",
+            "name": "Restock staging 3 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.38,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-49",
+            "name": "Restock staging 3 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.82,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-50",
+            "name": "Restock staging 3 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.38,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-51",
+            "name": "Restock staging 4",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.4,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-52",
+            "name": "Restock staging 4 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 11.18,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-53",
+            "name": "Restock staging 4 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 11.62,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-54",
+            "name": "Restock staging 4 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 11.18,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-55",
+            "name": "Unsorted return tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4,
+            "x": -12,
+            "z": 4,
+            "y": 0
+          },
+          {
+            "id": "returns-object-56",
+            "name": "Unsorted return tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4,
+            "x": -12,
+            "z": 5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-57",
+            "name": "Unsorted return tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4,
+            "x": -12,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "returns-object-58",
+            "name": "Parts storage",
+            "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.1,
+            "x": 12,
+            "z": -7,
+            "y": 0
+          },
+          {
+            "id": "returns-object-59",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -16,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "returns-object-60",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -15.1,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "returns-object-61",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -5,
+            "z": 0,
+            "y": 3.9
+          },
+          {
+            "id": "returns-object-62",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 5,
+            "z": -4,
+            "y": 3.9
+          },
+          {
+            "id": "returns-object-63",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 5,
+            "z": 3,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "triage": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.6
+          },
+          "restock": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4
+          },
+          "refurbish": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.7
+          }
+        }
+      }
+    },
+    {
+      "id": "returns-trial-1",
+      "name": "Faster intake study",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "returns-model",
+        "name": "Returns Center",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "returns-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-triage",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 70
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-triage",
+            "samplingId": "returns-q-triage",
+            "label": "Returns intake queue",
+            "kind": "queue",
+            "next": "triage",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "triage",
+            "samplingId": "returns-triage",
+            "label": "Condition triage",
+            "kind": "service",
+            "next": "route",
+            "duration": {
+              "kind": "constant",
+              "value": 40
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "intake",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "route",
+            "samplingId": "returns-route",
+            "label": "Return outcome",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "q-restock",
+                "probability": 0.6
+              },
+              {
+                "to": "q-refurbish",
+                "probability": 0.4
+              }
+            ]
+          },
+          {
+            "id": "q-restock",
+            "samplingId": "returns-q-restock",
+            "label": "Restock queue",
+            "kind": "queue",
+            "next": "restock",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "restock",
+            "samplingId": "returns-restock",
+            "label": "Repack for restock",
+            "kind": "service",
+            "next": "restocked",
+            "duration": {
+              "kind": "constant",
+              "value": 75
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "restock",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "restocked",
+            "samplingId": "returns-restocked",
+            "label": "Ready for restock",
+            "kind": "sink"
+          },
+          {
+            "id": "q-refurbish",
+            "samplingId": "returns-q-refurbish",
+            "label": "Refurbishment queue",
+            "kind": "queue",
+            "next": "refurbish",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "refurbish",
+            "samplingId": "returns-refurbish",
+            "label": "Refurbishment",
+            "kind": "service",
+            "next": "refurbished",
+            "duration": {
+              "kind": "triangular",
+              "min": 120,
+              "mode": 180,
+              "max": 240
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "repair",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "refurbished",
+            "samplingId": "returns-refurbished",
+            "label": "Refurbished items",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "intake",
+            "label": "Returns intake",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "restock",
+            "label": "Restock team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "repair",
+            "label": "Refurbishment team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 30,
+            "overtimeCostPerHour": 45
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -13,
+          "z": 4
+        },
+        "q-triage": {
+          "x": -9,
+          "z": 1
+        },
+        "triage": {
+          "x": -5,
+          "z": 0
+        },
+        "route": {
+          "x": 0,
+          "z": 0
+        },
+        "q-restock": {
+          "x": 4,
+          "z": 3
+        },
+        "restock": {
+          "x": 8,
+          "z": 3
+        },
+        "restocked": {
+          "x": 13,
+          "z": 5
+        },
+        "q-refurbish": {
+          "x": 4,
+          "z": -4
+        },
+        "refurbish": {
+          "x": 8,
+          "z": -4
+        },
+        "refurbished": {
+          "x": 13,
+          "z": -2
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "returns-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -15.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -13.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -11,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -6.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -4.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -2.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 2.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 4.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 6.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 8.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 13.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 15.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-16",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "returns-object-17",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "returns-object-18",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-19",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "returns-object-20",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "returns-object-21",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": 0.1,
+            "y": 0
+          },
+          {
+            "id": "returns-object-22",
+            "name": "Side wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -16.5,
+            "z": 2.3,
+            "y": 0
+          },
+          {
+            "id": "returns-object-23",
+            "name": "Refurbishment storage 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-24",
+            "name": "Refurbishment storage 1 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-25",
+            "name": "Refurbishment storage 1 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-26",
+            "name": "Refurbishment storage 1 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -8,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-27",
+            "name": "Refurbishment storage 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.5,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-28",
+            "name": "Refurbishment storage 2 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.5,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-29",
+            "name": "Refurbishment storage 2 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.5,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-30",
+            "name": "Refurbishment storage 2 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -3.5,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-31",
+            "name": "Refurbishment storage 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-32",
+            "name": "Refurbishment storage 3 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-33",
+            "name": "Refurbishment storage 3 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-34",
+            "name": "Refurbishment storage 3 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 1,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-35",
+            "name": "Refurbishment storage 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.5,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-36",
+            "name": "Refurbishment storage 4 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.5,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-37",
+            "name": "Refurbishment storage 4 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.5,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-38",
+            "name": "Refurbishment storage 4 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.5,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-39",
+            "name": "Restock staging 1",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-40",
+            "name": "Restock staging 1 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 2.78,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-41",
+            "name": "Restock staging 1 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 3.22,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-42",
+            "name": "Restock staging 1 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 2.78,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-43",
+            "name": "Restock staging 2",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 5.8,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-44",
+            "name": "Restock staging 2 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.58,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-45",
+            "name": "Restock staging 2 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 6.02,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-46",
+            "name": "Restock staging 2 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 5.58,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-47",
+            "name": "Restock staging 3",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 8.6,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-48",
+            "name": "Restock staging 3 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.38,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-49",
+            "name": "Restock staging 3 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.82,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-50",
+            "name": "Restock staging 3 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.38,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-51",
+            "name": "Restock staging 4",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 11.4,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-52",
+            "name": "Restock staging 4 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 11.18,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-53",
+            "name": "Restock staging 4 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 11.62,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-54",
+            "name": "Restock staging 4 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 11.18,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-55",
+            "name": "Unsorted return tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4,
+            "x": -12,
+            "z": 4,
+            "y": 0
+          },
+          {
+            "id": "returns-object-56",
+            "name": "Unsorted return tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4,
+            "x": -12,
+            "z": 5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-57",
+            "name": "Unsorted return tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4,
+            "x": -12,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "returns-object-58",
+            "name": "Parts storage",
+            "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.1,
+            "x": 12,
+            "z": -7,
+            "y": 0
+          },
+          {
+            "id": "returns-object-59",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -16,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "returns-object-60",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -15.1,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "returns-object-61",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -5,
+            "z": 0,
+            "y": 3.9
+          },
+          {
+            "id": "returns-object-62",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 5,
+            "z": -4,
+            "y": 3.9
+          },
+          {
+            "id": "returns-object-63",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 5,
+            "z": 3,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "triage": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.6
+          },
+          "restock": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4
+          },
+          "refurbish": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.7
+          }
+        }
+      }
+    },
+    {
+      "id": "returns-trial-2",
+      "name": "Staff a second repair bench",
+      "createdAt": "2026-10-28T00:00:00.000Z",
+      "world": "factory",
+      "model": {
+        "id": "returns-model",
+        "name": "Returns Center",
+        "horizon": 7200,
+        "warmup": 0,
+        "seed": 4207,
+        "slaSeconds": 600,
+        "currency": "USD",
+        "nodes": [
+          {
+            "id": "arrivals",
+            "samplingId": "returns-arrivals",
+            "label": "Incoming jobs",
+            "kind": "source",
+            "next": "q-triage",
+            "arrival": {
+              "kind": "fixed",
+              "perHour": 70
+            },
+            "classes": [
+              {
+                "id": "standard",
+                "label": "Standard",
+                "priority": 0,
+                "probability": 1
+              }
+            ]
+          },
+          {
+            "id": "q-triage",
+            "samplingId": "returns-q-triage",
+            "label": "Returns intake queue",
+            "kind": "queue",
+            "next": "triage",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "triage",
+            "samplingId": "returns-triage",
+            "label": "Condition triage",
+            "kind": "service",
+            "next": "route",
+            "duration": {
+              "kind": "constant",
+              "value": 60
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "intake",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "route",
+            "samplingId": "returns-route",
+            "label": "Return outcome",
+            "kind": "route",
+            "branches": [
+              {
+                "to": "q-restock",
+                "probability": 0.6
+              },
+              {
+                "to": "q-refurbish",
+                "probability": 0.4
+              }
+            ]
+          },
+          {
+            "id": "q-restock",
+            "samplingId": "returns-q-restock",
+            "label": "Restock queue",
+            "kind": "queue",
+            "next": "restock",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "restock",
+            "samplingId": "returns-restock",
+            "label": "Repack for restock",
+            "kind": "service",
+            "next": "restocked",
+            "duration": {
+              "kind": "constant",
+              "value": 75
+            },
+            "servers": 1,
+            "resources": [
+              {
+                "poolId": "restock",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "restocked",
+            "samplingId": "returns-restocked",
+            "label": "Ready for restock",
+            "kind": "sink"
+          },
+          {
+            "id": "q-refurbish",
+            "samplingId": "returns-q-refurbish",
+            "label": "Refurbishment queue",
+            "kind": "queue",
+            "next": "refurbish",
+            "capacity": null,
+            "discipline": "fifo",
+            "patience": null
+          },
+          {
+            "id": "refurbish",
+            "samplingId": "returns-refurbish",
+            "label": "Refurbishment",
+            "kind": "service",
+            "next": "refurbished",
+            "duration": {
+              "kind": "triangular",
+              "min": 120,
+              "mode": 180,
+              "max": 240
+            },
+            "servers": 2,
+            "resources": [
+              {
+                "poolId": "repair",
+                "units": 1
+              }
+            ]
+          },
+          {
+            "id": "refurbished",
+            "samplingId": "returns-refurbished",
+            "label": "Refurbished items",
+            "kind": "sink"
+          }
+        ],
+        "resources": [
+          {
+            "id": "intake",
+            "label": "Returns intake",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "restock",
+            "label": "Restock team",
+            "installedCapacity": 6,
+            "capacity": 1,
+            "calendar": [],
+            "costPerHour": 24,
+            "overtimeCostPerHour": 36
+          },
+          {
+            "id": "repair",
+            "label": "Refurbishment team",
+            "installedCapacity": 6,
+            "capacity": 2,
+            "calendar": [],
+            "costPerHour": 30,
+            "overtimeCostPerHour": 45
+          }
+        ]
+      },
+      "layout": {
+        "arrivals": {
+          "x": -13,
+          "z": 4
+        },
+        "q-triage": {
+          "x": -9,
+          "z": 1
+        },
+        "triage": {
+          "x": -5,
+          "z": 0
+        },
+        "route": {
+          "x": 0,
+          "z": 0
+        },
+        "q-restock": {
+          "x": 4,
+          "z": 3
+        },
+        "restock": {
+          "x": 8,
+          "z": 3
+        },
+        "restocked": {
+          "x": 13,
+          "z": 5
+        },
+        "q-refurbish": {
+          "x": 4,
+          "z": -4
+        },
+        "refurbish": {
+          "x": 8,
+          "z": -4
+        },
+        "refurbished": {
+          "x": 13,
+          "z": -2
+        }
+      },
+      "facility": {
+        "version": 1,
+        "scenery": false,
+        "objects": [
+          {
+            "id": "returns-object-1",
+            "name": "Back wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -19,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-2",
+            "name": "Back wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -16.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-3",
+            "name": "Back wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -14.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-4",
+            "name": "Back wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -12.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-5",
+            "name": "Back wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -10.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-6",
+            "name": "Back wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-7",
+            "name": "Back wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -5.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-8",
+            "name": "Back wall 8",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -3.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-9",
+            "name": "Back wall 9",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": -1.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-10",
+            "name": "Back wall 10",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 0.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-11",
+            "name": "Back wall 11",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 3,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-12",
+            "name": "Back wall 12",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 5.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-13",
+            "name": "Back wall 13",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 7.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-14",
+            "name": "Back wall 14",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 9.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-15",
+            "name": "Back wall 15",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 11.8,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-16",
+            "name": "Back wall 16",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 14,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-17",
+            "name": "Back wall 17",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 16.2,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-18",
+            "name": "Back wall 18",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 18.4,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-19",
+            "name": "Back wall 19",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 90,
+            "scale": 0.36,
+            "x": 20.6,
+            "z": -12,
+            "y": 0
+          },
+          {
+            "id": "returns-object-20",
+            "name": "Side wall 1",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -10.9,
+            "y": 0
+          },
+          {
+            "id": "returns-object-21",
+            "name": "Side wall 2",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -8.7,
+            "y": 0
+          },
+          {
+            "id": "returns-object-22",
+            "name": "Side wall 3",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -6.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-23",
+            "name": "Side wall 4",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -4.3,
+            "y": 0
+          },
+          {
+            "id": "returns-object-24",
+            "name": "Side wall 5",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": -2.1,
+            "y": 0
+          },
+          {
+            "id": "returns-object-25",
+            "name": "Side wall 6",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": 0.1,
+            "y": 0
+          },
+          {
+            "id": "returns-object-26",
+            "name": "Side wall 7",
+            "assetId": "structure_wall_straight_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 0.36,
+            "x": -20.1,
+            "z": 2.3,
+            "y": 0
+          },
+          {
+            "id": "returns-object-27",
+            "name": "Refurbishment storage 1",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-28",
+            "name": "Refurbishment storage 1 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-29",
+            "name": "Refurbishment storage 1 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-30",
+            "name": "Refurbishment storage 1 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -11.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-31",
+            "name": "Refurbishment storage 2",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.1,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-32",
+            "name": "Refurbishment storage 2 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.1,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-33",
+            "name": "Refurbishment storage 2 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.1,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-34",
+            "name": "Refurbishment storage 2 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -7.1,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-35",
+            "name": "Refurbishment storage 3",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.6,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-36",
+            "name": "Refurbishment storage 3 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.6,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-37",
+            "name": "Refurbishment storage 3 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.6,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-38",
+            "name": "Refurbishment storage 3 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -2.6,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-39",
+            "name": "Refurbishment storage 4",
+            "assetId": "rack_bulk_storage_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.25,
+            "z": -9.5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-40",
+            "name": "Refurbishment storage 4 · tote 1",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.25,
+            "z": -9.5,
+            "y": 0.5
+          },
+          {
+            "id": "returns-object-41",
+            "name": "Refurbishment storage 4 · tote 2",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.25,
+            "z": -9.5,
+            "y": 1.15
+          },
+          {
+            "id": "returns-object-42",
+            "name": "Refurbishment storage 4 · tote 3",
+            "assetId": "crate_green_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.25,
+            "z": -9.5,
+            "y": 1.8
+          },
+          {
+            "id": "returns-object-43",
+            "name": "Restock staging 1",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": -0.6,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-44",
+            "name": "Restock staging 1 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -0.82,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-45",
+            "name": "Restock staging 1 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -0.38,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-46",
+            "name": "Restock staging 1 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": -0.82,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-47",
+            "name": "Restock staging 2",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 3.82,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-48",
+            "name": "Restock staging 2 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 3.402,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-49",
+            "name": "Restock staging 2 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 4.238,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-50",
+            "name": "Restock staging 2 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 3.402,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-51",
+            "name": "Restock staging 3",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 9.032,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-52",
+            "name": "Restock staging 3 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.654,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-53",
+            "name": "Restock staging 3 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 9.41,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-54",
+            "name": "Restock staging 3 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 8.654,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-55",
+            "name": "Restock staging 4",
+            "assetId": "pallet_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1,
+            "x": 13.848,
+            "z": 8,
+            "y": 0
+          },
+          {
+            "id": "returns-object-56",
+            "name": "Restock staging 4 · carton 1",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.47,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-57",
+            "name": "Restock staging 4 · carton 2",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 14.226,
+            "z": 7.78,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-58",
+            "name": "Restock staging 4 · carton 3",
+            "assetId": "box_corrugated_brown_b08",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.25,
+            "x": 13.47,
+            "z": 8.22,
+            "y": 0.21
+          },
+          {
+            "id": "returns-object-59",
+            "name": "Unsorted return tote 1",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4,
+            "x": -15.6,
+            "z": 4,
+            "y": 0
+          },
+          {
+            "id": "returns-object-60",
+            "name": "Unsorted return tote 2",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4,
+            "x": -15.6,
+            "z": 5,
+            "y": 0
+          },
+          {
+            "id": "returns-object-61",
+            "name": "Unsorted return tote 3",
+            "assetId": "crate_blue_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4,
+            "x": -15.6,
+            "z": 6,
+            "y": 0
+          },
+          {
+            "id": "returns-object-62",
+            "name": "Parts storage",
+            "assetId": "facilityFurniture_lockerUnit_multiDoor_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.1,
+            "x": 14.88,
+            "z": -7,
+            "y": 0
+          },
+          {
+            "id": "returns-object-63",
+            "name": "Wall-side fire extinguisher",
+            "assetId": "fireProtection_extinguisher_portable_b01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.5,
+            "x": -19.6,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "returns-object-64",
+            "name": "Waste collection",
+            "assetId": "furniture_trashBin_lid_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1,
+            "x": -18.7,
+            "z": 2,
+            "y": 0
+          },
+          {
+            "id": "returns-object-65",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": -8.6,
+            "z": 0,
+            "y": 3.9
+          },
+          {
+            "id": "returns-object-66",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 2.3,
+            "z": -4,
+            "y": 3.9
+          },
+          {
+            "id": "returns-object-67",
+            "name": "Overhead work light",
+            "assetId": "lamp_ceiling_1m_rectangle_a01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": 0,
+            "scale": 1.8,
+            "x": 2.3,
+            "z": 3,
+            "y": 3.9
+          }
+        ],
+        "nodeAssets": {
+          "triage": {
+            "assetId": "table_metal_stainless_a03",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 90,
+            "scale": 1.6
+          },
+          "restock": {
+            "assetId": "table_deluxe_packing_a01",
+            "assetVersion": "c72b4dea0c5738abb1fb42c04b644b753cb975e7",
+            "rotation": 0,
+            "scale": 1.4
+          },
+          "refurbish": {
+            "assetId": "furniture_workbench_standard_e01",
+            "assetVersion": "524747d9b5e1f21b5b18b56041788c01d745f1a1",
+            "rotation": -90,
+            "scale": 1.7
+          }
+        }
+      }
+    }
+  ]
+}

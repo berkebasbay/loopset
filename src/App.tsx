@@ -2,7 +2,6 @@ import { appMessages as m } from './ui/messages/App';
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownToLine, ArrowRight, Box, Check, ChevronRight, CircleHelp, Copy, FileUp, FlaskConical, Focus, GitCompareArrows, Globe2, History, Layers3, Link2, List, LoaderCircle, MousePointer2, Move, Pause, Play, Plus, Redo2, Search, ShieldCheck, SkipBack, Undo2, X } from 'lucide-react';
 import { WORLD_INFO } from './examples';
-import { createStudioExample as createExample } from './examples/studio';
 import { createWorkshopFacility } from './examples/facility';
 import { duplicateProject, MAX_PARALLEL_STATIONS, mutateProject, serviceNodes } from './model/commands';
 import { InputDifferences } from './features/InputDifferences';
@@ -10,6 +9,11 @@ import { createNewProject } from './model/newProject';
 import { createBlankProject, isLayoutOnly, startWorkspaceProcess } from './model/workspace';
 import { TemplatesPanel, type StarterTemplate } from './features/TemplatesPanel';
 import { templateMessages as tm } from './ui/messages/templates';
+import { starterMessages as stm } from './ui/messages/starterTemplates';
+import { starterTemplates } from './templates/catalogue';
+import { loadStarter } from './templates/load';
+import { ProjectBrief } from './features/ProjectBrief';
+import { restoreScenario } from './model/scenarios';
 import { modelDifferences } from './model/modelDiff';
 import { modelHash } from './model/identity';
 import { validateProject } from './model/validate';
@@ -81,7 +85,7 @@ const clock = (s: number) => !Number.isFinite(s) ? '—' : `${Math.floor(s / 60)
 const wait = (s: number) => !Number.isFinite(s) ? '—' : s >= 60 ? m.minutes((s / 60).toFixed(1)) : m.seconds(Math.round(s));
 const money = (n: number, currency: string) => new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n);
 const number = (n: number) => new Intl.NumberFormat('en', { maximumFractionDigits: 0 }).format(n);
-type Panel = 'worlds' | 'model' | 'compare' | 'data' | 'experiments' | 'insights' | 'budget' | 'history' | 'help' | 'scenario' | 'view' | 'rename' | 'search' | 'guide' | null;
+type Panel = 'worlds' | 'model' | 'compare' | 'data' | 'experiments' | 'insights' | 'budget' | 'history' | 'help' | 'scenario' | 'view' | 'rename' | 'search' | 'guide' | 'brief' | null;
 
 function focusChangedSince(origin: Element | null): boolean {
   const chosen = document.activeElement;
@@ -107,6 +111,9 @@ export default function App() {
   const [visualSeekEpoch, setVisualSeekEpoch] = useState(0);
   const [panel, setPanelState] = useState<Panel>(null);
   const [templateIntent, setTemplateIntent] = useState<'browse' | 'save'>('browse');
+  const [starterLoading, setStarterLoading] = useState(false), starterRequest = useRef(0), starterAbort = useRef<AbortController | null>(null);
+  const pendingEditsRef = useRef(pendingEdits); pendingEditsRef.current = pendingEdits;
+  useEffect(() => () => { starterRequest.current++; starterAbort.current?.abort(); }, []);
   const [dataInitialTab, setDataInitialTab] = useState<FileTab>('projects');
   const currentPanel = useRef<Panel>(null); const panelGeneration = useRef(0);
   const dialogOrigin = useRef<{ element: HTMLElement | null; panel: Exclude<Panel, null> } | null>(null);
@@ -208,6 +215,7 @@ export default function App() {
   }
 
   function setPanel(next: Panel, opener?: HTMLElement | null, keepExperimentContext = false) {
+    if (next !== currentPanel.current && starterAbort.current) { starterRequest.current++; starterAbort.current.abort(); starterAbort.current = null; setStarterLoading(false); }
     if (next === 'experiments' && !keepExperimentContext) setExperimentContext(null);
     if (next === currentPanel.current) return;
     // Pointer activation need not focus a button in WebKit. Retain the explicit
@@ -695,11 +703,30 @@ export default function App() {
     if (!acceptProject(next)) return false;
     setPanel(null); setLibraryTab('objects'); setBuildTrayOpen(!matchMedia('(max-width:740px)').matches); setObjectDetailsOpen(false); return true;
   }
-  function chooseStarter(template: StarterTemplate) {
-    if (pendingEdits) { setToast(tm.pending); return; }
-    const source = template === 'blank' ? createBlankProject(project.world) : template === 'workshop' ? createWorkshopFacility() : createExample(template);
-    const next = duplicateProject(source); next.name = source.name; useTemplateProject(next);
+  async function chooseStarter(template: StarterTemplate) {
+    if (pendingEditsRef.current) { setToast(tm.pending); return; }
+    starterAbort.current?.abort();
+    const controller = new AbortController(); starterAbort.current = controller;
+    const request = ++starterRequest.current, origin = live.current.project, surface = panelGeneration.current;
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    setStarterLoading(true);
+    try {
+      const next = template === 'blank' ? createBlankProject(origin.world) : await loadStarter(template, fetch, controller.signal);
+      if (request !== starterRequest.current || surface !== panelGeneration.current) return;
+      if (live.current.project.id !== origin.id || live.current.project.revision !== origin.revision || pendingEditsRef.current) { setToast(stm.superseded); return; }
+      useTemplateProject(next);
+    } catch (error) { if (request === starterRequest.current && surface === panelGeneration.current) { if (currentPanel.current === 'worlds') throw error; setToast(error instanceof Error ? error.message : stm.failed); } }
+    finally { clearTimeout(timeout); if (request === starterRequest.current) { starterAbort.current = null; setStarterLoading(false); } }
   }
+  function applyBriefScenario(id: string) {
+    facilityAction(() => {
+      if (pendingEditsRef.current || sim.running) throw new Error(tm.pending);
+      const next = restoreScenario(live.current.project, id);
+      if (!edit(next)) return;
+      setSelected(serviceNodes(next)[0]?.id ?? null); setPanel(null); setToast(stm.applied);
+    });
+  }
+
   function startProcess() {
     facilityAction(() => {
       if (pendingEdits) throw new Error(tm.pending);
@@ -746,24 +773,24 @@ export default function App() {
     if (target === 'steps') { openStepList(); return; }
     requestAnimationFrame(() => document.querySelector<HTMLElement>(target === 'download' ? '.studio-save' : '.studio-command-actions .studio-primary')?.focus());
   }
-  const panelTitle = (surface: Exclude<Panel, null>) => ({ worlds: m.chooseYourLittleWorld, compare: m.aBetterPlanStartsHere, model: m.insideYourModel, data: m.keepYourWorkShareYourFindings, experiments: m.runExperiments, insights: m.yourRunInDetail, budget: m.beforeYouCalculate, history: m.yourRecentActions, help: m.helpHeading, scenario: sx.scenario, view: sx.view, rename: sx.renameProject, search: sx.search, guide: sx.guide }[surface]);
+  const panelTitle = (surface: Exclude<Panel, null>) => ({ worlds: m.chooseYourLittleWorld, compare: m.aBetterPlanStartsHere, model: m.insideYourModel, data: m.keepYourWorkShareYourFindings, experiments: m.runExperiments, insights: m.yourRunInDetail, budget: m.beforeYouCalculate, history: m.yourRecentActions, help: m.helpHeading, scenario: sx.scenario, view: sx.view, rename: sx.renameProject, search: sx.search, guide: sx.guide, brief: stm.brief }[surface]);
   const draftSummary = layoutOnly ? tm.layoutMode : normalBudget ? sx.quickSummary(ease.duration(project.model.horizon), number(normalBudget.groups[0].arrivalsPerRun), normalBudget.groups[0].stochastic, project.model.resources.length) : sx.reviewInputs;
   return <NumericDraftProvider onPendingChange={setPendingEdits}><div className="app-shell studio-shell facility-studio">
     <header className="studio-header" inert={Boolean(panel)}>
       <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>{m.queueLab}<span className="studio-brand-dot">.</span></span></a>
       <div className="studio-project"><h1><button className="studio-project-name" data-panel-opener="rename" title={sx.renameProjectLabel(project.name)} aria-label={sx.renameProjectLabel(project.name)} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{sx.localProject}</span></div>
-      <label className="studio-world-picker"><span>{tm.title}</span><select aria-label={tm.title} value="" onChange={event => { const value = event.currentTarget.value; if (value === "browse" || value === "save") openTemplates(value === "save" ? "save" : "browse", event.currentTarget); else chooseStarter(value as StarterTemplate); }}><option value="" disabled>{tm.choose}</option><option value="blank">{tm.blank}</option><option value="workshop">{tm.workshop}</option><option value="factory">{m.factory}</option><option value="festival">{m.festival}</option><option value="service">{m.service}</option><option value="browse">{tm.browse}</option><option value="save">{tm.save}</option></select></label>
+      <label className="studio-world-picker"><span>{tm.title}</span><select aria-label={tm.title} value="" disabled={starterLoading} onChange={event => { const value = event.currentTarget.value; if (value === "browse" || value === "save") openTemplates(value === "save" ? "save" : "browse", event.currentTarget); else void chooseStarter(value as StarterTemplate); }}><option value="" disabled>{starterLoading ? stm.loading : tm.choose}</option><option value="blank">{tm.blank}</option>{starterTemplates.map(item => <option key={item.id} value={item.id}>{item.copy.title}</option>)}<option value="browse">{tm.browse}</option><option value="save">{tm.save}</option></select></label>
       <div className="studio-command-actions">
         <button data-panel-opener="data" className="studio-icon-button" title={m.openProject} aria-label={m.openProject} onClick={event => openFiles('projects', event.currentTarget)}><FileUp size={17} /></button>
         <button className="studio-save" aria-label={m.saveProject} onClick={downloadProject}><ArrowDownToLine size={16} /><span>{m.saveProject}</span></button>
         <button className="studio-icon-button ease-search-opener" data-panel-opener="search" aria-label={sx.search} title={sx.search} onClick={event => setPanel('search', event.currentTarget)}><Search size={17} /></button><span className="studio-command-divider" />
         <button data-panel-opener="compare" className="studio-button" aria-label={m.comparePlans} onClick={event => setPanel('compare', event.currentTarget)}><GitCompareArrows size={16} />{m.compareTool}</button>
-        <button className="studio-button ease-scenario-opener" data-panel-opener="scenario" aria-label={sx.scenario} onClick={event => setPanel('scenario', event.currentTarget)}><span>{sx.scenario}</span><small>{draftSummary}</small></button><button className="studio-button studio-primary" title={layoutOnly ? tm.processRequired : undefined} disabled={sim.running || hasErrors || pendingEdits || layoutOnly} onClick={event => { if (stale && baseline) void runAndCompare(event.currentTarget); else void compute(project); }}>{sim.running ? <LoaderCircle size={16} className="spin" /> : <Play size={15} fill="currentColor" />}{sim.running ? m.calculationProgress(Math.round(sim.progress * 100)) : stale && baseline ? m.runAndCompare : m.runSimulation}</button>
+        <button className="studio-button ease-scenario-opener" data-panel-opener="scenario" aria-label={sx.scenario} onClick={event => setPanel('scenario', event.currentTarget)}><span>{sx.scenario}</span><small>{draftSummary}</small></button><button className="studio-button studio-primary" title={layoutOnly ? tm.processRequired : undefined} disabled={sim.running || hasErrors || pendingEdits || layoutOnly || starterLoading} onClick={event => { if (stale && baseline) void runAndCompare(event.currentTarget); else void compute(project); }}>{sim.running ? <LoaderCircle size={16} className="spin" /> : <Play size={15} fill="currentColor" />}{sim.running ? m.calculationProgress(Math.round(sim.progress * 100)) : stale && baseline ? m.runAndCompare : m.runSimulation}</button>
       </div>
     </header>
     <FacilityWorkflow tab={libraryTab} open={buildTrayOpen} objects={project.facility?.objects.length ?? 0} steps={project.model.nodes.length} inert={Boolean(panel)} onBuild={(element, tab) => { chooseLibraryTab(tab); showBuildTray(element); }} onResults={element => setPanel('insights', element)} onTools={openTools} onView={element => setPanel('view', element)} />
     <div className="studio-body" inert={Boolean(panel)}>
-      <aside className="studio-library-dock" hidden={!buildTrayOpen}><BuildTray activeTab={libraryTab} onTabChange={chooseLibraryTab} key={project.id} onExample={() => openTemplates()} onSaveTemplate={() => openTemplates('save')} onStartProcess={startProcess} selectedObject={Boolean(project.facility?.objects.some(object => object.id === facilitySelection))} onReplace={asset => facilityAction(() => { if (facilitySelection) { edit(replaceFacilityAsset(live.current.project, facilitySelection, asset.id), fm.assetChanged); setBuildTrayOpen(false); } })} onNew={() => chooseStarter('blank')} project={project} onPlace={addLibraryAsset} onCell={addLibraryCell} selectedStep={Boolean(selectedStep)} onAppearance={asset => facilityAction(() => { if (selected) edit(setNodeAsset(live.current.project, selected, asset.id), fm.assetChanged); })} world={project.world} serviceCount={serviceNodes(project).length} insertionLabel={insertionAnchor(project)?.label} insertionId={insertionAnchor(project)?.id} followingLabel={project.model.nodes.find(node => node.id === insertionAnchor(project)?.next)?.label} insertionOptions={project.model.nodes.filter(node => 'next' in node).map(node => ({ id: node.id, label: node.label }))} onInsertionChange={id => setSelected(id)} disabled={hasErrors || revisionExhausted || sim.running} disabledReason={hasErrors ? m.repairYourModelFirst : revisionExhausted ? m.revisionLimitReached : sim.running ? m.addingWhileRunning : project.model.nodes.length >= 100 ? m.stepLimitReached : undefined} onAdd={addProcess} onClose={closeBuildTray} /></aside>
+      <aside className="studio-library-dock" hidden={!buildTrayOpen}><BuildTray activeTab={libraryTab} onTabChange={chooseLibraryTab} key={project.id} onExample={() => openTemplates()} onSaveTemplate={() => openTemplates('save')} onStartProcess={startProcess} selectedObject={Boolean(project.facility?.objects.some(object => object.id === facilitySelection))} onReplace={asset => facilityAction(() => { if (facilitySelection) { edit(replaceFacilityAsset(live.current.project, facilitySelection, asset.id), fm.assetChanged); setBuildTrayOpen(false); } })} onNew={() => void chooseStarter('blank')} project={project} onPlace={addLibraryAsset} onCell={addLibraryCell} selectedStep={Boolean(selectedStep)} onAppearance={asset => facilityAction(() => { if (selected) edit(setNodeAsset(live.current.project, selected, asset.id), fm.assetChanged); })} world={project.world} serviceCount={serviceNodes(project).length} insertionLabel={insertionAnchor(project)?.label} insertionId={insertionAnchor(project)?.id} followingLabel={project.model.nodes.find(node => node.id === insertionAnchor(project)?.next)?.label} insertionOptions={project.model.nodes.filter(node => 'next' in node).map(node => ({ id: node.id, label: node.label }))} onInsertionChange={id => setSelected(id)} disabled={hasErrors || revisionExhausted || sim.running} disabledReason={hasErrors ? m.repairYourModelFirst : revisionExhausted ? m.revisionLimitReached : sim.running ? m.addingWhileRunning : project.model.nodes.length >= 100 ? m.stepLimitReached : undefined} onAdd={addProcess} onClose={closeBuildTray} /></aside>
 
       <main className="main-shell studio-main">
         <CalculationStatus announcement={calculationStatus.announcement} active={!panel && calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />
@@ -778,7 +805,7 @@ export default function App() {
           {selection.ids.length > 1 && <div className="studio-selection-summary"><span>{m.selectionSummary(selection.ids.length, selectedStep?.label ?? m.step)}</span><button onClick={event => setPanel('model', event.currentTarget)}>{m.moveOrEditSelection}</button><button onClick={() => setSelected(null)}>{m.clearSelection}</button></div>}
           {linkFrom && selectedStep && <div className="ease-connect-review"><ConnectionPicker project={project} node={project.model.nodes.find(node => node.id === linkFrom) ?? selectedStep} onChange={(next,label) => { edit(next,label); setLinkFrom(null); setConnectionPreview(null); }} onPreview={to => setConnectionPreview(previous => to ? { owner: 'tool', from: linkFrom, to } : previous?.owner === 'tool' ? null : previous)} /></div>}
           <div className="scene-area studio-canvas">
-            <div className="quality-world-brief"><div><small>{libraryTab === 'objects' ? fm.canvasTitle : fm.processTitle}</small><p title={project.name}>{project.name}</p></div><button type="button" data-panel-opener="guide" onClick={event => { setGuideIndex(0); setPanel('guide', event.currentTarget); }}><CircleHelp size={14} />{sx.firstSteps}</button></div>
+            <div className="quality-world-brief"><div><small>{libraryTab === 'objects' ? fm.canvasTitle : fm.processTitle}</small><p title={project.name}>{project.name}</p></div><div className="world-brief-actions"><button type="button" data-panel-opener="brief" onClick={event => setPanel('brief', event.currentTarget)}><List size={14} />{stm.brief}</button><button type="button" data-panel-opener="guide" aria-label={sx.firstSteps} onClick={event => { setGuideIndex(0); setPanel('guide', event.currentTarget); }}><CircleHelp size={14} /><span>{sx.firstSteps}</span></button></div></div>
             <div className="facility-canvas-tools" role="toolbar" aria-label={fm.canvasTools}>
               <button type="button" title={fm.libraryToggle} aria-label={fm.libraryToggle} aria-pressed={buildTrayOpen} onClick={event => buildTrayOpen ? closeBuildTray() : showBuildTray(event.currentTarget)}><Box size={17} /></button>
               <span />
@@ -827,6 +854,7 @@ export default function App() {
     {panel && <div className="modal-backdrop" onClick={() => setPanel(null)}><section data-panel={panel} className={`modal ${panel === 'model' || panel === 'data' || panel === 'experiments' || panel === 'insights' || panel === 'worlds' ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">{m.modalEyebrow(m.modalSection(panel))}</span><h2 id="modal-title">{panelTitle(panel)}</h2></div><button className="icon-button" aria-label={m.closeDialog} onClick={() => setPanel(null)}><X size={20} /></button></div>
       <div key={panel} className="modal-body">
       <CalculationStatus announcement={calculationStatus.announcement} active={calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />{sim.error && <p role="alert" className="ease-error">{sim.error}</p>}
+      {panel === 'brief' && <ProjectBrief project={project} blocked={pendingEdits || sim.running || revisionExhausted} onApply={applyBriefScenario} onCompare={() => setPanel('compare')} />}
       {panel === 'scenario' && <ScenarioSettings project={project} onChange={edit} onBudget={() => setPanel('budget')} onInspect={id => { setPanel(null); editSceneNode(id); }} />}
       {panel === 'rename' && <ProjectRename key={project.id} project={project} onChange={edit} onDone={() => setPanel(null)} />}
       {panel === 'search' && <CommandSearch onCommand={navigateCommand} />}

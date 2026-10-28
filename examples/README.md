@@ -7,9 +7,11 @@ These are complete schema-v1 **Project** JSON files accepted by the browser's **
 | [factory.json](factory.json) | Machining → quality check → packing; a packing bottleneck and unlimited intermediate waiting buffers | 4207 / 3,600 s |
 | [festival.json](festival.json) | A visitor-arrival wave passes three checkpoints; the final waiting queue has 900 s patience | 4207 / 3,600 s |
 | [service.json](service.json) | Standard/priority requests share two specialists between two stages; scheduled shared capacity drops to one from 1,800–2,100 s | 4207 / 3,600 s |
-| [facility.json](facility.json) | The same Factory numerical process in an editable 57-object workshop and dispatch layout | 4207 / 3,600 s |
+| [facility.json](facility.json) | The same Factory numerical process in an updated 57-object facility, with two saved experiments | 4207 / 3,600 s |
 
 The three numerical reference fixtures keep a fixed project ID, fixed baseline-scenario ID and fixed `2026-10-20T00:00:00.000Z` fixture timestamp. Model IDs, source/stage sampling IDs, seed and duration settings come from `createExample`. Runtime-created examples use fresh document IDs; those do not affect simulation outcomes. The additional facility example has a fixed fixture ID and explicit attributed artwork references; it uses the Factory model and does not add numerical behavior.
+
+The [starter collection](../docs/TEMPLATES.md) provides twelve project files with complete facility layouts, including a distinct Workshop process. Regenerate those with `npm run templates:export`; `npm run examples:export` retains the original three numerical reference fixtures.
 
 ## Use a file
 
