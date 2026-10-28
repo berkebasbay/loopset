@@ -172,6 +172,23 @@ describe('facility presentation and process boundaries', () => {
     expect(() => alignInsertedProcess(project, inserted, { x: 5000, z: 5000 })).toThrow();
     expect(project).toEqual(before);
   });
+  it('snaps a process drop inside an expanded station band without losing the insertion', () => {
+    const project = createNewProject();
+    const service = project.model.nodes.find(node => node.kind === 'service')!;
+    if (service.kind !== 'service') throw new Error('Synthetic service missing');
+    service.servers = 2;
+    for (const node of project.model.nodes) project.layout[node.id] = { x: node.kind === 'sink' ? 10 : 0, z: node.kind === 'source' ? -8 : node.kind === 'queue' ? -4 : 0 };
+    const original = structuredClone(project);
+    const inserted = insertEquipment(project, asset, service.id, { seconds: 30, team: 'none' });
+    const aligned = alignInsertedProcess(project, inserted, { x: 0, z: 3 });
+    const actual = capacityLayout(aligned.project.model.nodes, sceneLayout(aligned.project)).positions[aligned.id];
+    // The occupied knot at model x=0 is centred at visual x=-1.8 here.
+    expect(aligned.snapped).toBe(true); expect(actual.x).toBeCloseTo(-1.8, 7); expect(actual.z).toBeCloseTo(3, 7);
+    expect(aligned.project.model).toEqual(inserted.project.model); expect(valid(aligned.project)).toEqual([]);
+    expect(project).toEqual(original);
+    for (const node of project.model.nodes) expect(aligned.project.layout[node.id]).toEqual(project.layout[node.id]);
+    expect(() => alignInsertedProcess(project, inserted, { x: NaN, z: 0 })).toThrow();
+  });
   it('keeps elevation and scenery in presentation while filling the bounded placement grid', () => {
     const original = createNewProject(); let project = setFacilityScenery(original, false);
     for (let i = 0; i < 500; i++) project = placeFacilityObject(project, asset).project;

@@ -19,6 +19,8 @@ async function fresh(width = 1440) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
   const page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
   await page.goto(origin.href); await ready(page);
+  // Use the original numerical fixture for these compatibility checks.
+  if (width > 740) { await page.locator('.studio-world-picker select').selectOption('factory'); await ready(page); }
   const pause = page.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click();
   return { context, page };
 }
@@ -31,7 +33,7 @@ async function openLibrary(page) {
   return page.locator('.facility-library');
 }
 async function search(page, query) {
-  const tray = await openLibrary(page); await tray.locator('.library-tabs').getByRole('button', { name: /^Objects/ }).click();
+  const tray = await openLibrary(page); await tray.locator('.library-tabs').getByRole('button', { name: '3D models', exact: true }).click();
   await tray.locator('.library-category select').selectOption(''); await tray.getByRole('searchbox', { name: 'Search equipment and objects', exact: true }).fill(query); return tray;
 }
 async function importProject(page, project) {
@@ -42,7 +44,7 @@ let currentPage;
 try {
   if (phase === 'all' || phase === 'showcase') {
     const { context, page } = await fresh(); currentPage = page;
-    const tray = await openLibrary(page); await tray.getByRole('button', { name: 'Example facility', exact: true }).click(); await ready(page);
+    const tray = await openLibrary(page); await tray.getByRole('button', { name: 'Workshop example', exact: true }).click(); await ready(page);
     await page.waitForFunction(() => document.querySelector('.world-scene')?.getAttribute('data-status') === 'ready');
     const project = await download(page, 'workshop-example.json'); assert.equal(project.facility.objects.length, 57); assert.equal(project.facility.scenery, false);
     await page.screenshot({ path: path.join(out, 'workshop-example.png') }); checks.push('One-click attributed workshop example opens, calculates and renders a complete editable facility'); await context.close();
@@ -56,6 +58,7 @@ try {
     await page.waitForFunction(() => document.querySelector('.world-scene')?.getAttribute('data-status') === 'ready');
     const tray = await search(page, 'Workbench standard');
     const tile = tray.getByRole('button', { name: 'Workbench standard · E01', exact: true }); await tile.click();
+    await tray.getByLabel('Use as', { exact: true }).selectOption('process');
     const snapshot = JSON.parse(await page.locator('.world-scene').getAttribute('data-camera'));
     const camera = new THREE.OrthographicCamera(snapshot.left, snapshot.right, snapshot.top, snapshot.bottom, .1, 3000);
     camera.position.fromArray(snapshot.position); camera.lookAt(new THREE.Vector3().fromArray(snapshot.target)); camera.zoom = snapshot.zoom; camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
@@ -74,7 +77,7 @@ try {
     const { context, page } = await fresh(390); currentPage = page;
     const tray = await search(page, 'Shelf basic'); await tray.getByRole('button', { name: 'Shelf basic · A01', exact: true }).click();
     await tray.getByRole('button', { name: 'Place object', exact: true }).click(); await page.getByRole('spinbutton', { name: 'Elevation', exact: true }).fill('1.2'); await page.getByRole('spinbutton', { name: 'Elevation', exact: true }).press('Enter');
-    const mobile = await download(page, 'mobile.json'); assert.equal(mobile.facility.objects[0].y, 1.2);
+    const mobile = await download(page, 'mobile.json'); assert.equal(mobile.facility.objects.at(-1).y, 1.2);
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Facility controls must not create horizontal page overflow.');
     await page.screenshot({ path: path.join(out, 'mobile.png'), fullPage: true }); checks.push('Narrow-screen catalogue, DOM placement and precise numeric elevation'); await context.close();
   }
@@ -90,6 +93,7 @@ try {
     await importProject(page, project);
     const tray = await search(page, 'Shelf basic'); await tray.getByRole('button', { name: 'Shelf basic · A01', exact: true }).click();
     assert(await tray.getByRole('button', { name: 'Place object', exact: true }).isEnabled());
+    await tray.locator('.library-options summary').click();
     assert(await tray.getByRole('button', { name: 'Use on selected step', exact: true }).isEnabled());
     await tray.getByRole('button', { name: 'Place object', exact: true }).click();
     const placed = await download(page, 'quota-visual.json'); assert.equal(placed.model.nodes.length, 100); assert.equal(placed.facility.objects.length, 1); assert.deepEqual(placed.model, project.model);
@@ -109,22 +113,22 @@ try {
   if (phase === 'all' || phase === 'guards') {
     const { context, page } = await fresh(); currentPage = page;
     await page.waitForFunction(() => document.querySelector('.world-scene')?.getAttribute('data-status') === 'ready');
-    await context.route('**/assets/facility/rack_bulk_storage_a03.glb', route => route.abort('failed'));
-    let tray = await search(page, 'Rack bulk storage'); await tray.getByRole('button', { name: 'Rack bulk storage · A03', exact: true }).click();
+    await context.route('**/assets/facility/water_cooler_a01.glb', route => route.abort('failed'));
+    let tray = await search(page, 'Water cooler'); await tray.getByRole('button', { name: 'Water cooler · A01', exact: true }).click();
     await tray.getByRole('button', { name: 'Place object', exact: true }).click();
     await page.waitForFunction(() => JSON.parse(document.querySelector('.world-scene').dataset.facility).failed === 1);
     const failed = await download(page, 'failed-art-preserved.json'); assert.equal(failed.facility.objects.length, 1);
     await page.getByRole('button', { name: 'Remove object', exact: true }).click();
     await page.waitForFunction(() => !document.querySelector('.scene-asset-warning'));
     assert.equal((await download(page, 'failed-art-removed.json')).facility.objects.length, 0);
-    await context.unroute('**/assets/facility/rack_bulk_storage_a03.glb');
+    await context.unroute('**/assets/facility/water_cooler_a01.glb');
     let release; const held = new Promise(resolve => { release = resolve; });
-    await context.route('**/assets/facility/rack_bulk_storage_a03.glb', async route => { await held; await route.continue(); });
-    tray = await search(page, 'Rack bulk storage'); await tray.getByRole('button', { name: 'Rack bulk storage · A03', exact: true }).click();
+    await context.route('**/assets/facility/water_cooler_a01.glb', async route => { await held; await route.continue(); });
+    tray = await search(page, 'Water cooler'); await tray.getByRole('button', { name: 'Water cooler · A01', exact: true }).click();
     await tray.getByRole('button', { name: 'Place object', exact: true }).click();
     await page.waitForFunction(() => JSON.parse(document.querySelector('.world-scene').dataset.facility).pending === 1);
     await page.getByRole('button', { name: 'Remove object', exact: true }).click();
-    const response = page.waitForResponse(response => response.url().endsWith('/rack_bulk_storage_a03.glb') && response.status() === 200);
+    const response = page.waitForResponse(response => response.url().endsWith('/water_cooler_a01.glb') && response.status() === 200);
     release(); await (await response).finished(); await page.waitForTimeout(1000);
     const after = await download(page, 'late-art-no-ghost.json'); assert.equal(after.facility.objects.length, 0);
     await page.screenshot({ path: path.join(out, 'late-art.png') }); checks.push('Failed artwork preserves data, removal clears warnings, delayed completion cannot recreate deleted objects'); await context.close();
