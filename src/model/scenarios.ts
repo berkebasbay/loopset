@@ -2,9 +2,9 @@ import { mutateProject } from './commands';
 import type { Project, ScenarioSnapshot } from './types';
 import { validateProject } from './validate';
 
-export type PresentationSnapshot = Pick<Project, 'world' | 'layout' | 'facility'>;
+export type PresentationSnapshot = Pick<Project, 'world' | 'layout' | 'facility' | 'workspaceMode'>;
 export function capturePresentation(project: PresentationSnapshot): PresentationSnapshot {
-  return structuredClone({ world: project.world, layout: project.layout, ...(project.facility ? { facility: project.facility } : {}) });
+  return structuredClone({ world: project.world, layout: project.layout, ...(project.facility ? { facility: project.facility } : {}), ...(project.workspaceMode ? { workspaceMode: project.workspaceMode } : {}) });
 }
 export function saveScenario(project: Project, name: string, model = project.model, presentation: PresentationSnapshot = project): Project {
   if (!name.trim() || name.trim().length > 80) throw new Error('Give the scenario a name of 1–80 characters.');
@@ -13,7 +13,7 @@ export function saveScenario(project: Project, name: string, model = project.mod
   const visual = capturePresentation(presentation);
   visual.layout = Object.fromEntries(Object.entries(visual.layout).filter(([id]) => nodeIds.has(id)));
   if (visual.facility) visual.facility.nodeAssets = Object.fromEntries(Object.entries(visual.facility.nodeAssets).filter(([id]) => nodeIds.has(id)));
-  const errors = validateProject({ ...project, ...visual, facility: visual.facility, model }).filter(i => i.severity === 'error');
+  const errors = validateProject({ ...project, ...visual, facility: visual.facility, workspaceMode: visual.workspaceMode, model }).filter(i => i.severity === 'error');
   if (errors.length) throw new Error(`Repair the model before saving a scenario: ${errors[0].message}`);
   const snapshot: ScenarioSnapshot = { id: `scenario-${crypto.randomUUID().slice(0, 8)}`, name: name.trim(), createdAt: new Date().toISOString(), ...visual, model: structuredClone(model) };
   const next = mutateProject(project, p => { p.scenarios = [...(p.scenarios ?? []), snapshot]; });
@@ -24,7 +24,7 @@ export function saveScenario(project: Project, name: string, model = project.mod
 export function restoreScenario(project: Project, id: string): Project {
   const scenario = project.scenarios?.find(s => s.id === id);
   if (!scenario) throw new Error('This saved scenario no longer exists.');
-  return mutateProject(project, p => { p.model = structuredClone(scenario.model); p.layout = structuredClone(scenario.layout); p.world = scenario.world; if (scenario.facility) p.facility = structuredClone(scenario.facility); else delete p.facility; });
+  return mutateProject(project, p => { p.model = structuredClone(scenario.model); p.layout = structuredClone(scenario.layout); p.world = scenario.world; if (scenario.facility) p.facility = structuredClone(scenario.facility); else delete p.facility; if (scenario.workspaceMode) p.workspaceMode = scenario.workspaceMode; else delete p.workspaceMode; });
 }
 
 export function removeScenario(project: Project, id: string): Project {

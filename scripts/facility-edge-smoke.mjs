@@ -44,7 +44,7 @@ let currentPage;
 try {
   if (phase === 'all' || phase === 'showcase') {
     const { context, page } = await fresh(); currentPage = page;
-    const tray = await openLibrary(page); await tray.getByRole('button', { name: 'Workshop example', exact: true }).click(); await ready(page);
+    const tray = await openLibrary(page); await tray.getByRole('button', { name: 'Templates', exact: true }).click(); await page.locator('.template-starter').filter({ has: page.getByRole('heading', { name: 'Workshop', exact: true }) }).click(); await ready(page);
     await page.waitForFunction(() => document.querySelector('.world-scene')?.getAttribute('data-status') === 'ready');
     const project = await download(page, 'workshop-example.json'); assert.equal(project.facility.objects.length, 57); assert.equal(project.facility.scenery, false);
     await page.screenshot({ path: path.join(out, 'workshop-example.png') }); checks.push('One-click attributed workshop example opens, calculates and renders a complete editable facility'); await context.close();

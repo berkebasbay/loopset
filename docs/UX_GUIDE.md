@@ -8,6 +8,12 @@ Start with a process question: which arrival rate, processing time, team or wait
 
 The team’s base availability is visible in Properties. Installed capacity, cost and shifts have their own disclosures. A capacity note explains when the base team cannot staff every parallel station; shared use and calendar overrides remain separate limits. Short duration readouts retain the exact editable value when focused.
 
+## Start from a template
+
+**Templates** keeps Workshop, Factory, Festival and Service alongside **Blank**, a site with no objects or process steps. The Asset library also offers **Empty site**. Place objects first; choose **Start a process** when ready to add a runnable flow.
+
+**Save as template** creates a named, independent snapshot. Open **My templates** to reuse, search, download, import or remove starting points. Reusing one creates a new project. Templates stay at the current browser/site address; download their JSON for backup or transfer.
+
 ## Find a setting
 
 Select an object in the world, or open **Steps** and search its name or type. Sources, queues, processing steps, routes, delays and exits all have DOM entries. Checkboxes support group selection; selecting a name opens that step's Properties.

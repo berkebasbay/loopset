@@ -6,9 +6,9 @@ The workspace follows **Build facility → Define process → Review results**. 
 - **Process cells** adds a connected waiting area and processing step with editable synthetic starting values.
 - **3D models** searches the prepared equipment, building, furniture, storage, container and accessory models.
 
-Choose **Empty site** for a small valid process on a clear site. Your previous project follows the normal save/recovery path. The three example worlds remain available through the world selector. **View → Show example surroundings** controls their decorative setting; it does not add numerical resources.
+Choose **Templates → Blank** or **Empty site** for zero objects and zero process steps. Arrange the site freely; **Start a process** adds arrivals, a waiting area, one processing step and an exit as one undoable edit, keeping placed objects and existing resource pools. The new processing step has no shared-team requirement until you assign one. Your previous project follows the normal save/recovery path. The three example worlds remain available under **Templates**. **View → Show example surroundings** controls their decorative setting; it does not add numerical resources.
 
-**Workshop example** opens Workshop and dispatch: the existing synthetic Factory process with an editable cutaway building, material racks, staging pallets, cartons and lighting. It is a starting layout to explore, not a calibrated business forecast. The portable version is [`examples/facility.json`](../examples/facility.json).
+**Templates → Workshop** opens Workshop and dispatch: the existing synthetic Factory process with an editable cutaway building, material racks, staging pallets, cartons and lighting. It is a starting layout to explore, not a calibrated business forecast. The portable version is [`examples/facility.json`](../examples/facility.json).
 
 ## Place and arrange objects
 
@@ -37,6 +37,12 @@ Drag/drop uses the actual camera and resulting process layout. Expanded station 
 Change a numerical input, choose **Run & compare**, and inspect input differences with the recorded outcomes. **Choose the next test** links observed waiting or a base-capacity mismatch to a setting worth inspecting. It does not establish causality or promise an improvement. **Repeat this comparison** examines variation using the existing experiment tools.
 
 Moving, resizing, replacing artwork or changing surroundings does not change numerical results. Durations, queues, resources, routing and calendars do. No forklift routing, accumulating conveyor, machine kinematics, assembly or physical transport behavior is inferred from a model's appearance.
+
+## Save reusable templates
+
+Choose **Save as template** in the Asset library or Templates menu, enter a name, then save. **My templates** supports search, use, download, import and removal. Templates capture the layout, process settings and saved scenarios; recorded run results are recalculated rather than stored as template output. Each use creates a separate project, so edits never change the saved starting point.
+
+The library is local to this browser and site address, with up to 50 templates and 50 MB of project JSON. It stores references to artwork, not copies of model binaries. Download JSON backups before clearing browser data or moving devices. Import reviews a valid project JSON before saving a template; it does not replace the open project. Removing a template keeps projects already created from it.
 
 ## Save and transfer the complete facility
 

@@ -55,6 +55,7 @@ export interface ScenarioSnapshot {
   id: string; name: string; createdAt: string; world: World;
   model: SimulationModel; layout: Record<string, Point>;
   facility?: FacilityLayout;
+  workspaceMode?: 'layout';
 }
 export interface Project {
   schemaVersion: typeof SCHEMA_VERSION; id: string; name: string; world: World;
@@ -62,6 +63,7 @@ export interface Project {
   description: string; savedAt?: string;
   scenarios?: ScenarioSnapshot[];
   facility?: FacilityLayout;
+  workspaceMode?: 'layout';
 }
 export interface ValidationIssue { path: string; message: string; severity: 'error' | 'warning' }
 export type EntityStatus = 'active' | 'completed' | 'balked' | 'reneged';

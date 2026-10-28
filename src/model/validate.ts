@@ -1,6 +1,7 @@
 import type { Project, SimulationModel, ValidationIssue } from './types';
 import { MAX_ARRIVALS_PER_HOUR, MAX_RUN_SECONDS, MAX_WAITING_PLACES } from './limits';
 import { validateFacility } from './facilityValidation';
+import { templateMessages } from '../ui/messages/templates';
 
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const facilityNodeIds = (model: unknown) => new Set<string>(object(model) && Array.isArray(model.nodes) ? model.nodes.filter(object).map(node => String(node.id)) : []);
@@ -13,6 +14,9 @@ const dense = (values: unknown[]) => {
 };
 
 export function validateModel(value: unknown): ValidationIssue[] {
+  return validateModelContent(value, false);
+}
+function validateModelContent(value: unknown, allowEmpty: boolean): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const error = (path: string, message: string) => issues.push({ path, message, severity: 'error' });
   if (!object(value)) return [{ path: 'model', message: 'The model must be an object.', severity: 'error' }];
@@ -23,7 +27,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
   if (!finite(m.seed) || !Number.isSafeInteger(m.seed)) error('seed', 'Seed must be a safe integer.');
   if (!finite(m.slaSeconds) || m.slaSeconds < 0) error('slaSeconds', 'The wait target must be a non-negative number of seconds.');
   if (typeof m.currency !== 'string' || !/^[A-Z]{3}$/.test(m.currency)) error('currency', 'Currency must be a three-letter code.');
-  if (!Array.isArray(m.nodes) || m.nodes.length < 2 || m.nodes.length > 100 || !dense(m.nodes)) {
+  if (!Array.isArray(m.nodes) || (m.nodes.length < 2 && !(allowEmpty && m.nodes.length === 0)) || m.nodes.length > 100 || !dense(m.nodes)) {
     error('nodes', 'A model needs 2–100 process nodes.'); return issues;
   }
   if (!Array.isArray(m.resources) || m.resources.length > 50 || !dense(m.resources)) { error('resources', 'Resources must be a list of at most 50 pools.'); return issues; }
@@ -132,7 +136,7 @@ export function validateModel(value: unknown): ValidationIssue[] {
     if (n.kind === 'queue' && nodes.get(String(n.next))?.kind !== 'service') error(`nodes.${key}.next`, 'A waiting queue must feed exactly one service station.');
     if (destinations.some(d => nodes.get(d)?.kind === 'source')) error(`nodes.${key}.next`, 'An arrival source cannot receive incoming work.');
   }
-  if (!sources || !sinks) error('nodes', 'Include at least one arrival source and one exit.');
+  if ((!sources || !sinks) && !(allowEmpty && m.nodes.length === 0)) error('nodes', 'Include at least one arrival source and one exit.');
   const serviceQueues = new Map<string, number>();
   for (const n of nodes.values()) if (n.kind === 'queue') serviceQueues.set(String(n.next), (serviceQueues.get(String(n.next)) ?? 0) + 1);
   for (const [key, count] of serviceQueues) if (count > 1) error(`nodes.${key}`, 'Use one waiting queue per service station; merge flows before that queue.');
@@ -156,9 +160,10 @@ export function validateModel(value: unknown): ValidationIssue[] {
 
 export function validateProject(value: unknown): ValidationIssue[] {
   if (!object(value)) return [{ path: 'project', message: 'Project must be an object.', severity: 'error' }];
-  const issues = validateModel(value.model);
+  const issues = validateModelContent(value.model, value.workspaceMode === 'layout');
   const error = (path: string, message: string) => issues.push({ path, message, severity: 'error' });
   if (value.schemaVersion !== 1) error('schemaVersion', 'This project version is not supported. Your current project has not been replaced.');
+  if (value.workspaceMode !== undefined && (value.workspaceMode !== 'layout' || !object(value.model) || !Array.isArray(value.model.nodes) || value.model.nodes.length !== 0)) error('workspaceMode', templateMessages.invalidMode);
   if (!id(value.id) || !text(value.name) || !['factory', 'festival', 'service'].includes(String(value.world))) error('project', 'Project identity, name or world is invalid.');
   if (!finite(value.revision) || !Number.isSafeInteger(value.revision) || value.revision < 0) error('revision', 'Invalid project revision.');
   if (typeof value.description !== 'string' || value.description.length > 5000) error('description', 'Description is too long or missing.');
@@ -174,7 +179,8 @@ export function validateProject(value: unknown): ValidationIssue[] {
         if (!object(scenario)) { error(at, 'Scenario must be an object.'); return; }
         if (!id(scenario.id) || seen.has(String(scenario.id)) || !text(scenario.name) || typeof scenario.createdAt !== 'string' || !Number.isFinite(Date.parse(scenario.createdAt)) || !['factory', 'festival', 'service'].includes(String(scenario.world))) error(at, 'Scenario identity, name, date or world is invalid.');
         seen.add(String(scenario.id));
-        issues.push(...validateModel(scenario.model).map(issue => ({ ...issue, path: `${at}.${issue.path}` })));
+        if (scenario.workspaceMode !== undefined && (scenario.workspaceMode !== 'layout' || !object(scenario.model) || !Array.isArray(scenario.model.nodes) || scenario.model.nodes.length !== 0)) error(`${at}.workspaceMode`, templateMessages.invalidMode);
+        issues.push(...validateModelContent(scenario.model, scenario.workspaceMode === 'layout').map(issue => ({ ...issue, path: `${at}.${issue.path}` })));
         if (!object(scenario.layout) || Object.keys(scenario.layout).length > 100) error(`${at}.layout`, 'Scenario positions are invalid.');
         else for (const [key, p] of Object.entries(scenario.layout)) if (!id(key) || !object(p) || !finite(p.x) || !finite(p.z) || Math.abs(p.x) > 100 || Math.abs(p.z) > 100) error(`${at}.layout.${key}`, 'Scenario position must be finite and within the workspace.');
         issues.push(...validateFacility(scenario.facility, facilityNodeIds(scenario.model), `${at}.facility`));

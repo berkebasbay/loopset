@@ -14,6 +14,7 @@ The portable unit is a UTF-8 JSON **Project**, not just a model. Complete, valid
 | `revision` | Nonnegative safe integer; advances when document content changes |
 | `model` | The engine's numerical contract |
 | `layout` | Node ID → `{ x, z }`, bounded presentation coordinates |
+| `workspaceMode` | Optional `layout` marks an explicitly empty process for facility design; numerical execution still requires a valid process |
 | `facility` | Optional presentation version `1`: independent objects, node artwork references and example-surroundings preference |
 | `savedAt` | Optional valid date string for a browser save |
 | `scenarios` | Optional list of up to 20 named model/layout/facility snapshots |
@@ -21,6 +22,8 @@ The portable unit is a UTF-8 JSON **Project**, not just a model. Complete, valid
 Models retain `id`, `name`, `nodes`, `resources`, `horizon`, `warmup`, `seed`, `slaSeconds` and a three-letter uppercase `currency` label. Time is in **seconds**, arrival rates are per **hour**, costs are per **unit-hour**. Changing a currency label does not convert prices.
 
 Use 2–100 process nodes, at most 50 resource pools and a horizon greater than 0 and at most 31,536,000 seconds (365 days). The Run & project editor accepts seconds, minutes, hours or days for run length; this display choice never changes the stored time unit. Warm-up must be nonnegative and less than the horizon. Seeds are safe integers. Node/pool/class/sampling identities use 1–64 ASCII letters, digits, underscores or hyphens and begin with a letter or digit; unsafe prototype-related names are rejected. Validation reports broken references, probability sums and possible zero-time loops rather than silently repairing them.
+
+A layout-only project has zero process nodes. Its scalar settings, resources and facility still pass normal validation. Adding process nodes removes the marker; deleting all nodes from an ordinary process remains an invalid numerical draft. Scenarios, history and project files preserve the marker. Older applications may reject this optional empty-layout extension; retain the original file.
 
 Project JSON is limited to 5,000,000 bytes. Imports validate UTF-8, structure, nesting and schema before applying a project. The CLI and public `parsePortableProject` are suitable file boundaries; lower-level `parseProject` performs JSON/schema checks only. There is no version migration or remote schema fetch.
 

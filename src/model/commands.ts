@@ -13,7 +13,9 @@ export function meanDuration(d: Distribution): number {
 
 export function mutateProject(project: Project, edit: (copy: Project) => void): Project {
   const revision = nextRevision(project);
-  const next = structuredClone(project); edit(next); next.revision = revision; delete next.savedAt; return next;
+  const next = structuredClone(project); edit(next);
+  if (next.workspaceMode === 'layout' && next.model.nodes.length > 0) delete next.workspaceMode;
+  next.revision = revision; delete next.savedAt; return next;
 }
 
 export function nextRevision(project: Pick<Project, 'revision'>): number {
