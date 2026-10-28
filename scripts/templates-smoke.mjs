@@ -52,7 +52,15 @@ try {
   await page.screenshot({ path: path.join(out, 'blank.png') });
   const tray = await library(page); await tray.getByRole('searchbox').fill('Dispensing system');
   const tile = tray.getByRole('button', { name: 'Dispensing system · C01', exact: true }); await tile.click();
-  const canvas = page.locator('.world-scene canvas'); await tile.dragTo(canvas, { targetPosition: await canvasDropPoint(canvas) }); await art(page);
+  const canvas = page.locator('.world-scene canvas');
+  // Drag the tile label with real pointer motion, avoiding the browser's native image-file drag.
+  const label = await tile.locator('.library-tile-label').boundingBox(), bounds = await canvas.boundingBox(), point = await canvasDropPoint(canvas);
+  assert(label && bounds);
+  await page.mouse.move(label.x + label.width / 2, label.y + label.height / 2); await page.mouse.down();
+  await page.mouse.move(label.x + label.width / 2 + 12, label.y + label.height / 2, { steps: 4 });
+  await page.mouse.move(bounds.x + point.x, bounds.y + point.y, { steps: 12 });
+  await page.mouse.move(bounds.x + point.x + 1, bounds.y + point.y, { steps: 2 }); await page.mouse.up();
+  await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).facility?.objects.length === 1); await art(page);
   const placed = await download(page, 'placed-layout.json'); assert.equal(placed.facility.objects.length, 1); assert.deepEqual(placed.model, blank.model);
   checks.push('Blank starts with no objects or process; native equipment drag changes only its layout');
 
