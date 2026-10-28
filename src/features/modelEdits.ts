@@ -32,12 +32,14 @@ export function renameNode(project: Project, from: string, to: string): Project 
       if (item.kind === 'route') for (const branch of item.branches) if (branch.to === from) branch.to = to;
     }
     if (Object.hasOwn(copy.layout, from)) { const point = copy.layout[from]; delete copy.layout[from]; copy.layout[to] = point; }
+    if (from !== to && copy.facility && Object.hasOwn(copy.facility.nodeAssets, from)) { copy.facility.nodeAssets[to] = copy.facility.nodeAssets[from]; delete copy.facility.nodeAssets[from]; }
   });
 }
 export function removeNode(project: Project, id: string, replacement: string): Project {
   if (replacement && (!project.model.nodes.some(n => n.id === replacement) || replacement === id)) throw new Error(m.chooseAnExistingReplacementStep);
   return mutateProject(project, copy => {
     copy.model.nodes = copy.model.nodes.filter(n => n.id !== id); delete copy.layout[id];
+    if (copy.facility) delete copy.facility.nodeAssets[id];
     for (const node of copy.model.nodes) {
       if ('next' in node && node.next === id) node.next = replacement;
       if (node.kind === 'route') for (const branch of node.branches) if (branch.to === id) branch.to = replacement;

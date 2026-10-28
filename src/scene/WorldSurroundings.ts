@@ -23,11 +23,12 @@ export class WorldSurroundings {
   private extent: Extent;
   private extentKey = '';
 
-  constructor(scene: THREE.Scene, world: World, extent: Extent, load: Load) {
+  constructor(scene: THREE.Scene, world: World, extent: Extent, load: Load, private readonly enabled = true) {
     this.extent = extent; this.world = world;
     this.root.name = `${world}-surroundings`;
     this.root.userData.scenery = true;
     this.root.add(this.back, this.side, this.annotations); scene.add(this.root);
+    if (!enabled) return;
     const add = (file: string, place: Part['place'], parent = this.root) => load(file, template => {
       const model = template.clone(true);
       const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3());
@@ -131,6 +132,7 @@ export class WorldSurroundings {
   }
 
   viewExtent() {
+    if (!this.enabled) return this.extent;
     const e = this.extent, extra = this.world === 'festival' ? 14 : this.world === 'factory' ? 10 : 8;
     const minX = e.minX - .4, maxX = e.maxX + extra, minZ = e.minZ - (this.world === 'festival' ? 3.4 : .7), maxZ = e.maxZ + 1;
     return { minX, maxX, minZ, maxZ, width: maxX - minX, depth: maxZ - minZ, x: (minX + maxX) / 2, z: (minZ + maxZ) / 2 };
@@ -180,6 +182,7 @@ export class WorldSurroundings {
   }
 
   update(extent: Extent, camera: THREE.Camera): boolean {
+    if (!this.enabled) { this.extent = extent; return false; }
     const key = [extent.minX, extent.maxX, extent.minZ, extent.maxZ].join(':');
     const changed = key !== this.extentKey;
     this.extent = extent;

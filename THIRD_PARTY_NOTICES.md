@@ -326,6 +326,12 @@ SOFTWARE.
 
 Application screenshots and world-preview images show the model adaptations credited above. Those underlying assets retain their recorded licences and attributions.
 
+## Facility library derivatives
+
+`public/assets/facility` (runtime `assets/facility`) contains browser adaptations of the [NVIDIA SimReady Assets dataset](https://huggingface.co/datasets/nvidia/simready-assets), creator NVIDIA, under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). This is separate from Loopset's MIT code. The complete licence is distributed as `public/assets/facility/LICENSE-CC-BY-4.0.txt` (runtime `assets/facility/LICENSE-CC-BY-4.0.txt`).
+
+`public/assets/facility/manifest.json` records each source ID/revision/link, input and output hashes, source dimensions and adaptations. New models compose source OpenUSD geometry into static GLB with a material-family PBR palette, meshopt compression and source-derived LOD with a 0.1% simplification error bound. Source physics, MDL and high-resolution textures are excluded. Source previews are resized for the library. Reused initial-world models retain their original attribution/manifests and source revisions. These licences and creator/source/adaptation references remain applicable to redistributed artwork and screenshots.
+
 ## Initial browser derivatives
 
 `public/assets/lod` (runtime `assets/lod`) contains source-derived NVIDIA CC-BY-4.0 and Quaternius CC0 browser adaptations. Original licences and author attributions above remain applicable. `public/assets/lod/manifest.json` records source/output hashes, bounds, simplification and codec changes; selected static geometry is simplified with a0.1% error bound, and characters retain Idle/Walk/Interact clips without mesh simplification. The original detailed models remain included. Allowlisted `.glb.gz` siblings decode byte-identically to their GLB source; they are transport files under the same respective licences.

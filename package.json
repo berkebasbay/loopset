@@ -1,6 +1,6 @@
 {
   "name": "queuelab",
-  "version": "1.0.0-rc.9",
+  "version": "1.0.0-rc.10",
   "private": true,
   "type": "module",
   "description": "A playable process and capacity simulation laboratory",
@@ -18,7 +18,11 @@
     "test:ux": "node scripts/ux-smoke.mjs",
     "setup:hooks": "node scripts/setup-hooks.mjs",
     "check:publication": "node scripts/check-publication.mjs",
-    "test:publication": "node --test tests/publication-guard.test.mjs"
+    "test:publication": "node --test tests/publication-guard.test.mjs",
+    "check:assets": "node scripts/check-facility-assets.mjs --complete",
+    "prepare:facility": "node scripts/prepare-facility-assets.mjs",
+    "test:facility": "node scripts/facility-smoke.mjs",
+    "test:catalogue": "node --test tests/facility-manifest.test.mjs"
   },
   "dependencies": {
     "lucide-react": "1.60.0",

@@ -57,15 +57,29 @@ function inspect(snapshots, messages) {
     if (type === 'blob' && !blobs.has(oid)) blobs.set(oid, file);
   }
   if (blobs.size) {
-    const output = git(['cat-file', '--batch'], `${[...blobs.keys()].join('\n')}\n`);
-    let offset = 0;
-    for (const [oid, file] of blobs) {
-      const end = output.indexOf(10, offset), [actual, type, size] = output.subarray(offset, end).toString().split(' ');
-      if (actual !== oid || type !== 'blob' || !/^\d+$/.test(size)) throw new Error('Could not verify Git object contents.');
-      offset = end + 1;
-      const body = output.subarray(offset, offset + Number(size)); offset += Number(size) + 1;
-      if (body.includes(0)) continue; // Images, models and films require separate visual/provenance review.
-      for (const [label, rule] of contentRules) if (rule.test(body.toString('utf8'))) findings.add(`${file}: ${label}`);
+    const ids = [...blobs.keys()];
+    const sizes = text(['cat-file', '--batch-check=%(objectname) %(objecttype) %(objectsize)'], `${ids.join('\n')}\n`).trim().split('\n');
+    const batches = []; let batch = [], batchBytes = 0;
+    for (let i = 0; i < ids.length; i++) {
+      const [oid, type, size] = sizes[i]?.split(' ') ?? [];
+      if (oid !== ids[i] || type !== 'blob' || !/^\d+$/.test(size)) throw new Error('Could not verify Git object sizes.');
+      const bytes = Number(size) + 128;
+      if (batch.length && batchBytes + bytes > 16 * 1024 * 1024) { batches.push(batch); batch = []; batchBytes = 0; }
+      batch.push(oid); batchBytes += bytes;
+    }
+    if (batch.length) batches.push(batch);
+    for (const batch of batches) {
+      const output = git(['cat-file', '--batch'], `${batch.join('\n')}\n`);
+      let offset = 0;
+      for (const oid of batch) {
+        const file = blobs.get(oid);
+        const end = output.indexOf(10, offset), [actual, type, size] = output.subarray(offset, end).toString().split(' ');
+        if (actual !== oid || type !== 'blob' || !/^\d+$/.test(size)) throw new Error('Could not verify Git object contents.');
+        offset = end + 1;
+        const body = output.subarray(offset, offset + Number(size)); offset += Number(size) + 1;
+        if (body.includes(0)) continue; // Images, models and films require separate visual/provenance review.
+        for (const [label, rule] of contentRules) if (rule.test(body.toString('utf8'))) findings.add(`${file}: ${label}`);
+      }
     }
   }
   for (const { id, body, kind = 'commit' } of messages) {

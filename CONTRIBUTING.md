@@ -57,6 +57,7 @@ Run checks appropriate to the change, then the integration checks before request
 
 ```sh
 npm run typecheck
+npm run check:assets
 npm test -- --maxWorkers=1
 npm run build
 npm run test:headless

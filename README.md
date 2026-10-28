@@ -68,6 +68,16 @@ Start with an example or create a small **New model**. Every example uses synthe
 
 The complete DOM model editor remains available under **Tools**. Command search, a short optional guide and keyboard alternatives support the same workspace.
 
+## Build your facility
+
+Open **Add step → Objects** to search the prepared NVIDIA asset library and drag equipment, shelves, building parts and containers into a facility. **New facility** starts on a clear site. Layout objects have position, elevation, rotation and scale controls; process cells add connected waiting and processing stages with explicit team settings. Models load when used, and repeated instances share geometry.
+
+Facilities and their saved scenarios travel in project JSON. Artwork and arrangement remain separate from numerical behavior; a machine model does not supply real processing measurements or physical transport rules. See the [facility guide](docs/FACILITY_GUIDE.md) for building, comparing and reopening a complete project.
+
+![Synthetic workshop and dispatch facility with editable NVIDIA racks, building parts and staging areas](docs/media/loopset-facility.png)
+
+Choose **Example facility** in the library to open this layout, or use its [portable project JSON](examples/facility.json).
+
 Use **How it works** in the world for the optional three-step guide. Common edits preserve distribution shapes, separate stations from teams, and keep calendar changes explicit.
 
 ## Use the engine without the interface

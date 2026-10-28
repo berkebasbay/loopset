@@ -42,15 +42,26 @@ export interface SimulationModel {
   horizon: number; warmup: number; seed: number; slaSeconds: number; currency: string;
 }
 export interface Point { x: number; z: number }
+export interface AssetReference { assetId: string; assetVersion: string; rotation: number; scale: number }
+export interface FacilityObject extends Point, AssetReference { id: string; name: string; y?: number }
+/** Presentation only: never part of the numerical model or its fingerprint. */
+export interface FacilityLayout {
+  version: 1;
+  objects: FacilityObject[];
+  nodeAssets: Record<string, AssetReference>;
+  scenery?: boolean;
+}
 export interface ScenarioSnapshot {
   id: string; name: string; createdAt: string; world: World;
   model: SimulationModel; layout: Record<string, Point>;
+  facility?: FacilityLayout;
 }
 export interface Project {
   schemaVersion: typeof SCHEMA_VERSION; id: string; name: string; world: World;
   model: SimulationModel; layout: Record<string, Point>; revision: number;
   description: string; savedAt?: string;
   scenarios?: ScenarioSnapshot[];
+  facility?: FacilityLayout;
 }
 export interface ValidationIssue { path: string; message: string; severity: 'error' | 'warning' }
 export type EntityStatus = 'active' | 'completed' | 'balked' | 'reneged';

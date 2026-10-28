@@ -17,6 +17,12 @@ Equipment is selected by its role and sampling identity, not by a renamed label 
 
 The pinned NVIDIA revision is `524747d9b5e1f21b5b18b56041788c01d745f1a1`. The selected packages declare **CC BY 4.0**. Their source URLs, original/output hashes, adaptations and licences are recorded in `public/assets/simready/manifest.json` and the accompanying licence file.
 
+## Facility library
+
+The broader prepared library is indexed in `public/assets/facility/manifest.json`, with source revision `c72b4dea0c5738abb1fb42c04b644b753cb975e7` for new derivatives. Reused initial-world models retain their individual original revision. Each available entry records its source, licence/adaptation provenance, input/output hashes, dimensions and thumbnail. Selection and technical exclusions are documented in the [catalogue guide](CATALOGUE.md).
+
+Users deliberately choose a model's role: a layout object, an appearance for an existing step, or an equipment-backed processing step. Processing time, concurrency, resource requirements and calendars come from the numerical model. Source physics and appearance never infer business parameters. The library loads selected local GLBs rather than requesting upstream USD packages at runtime.
+
 ## People, surroundings and lighting
 
 Normal-proportion people are by [Quaternius](https://quaternius.com/) under CC0; original source/archive revisions and animation adaptations are in `public/assets/characters/manifest.json`. The model's own Idle, Walk and Interact poses drive the bounded illustrations. Shared pools retain anonymous staff identities rather than duplicating employees at every stage.

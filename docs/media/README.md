@@ -7,3 +7,7 @@ The film shows the actual RC9 interface and calculations. In the synthetic Facto
 The MP4 is 1920×1080 at 30 fps, silent with English captions. The lighter animated preview is derived from the same real footage. Camera closeups are editorial crops; controls, inputs and results are not invented.
 
 Produced locally with [Hyperframes](https://github.com/heygen-com/hyperframes), with motion-direction guidance from [Cinetic](https://github.com/Leonxlnx/cinetic). The underlying art and fonts retain their own licences: see [third-party notices](../../THIRD_PARTY_NOTICES.md) and [asset provenance](../NVIDIA_ASSETS.md).
+
+## Facility screenshot
+
+`loopset-facility.png` captures the actual RC10 interface rendering the synthetic Workshop and dispatch example. It shows the unchanged Factory numerical process with 57 independently editable layout objects; the artwork does not establish real-world calibration. The source project is [`examples/facility.json`](../../examples/facility.json). NVIDIA CC BY 4.0 models, Quaternius/Poly Haven CC0 material and the existing font retain the creator/source/licence records linked above.

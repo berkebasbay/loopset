@@ -25,9 +25,11 @@ export function duplicateStep(project:Project,id:string,mode:'detached'|'after')
  const next=mutateProject(project,copy=>{
   const clone=(node:ModelNode)=>{const cloned=structuredClone(node);let prefix='';for(const character of node.label){if(prefix.length+character.length>154)break;prefix+=character;}cloned.id=uniqueIdentity(node.kind,copy.model.nodes.map(n=>n.id));cloned.samplingId=uniqueIdentity(`sample-${node.kind}`,copy.model.nodes.map(n=>n.samplingId));cloned.label=`${prefix} copy`;copy.model.nodes.push(cloned);const p=copy.layout[node.id]??{x:0,z:0};copy.layout[cloned.id]={x:p.x>94?p.x-4:p.x+4,z:p.z};return cloned;};
   const created=clone(original);createdId=created.id;
+  if(copy.facility?.nodeAssets[original.id])copy.facility.nodeAssets[created.id]=structuredClone(copy.facility.nodeAssets[original.id]);
   if(created.kind==='queue'&&original.kind==='queue'){
    const service=project.model.nodes.find(n=>n.id===original.next);if(service?.kind!=='service')throw new Error(m.missingQueueService);
    created.next=clone(service).id;
+   if(copy.facility?.nodeAssets[service.id])copy.facility.nodeAssets[created.next]=structuredClone(copy.facility.nodeAssets[service.id]);
   }
   if(mode==='after'&&'next'in created){const previous=copy.model.nodes.find(n=>n.id===id)!;if('next'in previous){created.next=previous.next;previous.next=created.id;}}
  });

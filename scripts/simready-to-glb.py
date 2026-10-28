@@ -22,7 +22,7 @@ cache = UsdGeom.XformCache()
 batches = {}
 mesh_count = 0
 triangle_count = 0
-lathe_textures = 'serviceTool_brake_lathe_a01' in source.parts
+lathe_textures = 'serviceTool_brake_lathe_a01' in source.parts and '--library' not in sys.argv
 tile_triangles = {}
 
 def axis(v):

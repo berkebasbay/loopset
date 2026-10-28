@@ -15,6 +15,8 @@ Open the address printed by Vite. Choose **Little Factory**, **Festival Gate** o
 
 The working surface has a world, a searchable **Steps** list, contextual **Properties**, and **Run simulation**. **Tools → Model editor** keeps the complete professional model available when you need it.
 
+For a custom facility, open **Add step → New facility**. Use **Process cells** for connected waiting/processing stages or **Objects** for searchable equipment and layout pieces. Placed objects can be moved, elevated, rotated, scaled and saved inside project JSON without changing numerical outcomes. Continue with the [facility guide](FACILITY_GUIDE.md).
+
 ## Try a capacity decision
 
 1. Open Little Factory and select **Packing** in the world or **Steps**.

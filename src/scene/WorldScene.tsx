@@ -21,6 +21,10 @@ import { WorldSurroundings } from './WorldSurroundings';
 import { placeLabel, type LabelRect } from './labelLayout';
 import { stepKindLabels } from '../ui/messages/labels';
 import { worldSceneMessages as m } from '../ui/messages/WorldScene';
+import { facilityMessages as fm } from '../ui/messages/facility';
+import { findLibraryAsset } from '../catalog/registry';
+import { LIBRARY_DRAG_TYPE, type LibraryDrop } from '../catalog/drag';
+import { FacilityLayer } from './FacilityLayer';
 import './workspaceScene.css';
 
 export { placeLabel } from './labelLayout';
@@ -33,6 +37,10 @@ interface Props {
   flow?: { walk: FlowWalk; cursor: number } | null;
   playing?: boolean; playbackSpeed?: number; replayUntil?: number; runKey?: string; seekEpoch?: number; result?: RunResult | null;
   onMoveStart?: () => void;
+  selectedFacilityId?: string | null;
+  onSelectFacility?: (id: string) => void;
+  onMoveFacility?: (id: string, point: Point) => void;
+  onDropAsset?: (payload: LibraryDrop, point: Point) => void;
 }
 type Disposable = { dispose(): void };
 type Lifetime = { renderer: THREE.WebGLRenderer; store: CatalogStore; dispose(): void };
@@ -64,7 +72,7 @@ export function WorldScene(props: Props) {
   const [failed, setFailed] = useState(false), [attempt, setAttempt] = useState(0);
   const retryAssets = useRef<() => void>(() => setAttempt(value => value + 1));
   const [contextFailed, setContextFailed] = useState(false);
-  const geometryKey = JSON.stringify([props.project.world, props.project.model.nodes.map(node => [node.id, node.kind, node.samplingId])]);
+  const geometryKey = JSON.stringify([props.project.world, props.project.model.nodes.map(node => [node.id, node.kind, node.samplingId]), props.project.facility?.nodeAssets, props.project.facility?.scenery]);
 
   useEffect(() => {
     const host = mount.current; if (!host) return;
@@ -129,10 +137,15 @@ export function WorldScene(props: Props) {
     let environmentTarget: THREE.WebGLRenderTarget | null = null;
     host.dataset.environment = 'analytic-lighting';
     const detailTemplates = new Map<string, THREE.Group>(), detailPending = new Set<string>(), detailFailures = new Set<string>();
-    type PlacedAsset = { definition: CatalogAsset; placement: AssetPlacement; lod?: THREE.Group; model?: THREE.Group; detail: boolean };
+    type PlacedAsset = { definition: Pick<CatalogAsset, 'file' | 'size' | 'turn' | 'metricScale'>; placement: Omit<AssetPlacement, 'asset'>; lod?: THREE.Group; model?: THREE.Group; detail: boolean };
     const foreground = new Map<string, PlacedAsset[]>();
     const visuals = new Map<string, VisualNode>(), pickables: THREE.Mesh[] = [], pickCenters = new Map<string, THREE.Mesh>();
     const preview = new Map<string, Point>(), pickedSources = new Set<string>();
+    const retainedURLs = new Set<string>();
+    const retainedModel = (url: string) => { if (retainedURLs.has(url)) return store.load(url); retainedURLs.add(url); return store.retain(url); };
+    const facilities = new FacilityLayer(scene, store, () => { renderer.shadowMap.needsUpdate = true; status(); requestRender(); }, () => setFailed(true));
+    let facilityExtentKey = '';
+    let facilityShadowRevision = -1;
     let hoveredId: string | null = null;
     let presentation = capacityLayout(props.project.model.nodes, sceneLayout(props.project));
     let layout = presentation.positions, extent = presentation.extent, topologyKey = '', currentConnection: number | null = null;
@@ -163,16 +176,18 @@ export function WorldScene(props: Props) {
     const pointFor = (id: string) => layout[id];
     const inspectionScale = () => Math.max(1, extent.width / 40, extent.depth / 28);
     function status() {
-      const errors = loadErrors + detailFailures.size;
-      host.dataset.pendingAssets = String(pending); host.dataset.assetErrors = String(errors);
-      host.dataset.status = pending ? 'loading' : errors ? 'partial' : 'ready';
+      const errors = loadErrors + detailFailures.size + facilities.stats().failed, remaining = pending + facilities.stats().pending;
+      const unavailable = errors > 0 || renderer.getContext().isContextLost();
+      setFailed(unavailable);
+      host.dataset.pendingAssets = String(remaining); host.dataset.assetErrors = String(errors);
+      host.dataset.status = remaining ? 'loading' : unavailable ? 'partial' : 'ready';
       host.dataset.catalogAssets = JSON.stringify([...pickedSources]);
-      loading.hidden = pending === 0; loading.textContent = `Loading equipment · ${pending} remaining`;
+      loading.hidden = remaining === 0; loading.textContent = `${fm.loading} · ${remaining}`;
     }
     function load(url: string, accept: (model: THREE.Group) => void) {
       url = initialBrowserAssetURL(url);
       pending++; status();
-      store.load(url).then(model => {
+      retainedModel(url).then(model => {
         if (!alive) return;
         pickedSources.add(url); accept(model); renderer.shadowMap.needsUpdate = true;
       }).catch(() => { if (alive) { loadErrors++; setFailed(true); } }).finally(() => {
@@ -182,7 +197,7 @@ export function WorldScene(props: Props) {
     function loadDetail(url: string) {
       if (detailPending.has(url) || detailTemplates.has(url) || detailFailures.has(url)) return;
       detailPending.add(url); pending++; status();
-      store.load(url).then(template => {
+      retainedModel(url).then(template => {
         if (!alive) return;
         detailTemplates.set(url, template); pickedSources.add(url);
       }).catch(() => { if (alive) { detailFailures.add(url); setFailed(true); } }).finally(() => {
@@ -207,7 +222,8 @@ export function WorldScene(props: Props) {
       });
     }
     retryAssets.current = () => {
-      if (loadErrors) { setAttempt(value => value + 1); return; }
+      facilities.retry();
+      if (loadErrors || renderer.getContext().isContextLost()) { setAttempt(value => value + 1); return; }
       detailFailures.clear(); if (environmentState === 'failed') environmentState = 'idle';
       setFailed(false); status(); requestRender();
     };
@@ -219,7 +235,7 @@ export function WorldScene(props: Props) {
       model.traverse(object => { if ((object as THREE.Mesh).isMesh) { const mesh = object as THREE.Mesh; mesh.castShadow = true; mesh.receiveShadow = true; } });
       return normalizer;
     }
-    const surroundings = own(new WorldSurroundings(scene, world, extent, load));
+    const surroundings = own(new WorldSurroundings(scene, world, extent, load, props.project.facility?.scenery !== false));
     function addProxy(group: THREE.Group, id: string) {
       group.updateWorldMatrix(true, true);
       const bounds = new THREE.Box3().setFromObject(group).applyMatrix4(group.matrixWorld.clone().invert());
@@ -339,11 +355,13 @@ export function WorldScene(props: Props) {
       label.addEventListener('pointerleave', () => { hoveredId = null; requestRender(); });
       labelLayer.appendChild(label);
       const visual: VisualNode = { group, art, copies: [art], label, name, badge, connector, pin, ring, loaded: false, count: -1, triangles: 0 }; visuals.set(node.id, visual);
+      const override = props.project.facility?.nodeAssets[node.id], library = override && findLibraryAsset(override.assetId);
       const placements = nodeCatalogAssets(world, node, services.findIndex(service => service.id === node.id));
-      const parts: PlacedAsset[] = placements.map(placement => ({ definition: CATALOG_ASSETS[placement.asset], placement, detail: false }));
+      const parts: PlacedAsset[] = override ? library && library.version === override.assetVersion ? [{ definition: { file: library.file, size: 3, metricScale: 1 }, placement: { turn: override.rotation * Math.PI / 180, scale: override.scale }, detail: false }] : [] : placements.map(placement => ({ definition: CATALOG_ASSETS[placement.asset], placement, detail: false }));
+      if (override && !parts.length) { loadErrors++; setFailed(true); }
       foreground.set(node.id, parts);
-      if (!placements.length) { addProxy(art, node.id); visual.loaded = true; }
-      if (node.kind === 'queue' && placements.length) { const zone = new THREE.Group(); art.add(zone); addProxy(zone, node.id); }
+      if (!parts.length) { addProxy(art, node.id); visual.loaded = true; }
+      if (node.kind === 'queue' && parts.length) { const zone = new THREE.Group(); art.add(zone); addProxy(zone, node.id); }
       for (const part of parts) {
         load(part.definition.file, template => {
           part.lod = template;
@@ -399,15 +417,29 @@ export function WorldScene(props: Props) {
       load('/assets/characters/casual-character.glb', template => { people.addVariant(0, template, 2.4); loadedVariants.add(0); });
       load('/assets/characters/visitor-female.glb', template => { people.addVariant(1, template, 2.4); loadedVariants.add(1); });
     }
+    function artHeight(project: Project) {
+      return Math.max(4.8, ...(project.facility?.objects ?? []).map(object => (object.y ?? 0) + (findLibraryAsset(object.assetId)?.dimensions[1] ?? 0) * object.scale), ...Object.values(project.facility?.nodeAssets ?? {}).map(reference => (findLibraryAsset(reference.assetId)?.dimensions[1] ?? 0) * reference.scale));
+    }
+    function facilityExtent(project: Project) {
+      const base = facilities.extent(presentation.extent, project.facility?.objects ?? []);
+      let padding = 0;
+      for (const reference of Object.values(project.facility?.nodeAssets ?? {})) {
+        const dimensions = findLibraryAsset(reference.assetId)?.dimensions;
+        const angle = reference.rotation * Math.PI / 180;
+        if (dimensions) padding = Math.max(padding, Math.max(Math.abs(Math.cos(angle)) * dimensions[0] + Math.abs(Math.sin(angle)) * dimensions[2], Math.abs(Math.sin(angle)) * dimensions[0] + Math.abs(Math.cos(angle)) * dimensions[2]) * reference.scale / 2 - 2.2);
+      }
+      return { minX: base.minX - padding, maxX: base.maxX + padding, minZ: base.minZ - padding, maxZ: base.maxZ + padding, width: base.width + padding * 2, depth: base.depth + padding * 2, x: base.x, z: base.z };
+    }
     function frameExtent(preserveDirection: boolean) {
-      presentation = capacityLayout(latest.current.project.model.nodes, sceneLayout(latest.current.project)); layout = presentation.positions; extent = presentation.extent;
+      presentation = capacityLayout(latest.current.project.model.nodes, sceneLayout(latest.current.project)); layout = presentation.positions; extent = facilityExtent(latest.current.project);
+      surroundings.update(extent, camera);
       const width = host.clientWidth, height = host.clientHeight; if (!width || !height) return;
       const framed = surroundings.viewExtent(), target = new THREE.Vector3(framed.x, .5, framed.z);
       const viewDirection = preserveDirection ? camera.position.clone().sub(controls.target).normalize() : direction;
-      const distance = Math.max(160, Math.hypot(framed.width, framed.depth) * 1.5);
+      const maxHeight = artHeight(latest.current.project), distance = Math.max(160, Math.hypot(framed.width, framed.depth) * 1.5, maxHeight * 2);
       controls.target.copy(target); camera.position.copy(target).addScaledVector(viewDirection, distance); camera.far = Math.max(3000, distance * 3); camera.lookAt(target); camera.updateMatrixWorld(true);
       const corners: THREE.Vector3[] = [];
-      for (const x of [framed.minX - 1.5, framed.maxX + 1.5]) for (const y of [-.2, 4.8]) for (const z of [framed.minZ - 1.5, framed.maxZ]) corners.push(new THREE.Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse));
+      for (const x of [framed.minX - 1.5, framed.maxX + 1.5]) for (const y of [-.2, maxHeight]) for (const z of [framed.minZ - 1.5, framed.maxZ]) corners.push(new THREE.Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse));
       const viewWidth = Math.max(...corners.map(p => p.x)) - Math.min(...corners.map(p => p.x));
       const viewHeight = Math.max(...corners.map(p => p.y)) - Math.min(...corners.map(p => p.y));
       const aspect = width / height, vertical = Math.max(viewHeight / .9, viewWidth / (aspect * .94));
@@ -435,6 +467,7 @@ export function WorldScene(props: Props) {
       camera.updateProjectionMatrix(); requestRender();
     }); resize.observe(host);
     const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    let facilityDown: { id: string; pointer: number; x: number; y: number; start: Point; origin: THREE.Vector3; point: Point; dragging: boolean; projectId: string; revision: number } | null = null;
     let down: { x: number; y: number; id: number; node: string | null; origin: THREE.Vector3; toggle: boolean; person: boolean; gesture: MoveGesture | null; ids: string[]; dragging: boolean } | null = null;
     function pickAt(x: number, y: number) {
       pointer.set(x, y); raycaster.setFromCamera(pointer, camera);
@@ -443,23 +476,36 @@ export function WorldScene(props: Props) {
         return true;
       });
       const person = people.pick(raycaster);
-      if (person && (!objectHit || person.distance < objectHit.distance)) return { id: person.person.nodeId, person: true };
-      return objectHit ? { id: objectHit.object.userData.nodeId as string, person: false } : null;
+      const facility = facilities.pick(raycaster);
+      if (facility && (!objectHit || facility.distance < objectHit.distance) && (!person || facility.distance < person.distance)) return { id: facility.id, person: false, facility: true };
+      if (person && (!objectHit || person.distance < objectHit.distance)) return { id: person.person.nodeId, person: true, facility: false };
+      return objectHit ? { id: objectHit.object.userData.nodeId as string, person: false, facility: false } : null;
     }
     function hit(event: PointerEvent) {
       const rect = canvas.getBoundingClientRect();
       return pickAt((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
     }
     function cancel() {
+      if (facilityDown) {
+        const finished = facilityDown; facilityDown = null; facilities.setPreview(finished.id, null);
+        if (canvas.hasPointerCapture(finished.pointer)) canvas.releasePointerCapture(finished.pointer);
+      }
       if (down && canvas.hasPointerCapture(down.id)) canvas.releasePointerCapture(down.id);
       down?.gesture?.cancel(); down = null; preview.clear(); controls.enabled = true; readout.hidden = true;
       delete host.dataset.movePreview; delete host.dataset.alignmentGuides; renderer.shadowMap.needsUpdate = true; requestRender();
     }
     cancelGesture.current = cancel;
     function pointerDown(event: PointerEvent) {
-      if (event.button !== 0 || down) return;
+      if (event.button !== 0 || down || facilityDown) return;
       const picked = hit(event), node = picked?.id ?? null, origin = new THREE.Vector3();
       if (!raycaster.ray.intersectPlane(ground, origin)) return;
+      if (picked?.facility) {
+        const object = latest.current.project.facility?.objects.find(object => object.id === picked.id);
+        if (!object) return;
+        facilityDown = { id: object.id, pointer: event.pointerId, x: event.clientX, y: event.clientY, start: { x: object.x, z: object.z }, point: { x: object.x, z: object.z }, origin, dragging: false, projectId: latest.current.project.id, revision: latest.current.project.revision };
+        if (latest.current.moving && latest.current.editable !== false) { controls.enabled = false; canvas.setPointerCapture(event.pointerId); }
+        return;
+      }
       const selected = latest.current.selectedIds ?? (latest.current.selected ? [latest.current.selected] : []);
       const ids = node ? selected.includes(node) ? [...selected] : [node] : [];
       down = { x: event.clientX, y: event.clientY, id: event.pointerId, node, origin, person: Boolean(picked?.person), toggle: event.shiftKey || event.ctrlKey || event.metaKey, gesture: null, ids, dragging: false };
@@ -467,6 +513,15 @@ export function WorldScene(props: Props) {
     }
     function pointerMove(event: PointerEvent) {
       const picked = hit(event); canvas.style.cursor = picked ? picked.person ? 'pointer' : latest.current.moving ? 'move' : 'pointer' : 'grab';
+      if (facilityDown?.pointer === event.pointerId) {
+        if (!latest.current.moving || latest.current.editable === false || Math.hypot(event.clientX - facilityDown.x, event.clientY - facilityDown.y) < 5) return;
+        const point = new THREE.Vector3(); if (!raycaster.ray.intersectPlane(ground, point)) return;
+        if (!facilityDown.dragging) { facilityDown.dragging = true; latest.current.onMoveStart?.(); latest.current.onSelectFacility?.(facilityDown.id); }
+        facilityDown.point = { x: Math.max(-100, Math.min(100, Math.round((facilityDown.start.x + point.x - facilityDown.origin.x) * 2) / 2)), z: Math.max(-100, Math.min(100, Math.round((facilityDown.start.z + point.z - facilityDown.origin.z) * 2) / 2)) };
+        facilities.setPreview(facilityDown.id, facilityDown.point);
+        readout.hidden = false; readout.textContent = `${fm.move}: ${facilityDown.point.x}, ${facilityDown.point.z}`;
+        renderer.shadowMap.needsUpdate = true; requestRender(); return;
+      }
       const hovered = picked && !picked.person ? picked.id : null;
       if (hovered !== hoveredId) { hoveredId = hovered; requestRender(); }
       if (!down || down.id !== event.pointerId || !down.node || down.person || down.toggle || !latest.current.moving || latest.current.editable === false) return;
@@ -485,20 +540,56 @@ export function WorldScene(props: Props) {
       host.dataset.alignmentGuides = JSON.stringify(next.guides); renderer.shadowMap.needsUpdate = true; requestRender();
     }
     function pointerUp(event: PointerEvent) {
+      if (facilityDown?.pointer === event.pointerId) {
+        if (facilityDown.dragging) pointerMove(event);
+        const finished = facilityDown, current = latest.current;
+        cancel();
+        if (finished.dragging && current.project.id === finished.projectId && current.project.revision === finished.revision) current.onMoveFacility?.(finished.id, finished.point);
+        else if (Math.hypot(event.clientX - finished.x, event.clientY - finished.y) < 5) current.onSelectFacility?.(finished.id);
+        return;
+      }
       if (!down || down.id !== event.pointerId) return;
       if (down.dragging) pointerMove(event);
       const finished = down, commit = finished.gesture?.finish();
       if (!finished.dragging && Math.hypot(event.clientX - finished.x, event.clientY - finished.y) < 5) latest.current.onSelect(finished.node, finished.toggle ? 'toggle' : latest.current.moving && finished.node && latest.current.selectedIds?.includes(finished.node) ? 'inspect' : 'single');
       cancel(); if (commit) latest.current.onMove?.(commit.ids, commit.delta);
     }
-    function key(event: KeyboardEvent) { if (event.key === 'Escape' && down?.dragging) { event.preventDefault(); event.stopPropagation(); cancel(); } }
+    function key(event: KeyboardEvent) { if (event.key === 'Escape' && (down?.dragging || facilityDown)) { event.preventDefault(); event.stopPropagation(); cancel(); } }
+    function dragOver(event: DragEvent) {
+      if (event.target instanceof Element && event.target.closest('.scene-camera-tools,.scene-asset-warning')) return;
+      if (latest.current.editable === false || !event.dataTransfer?.types.includes(LIBRARY_DRAG_TYPE)) return;
+      event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; canvas.classList.add('facility-drop-target');
+    }
+    function dragLeave(event?: DragEvent) { if (event?.relatedTarget instanceof Node && host.contains(event.relatedTarget)) return; canvas.classList.remove('facility-drop-target'); }
+    function drop(event: DragEvent) {
+      dragLeave();
+      if (event.target instanceof Element && event.target.closest('.scene-camera-tools,.scene-asset-warning')) return;
+      const text = event.dataTransfer?.getData(LIBRARY_DRAG_TYPE);
+      if (!text || text.length > 10_000 || latest.current.editable === false) return;
+      event.preventDefault();
+      try {
+        const payload = JSON.parse(text) as LibraryDrop;
+        if (!findLibraryAsset(payload.assetId) || payload.projectId !== latest.current.project.id || payload.revision !== latest.current.project.revision) return;
+        const rect = canvas.getBoundingClientRect(); pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1); raycaster.setFromCamera(pointer, camera);
+        const point = new THREE.Vector3(); if (!raycaster.ray.intersectPlane(ground, point)) return;
+        const position = { x: Math.round(point.x * 2) / 2, z: Math.round(point.z * 2) / 2 };
+        manualView = true;
+        latest.current.onDropAsset?.(payload, position);
+      } catch { /* Unrelated or malformed drag data never changes the project. */ }
+    }
     const focus = () => {
-      const p = pointFor(latest.current.selected ?? ''); if (!p) return;
+      const current = latest.current, object = current.project.facility?.objects.find(object => object.id === current.selectedFacilityId);
+      const p = object ?? pointFor(current.selected ?? ''); if (!p) return;
       manualView = true;
       const horizontal = camera.right - camera.left, vertical = camera.top - camera.bottom;
       camera.left = -horizontal / 2; camera.right = horizontal / 2; camera.top = vertical / 2; camera.bottom = -vertical / 2;
-      const target = new THREE.Vector3(p.x, .8, p.z), delta = target.clone().sub(controls.target);
-      controls.target.copy(target); camera.position.add(delta); camera.zoom = 2 * inspectionScale(); camera.updateProjectionMatrix(); controls.update(); requestRender();
+      const asset = object && findLibraryAsset(object.assetId);
+      const y = object ? (object.y ?? 0) + (asset?.dimensions[1] ?? 1) * object.scale / 2 : .8;
+      const target = new THREE.Vector3(p.x, y, p.z), delta = target.clone().sub(controls.target);
+      controls.target.copy(target); camera.position.add(delta);
+      if (object) controls.maxZoom = 200 * inspectionScale();
+      camera.zoom = object ? Math.max(.65, Math.min(200 * inspectionScale(), Math.min(horizontal, vertical) / Math.max(.3, Math.max(...(asset?.dimensions ?? [1, 1, 1])) * object.scale * 1.7))) : 2 * inspectionScale();
+      camera.updateProjectionMatrix(); controls.update(); requestRender();
     };
     const zoom = (event: Event) => { const factor = (event as CustomEvent).detail; if (factor !== 1.25 && factor !== .8) return; manualView = true; camera.zoom = Math.max(.65, Math.min(controls.maxZoom, camera.zoom * factor)); camera.updateProjectionMatrix(); controls.update(); requestRender(); };
     const connection = (event: Event) => {
@@ -639,9 +730,13 @@ export function WorldScene(props: Props) {
     const viewEnded = () => { gestureView = null; };
     controls.addEventListener('start', viewStarted); controls.addEventListener('change', viewChanged); controls.addEventListener('end', viewEnded);
     canvas.addEventListener('pointerdown', pointerDown); canvas.addEventListener('pointermove', pointerMove); canvas.addEventListener('pointerup', pointerUp); canvas.addEventListener('pointercancel', cancel);
-    const lostCapture = () => { if (down) cancel(); };
+    host.addEventListener('dragover', dragOver); host.addEventListener('dragleave', dragLeave); host.addEventListener('drop', drop);
+    const lostCapture = () => { if (down || facilityDown) cancel(); };
+    const contextLost = () => { setContextFailed(true); setFailed(true); requestRender(); };
+    const contextRestored = () => { setContextFailed(false); status(); requestRender(); };
     const pointerLeave = () => { if (hoveredId) { hoveredId = null; requestRender(); } };
     canvas.addEventListener('lostpointercapture', lostCapture); canvas.addEventListener('pointerleave', pointerLeave);
+    canvas.addEventListener('webglcontextlost', contextLost); canvas.addEventListener('webglcontextrestored', contextRestored);
     host.addEventListener('queuelab:fit', fit); host.addEventListener('queuelab:focus', focus); host.addEventListener('queuelab:zoom', zoom); host.addEventListener('queuelab:cancel-move', cancel); host.addEventListener('queuelab:show-connection', connection);
     document.addEventListener('keydown', key, true); document.addEventListener('visibilitychange', visible);
 
@@ -674,8 +769,14 @@ export function WorldScene(props: Props) {
       scheduled = 0; if (!alive) return;
       const started = performance.now(), current = latest.current;
       const candidateLayout = { ...sceneLayout(current.project), ...Object.fromEntries(preview) };
-      presentation = capacityLayout(current.project.model.nodes, candidateLayout); layout = presentation.positions; extent = presentation.extent;
-      controls.maxZoom = 6 * inspectionScale();
+      presentation = capacityLayout(current.project.model.nodes, candidateLayout); layout = presentation.positions;
+      facilities.sync(current.project.facility?.objects ?? [], current.selectedFacilityId ?? null);
+      if (facilities.stats().revision !== facilityShadowRevision) { facilityShadowRevision = facilities.stats().revision; renderer.shadowMap.needsUpdate = true; }
+      extent = facilityExtent(current.project);
+      const nextFacilityExtent = `${extent.minX}:${extent.maxX}:${extent.minZ}:${extent.maxZ}:${artHeight(current.project)}`;
+      if (nextFacilityExtent !== facilityExtentKey) { const changed = facilityExtentKey !== ''; facilityExtentKey = nextFacilityExtent; if (changed && !manualView && !facilityDown && !down?.dragging) frameExtent(false); }
+      host.dataset.facility = JSON.stringify(facilities.stats()); host.dataset.assetCache = JSON.stringify(store.stats()); status();
+      controls.maxZoom = (current.selectedFacilityId ? 200 : 6) * inspectionScale();
       const nextCapacityKey = JSON.stringify(current.project.model.nodes.map(node => [node.id, stationCopies(node)]));
       if (nextCapacityKey !== capacityKey) { capacityKey = nextCapacityKey; surroundings.update(extent, camera); if (!manualView) frameExtent(true); }
       canvas.setAttribute('aria-label', m.interactiveWorldLabel(current.project.name));
@@ -684,7 +785,7 @@ export function WorldScene(props: Props) {
       const detailPoint = current.selected ? pointFor(current.selected) : undefined;
       const detailProjection = detailPoint ? new THREE.Vector3(detailPoint.x, 1, detailPoint.z).project(camera) : null;
       const detail = Boolean(current.selected && foreground.get(current.selected)?.length && detailProjection && Math.abs(detailProjection.x) <= 1.2 && Math.abs(detailProjection.y) <= 1.2) && isDetailInspection(camera.zoom, current.quality);
-      if (detail) loadEnvironment();
+      if (detail || (current.project.facility?.objects.length ?? 0) > 0 && current.quality !== 'low') loadEnvironment();
       scene.environment = environmentTarget?.texture ?? null;
       scene.environmentIntensity = .5;
       host.dataset.environment = scene.environment ? 'Poly Haven Studio Small 09 / CC0' : 'analytic-lighting';
@@ -868,7 +969,7 @@ export function WorldScene(props: Props) {
       // An occluded proxy center is not a usable pointer-drag starting point.
       const nextPickPointsKey = JSON.stringify([camera.matrixWorld.elements, camera.projectionMatrix.elements, hostRect.left, hostRect.top, hostRect.width, hostRect.height, labelPlacementKey,
         [...pickCenters].map(([id, proxy]) => [id, proxy.uuid, proxy.matrixWorld.elements, (proxy as THREE.InstancedMesh).count ?? 1]),
-        [...loadedVariants], motion.people.map(person => [person.id, person.nodeId, person.variant, person.position, person.heading]), loading.hidden, loading.textContent, loadErrors, detailFailures.size, overlayVersion, movingOverlayInView ? renderCount : 0]);
+        facilities.stats().revision, current.selectedFacilityId, [...loadedVariants], motion.people.map(person => [person.id, person.nodeId, person.variant, person.position, person.heading]), loading.hidden, loading.textContent, loadErrors, detailFailures.size, overlayVersion, movingOverlayInView ? renderCount : 0]);
       if (nextPickPointsKey !== pickPointsKey) {
       pickPointsKey = nextPickPointsKey;
       host.dataset.pickPoints = JSON.stringify(current.project.model.nodes.map(node => {
@@ -922,13 +1023,17 @@ export function WorldScene(props: Props) {
       window.removeEventListener('scroll', viewportMoved, true); window.removeEventListener('resize', viewportMoved); document.fonts.removeEventListener('loadingdone', fontChanged);
       document.removeEventListener('toggle', viewportMoved, true); document.removeEventListener('beforetoggle', viewportMoved, true);
       canvas.removeEventListener('pointerdown', pointerDown); canvas.removeEventListener('pointermove', pointerMove); canvas.removeEventListener('pointerup', pointerUp); canvas.removeEventListener('pointercancel', cancel); canvas.removeEventListener('lostpointercapture', lostCapture); canvas.removeEventListener('pointerleave', pointerLeave);
+      canvas.removeEventListener('webglcontextlost', contextLost); canvas.removeEventListener('webglcontextrestored', contextRestored);
+      host.removeEventListener('dragover', dragOver); host.removeEventListener('dragleave', dragLeave); host.removeEventListener('drop', drop);
       host.removeEventListener('queuelab:fit', fit); host.removeEventListener('queuelab:focus', focus); host.removeEventListener('queuelab:zoom', zoom); host.removeEventListener('queuelab:cancel-move', cancel); host.removeEventListener('queuelab:show-connection', connection);
       cleanups.forEach(cleanup => cleanup()); edgeOwned.forEach(resource => resource.dispose()); resources.forEach(resource => resource.dispose());
-      people.dispose(); peopleMotion.clear(); scene.clear(); renderer.renderLists.dispose(); connectorLayer.remove(); labelLayer.remove(); readout.remove(); loading.remove(); host.dataset.renderPending = 'false';
+      facilities.dispose(); people.dispose(); peopleMotion.clear(); scene.clear();
+      for (const url of retainedURLs) store.release(url);
+      renderer.renderLists.dispose(); connectorLayer.remove(); labelLayer.remove(); readout.remove(); loading.remove(); host.dataset.renderPending = 'false';
     };
   }, [geometryKey, props.quality, props.resetKey, attempt]);
   useEffect(() => { fitProject.current(props.project.id); }, [props.project.id]);
-  useEffect(() => { invalidate.current(); }, [props.project, props.frame, props.selected, props.selectedIds, props.moving, props.flow, props.reducedMotion, props.playing, props.seekEpoch, props.runKey]);
+  useEffect(() => { invalidate.current(); }, [props.project, props.frame, props.selected, props.selectedIds, props.selectedFacilityId, props.moving, props.flow, props.reducedMotion, props.playing, props.seekEpoch, props.runKey]);
   useEffect(() => { cancelGesture.current(); }, [props.project.id, props.project.revision, props.moving]);
   return <div ref={mount} className={`world-scene catalog-world ${props.moving ? 'is-moving' : ''}`} data-testid="world-scene">
     <div className="scene-camera-tools" role="group" aria-label={m.worldCamera}><button aria-label={m.zoomIn} onClick={() => mount.current?.dispatchEvent(new CustomEvent('queuelab:zoom', { detail: 1.25 }))}><Plus size={17} /></button><button aria-label={m.zoomOut} onClick={() => mount.current?.dispatchEvent(new CustomEvent('queuelab:zoom', { detail: .8 }))}><Minus size={17} /></button><button aria-label={m.showWholeWorld} onClick={() => mount.current?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={17} /></button></div>

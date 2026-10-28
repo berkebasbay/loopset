@@ -26,6 +26,17 @@ test('allows public code, documentation, example environment and binary art', t 
   f.commit('Add public examples'); assert.equal(f.run().status, 0);
 });
 
+test('checks a catalogue larger than the subprocess buffer and still scans trailing text', t => {
+  const f = fixture(t), bytes = Buffer.alloc(16 * 1024 * 1024);
+  for (let i = 0; i < 17; i++) { bytes[0] = i + 1; f.write(`public/model-${i}.glb`, bytes); }
+  f.write('zz-source.ts', 'export const ready = true;');
+  f.git('add', '.');
+  const clean = f.run(['--staged']); assert.equal(clean.status, 0, clean.stderr);
+  const fake = 'gh' + 'p_' + 'A'.repeat(36); f.write('zz-source.ts', `export const value = '${fake}';`); f.git('add', '.');
+  const blocked = f.run(['--staged']); assert.equal(blocked.status, 1); assert.match(blocked.stderr, /zz-source\.ts: GitHub credential/);
+  assert(!blocked.stderr.includes(fake));
+});
+
 test('blocks force-staged private data even when ignored', t => {
   const f = fixture(t); f.write('.gitignore', '.private/'); f.write('.private/project.json', '{}'); f.write('AGENTS.override.md', 'Synthetic local instructions'); f.git('add', '-f', '.');
   const result = f.run(['--staged']); assert.equal(result.status, 1); assert.match(result.stderr, /private\/project.json/); assert.match(result.stderr, /AGENTS\.override\.md/);
