@@ -8,6 +8,8 @@ The current miniature worlds use the sourced model adaptations listed below. Lin
 
 React, React DOM, scheduler and Three.js use the MIT license. Lucide uses ISC and retains MIT notices for icons derived from Feather. Their installed license texts are reproduced below. The headless engine bundle contains Loopset code and no third-party runtime dependency.
 
+The demonstration film is rendered with HyperFrames and GSAP; these production tools are not added to the application runtime. Its motion and synthesized score use [Cinetic](https://github.com/Leonxlnx/cinetic) (MIT, copyright 2026 Leonxlnx), and its generated effects and audio analysis use [Earshot](https://github.com/Leonxlnx/earshot) (MIT, copyright 2026 Leon Lin). Their reference-film footage and audio are not included. The film uses the same DM Sans font, Lucide-derived cube mark and attributed facility artwork as the product. See the [media notes](docs/media/README.md) for the recording and editing scope.
+
 ## Installed npm package inventory
 
 `Runtime` is the lockfile's non-dev dependency graph, which can include type-only packages. Development dependencies are not part of the headless bundle. The native Rolldown binding declares MIT in its installed package metadata; its package has no separate license file, so retain the parent Rolldown notices when redistributing that tooling.
