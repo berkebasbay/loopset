@@ -137,6 +137,8 @@ export const appMessages = {
   editProcess: "Edit process",
   yourWorldStaysOnYourDevice: "Your world stays on your device",
   aLittleGuidance: "A little guidance",
+  watchDemos: "Watch the video demos",
+  watchDemosNewTab: "Watch the video demos (opens in a new tab)",
   freeOpenSource: "FREE & OPEN SOURCE ",
   earlyBuild: "RC14",
   syntheticExample: "SYNTHETIC EXAMPLE",

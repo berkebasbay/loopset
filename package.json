@@ -25,6 +25,8 @@
     "test:catalogue": "node --test tests/facility-manifest.test.mjs",
     "templates:export": "node scripts/export-starters.mjs",
     "check:templates": "node scripts/export-starters.mjs --check",
+    "demos:export": "node scripts/export-watch-page.mjs",
+    "check:demos": "node scripts/export-watch-page.mjs --check",
     "test:templates": "node scripts/starter-collection-smoke.mjs"
   },
   "dependencies": {

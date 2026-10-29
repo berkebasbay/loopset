@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="{{language}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{pageTitle}}</title>
+  <meta name="description" content="{{description}}">
+  <link rel="canonical" href="https://berkebasbay.github.io/loopset/watch/">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <meta property="og:title" content="{{socialTitle}}">
+  <meta property="og:description" content="{{socialDescription}}">
+  <meta property="og:image" content="https://berkebasbay.github.io/loopset/media/loopset-demo.jpg">
+  <meta property="og:url" content="https://berkebasbay.github.io/loopset/watch/">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="watch.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">{{skipVideos}}</a>
+  <header class="site-header">
+    <a class="brand" href="../"><img src="../favicon.svg" width="32" height="32" alt="">{{brand}}</a>
+    <nav aria-label="{{mainNavigation}}"><a href="https://github.com/berkebasbay/loopset">{{github}}</a><a class="button" href="../">{{openApp}} <span aria-hidden="true">↗</span></a></nav>
+  </header>
+  <main id="main">
+    <div class="intro"><p class="eyebrow">{{eyebrow}}</p><h1>{{headingFirst}}<br>{{headingSecond}}</h1><p>{{intro}}</p><nav class="video-nav" aria-label="{{videoNavigation}}"><a href="#short">{{shortNav}} <span aria-hidden="true">↓</span></a><a href="#full">{{fullNav}} <span aria-hidden="true">↓</span></a></nav></div>
+    <section id="short" aria-labelledby="short-title">
+      <div class="section-heading"><div><p class="eyebrow">{{shortEyebrow}}</p><h2 id="short-title">{{shortTitle}}</h2></div><span class="duration">{{shortDuration}}</span></div>
+      <video controls playsinline preload="none" poster="../media/loopset-demo-short.jpg" aria-label="{{shortVideoLabel}}">
+        <source src="../media/loopset-demo-short.mp4" type="video/mp4">
+        <track kind="captions" src="../media/loopset-demo-short.vtt" srclang="{{language}}" label="{{captionLabel}}">
+        <p><a href="../media/loopset-demo-short.mp4">{{shortFallback}}</a>.</p>
+      </video>
+      <div class="video-footer"><p>{{shortSummary}}</p><a href="../media/loopset-demo-short.mp4" download>{{download}}</a></div>
+    </section>
+    <section id="full" aria-labelledby="full-title">
+      <div class="section-heading"><div><p class="eyebrow">{{fullEyebrow}}</p><h2 id="full-title">{{fullTitle}}</h2></div><span class="duration">{{fullDuration}}</span></div>
+      <video controls playsinline preload="none" poster="../media/loopset-demo.jpg" aria-label="{{fullVideoLabel}}">
+        <source src="../media/loopset-demo.mp4" type="video/mp4">
+        <track kind="captions" src="../media/loopset-demo.vtt" srclang="{{language}}" label="{{captionLabel}}">
+        <p><a href="../media/loopset-demo.mp4">{{fullFallback}}</a>.</p>
+      </video>
+      <div class="video-footer"><p>{{fullSummary}}</p><a href="../media/loopset-demo.mp4" download>{{download}}</a></div>
+    </section>
+    <details class="transcript"><summary>{{transcriptTitle}}</summary><ol><li>{{stepQuestion}}</li><li>{{stepTemplates}}</li><li>{{stepBuild}}</li><li>{{stepEdit}}</li><li>{{stepResults}}</li><li>{{stepReuse}}</li></ol></details>
+    <div class="closing"><div><h2>{{closingTitle}}</h2><p>{{closingSummary}}</p></div><a class="button" href="../">{{startExploring}} <span aria-hidden="true">↗</span></a></div>
+  </main>
+  <footer><p>{{license}}</p><p><a href="https://github.com/berkebasbay/loopset/blob/main/docs/media/README.md">{{credits}}</a> · {{music}}</p></footer>
+</body>
+</html>

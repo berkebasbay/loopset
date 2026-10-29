@@ -15,6 +15,8 @@ npm run test:headless
 npm run preview
 ```
 
+The English video tour and walkthrough are served at `watch/`; their MP4, poster and caption files live under `media/`. Video loading is user-initiated. Hosts must serve MP4 as `video/mp4` and WebVTT as `text/vtt`, and allow same-origin media playback.
+
 `dist/` is the complete static application. Simulations run in the browser; no account, paid API, application backend or database server is required. To serve the built files on loopback:
 
 ```sh
@@ -28,7 +30,7 @@ Serve over HTTPS with correct JavaScript worker, font, image and model MIME type
 An illustrative production header policy is:
 
 ```text
-Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
 X-Content-Type-Options: nosniff
 Referrer-Policy: no-referrer
 Permissions-Policy: camera=(), microphone=(), geolocation=()
