@@ -23,3 +23,7 @@ Stock music and effects are incorporated into the films; their standalone source
 The PNG screenshots in this directory document the RC14 workspace, template gallery and recorded-result surfaces. `loopset-facility.png` uses the enhanced Little Factory layout; its source is [`examples/facility.json`](../../examples/facility.json). `loopset-compare.png` shows that Factory's separate station/team experiment, 40 → 77 completed orders; it is not the Service Studio comparison in the current films.
 
 `public/previews/templates/` contains the twelve starter scene previews. All models and examples shown are synthetic. Original browser captures omit local-origin footers. NVIDIA CC BY 4.0 models, Quaternius/Poly Haven CC0 material and fonts retain the creator/source/license records linked above.
+
+## Repository artwork
+
+`readme-hero.png` and the site social card combine the Loopset cube mark, DM Sans and real Service Studio/Festival Gate starter previews. They use the same source artwork and credits listed above; the cards are editorial layouts, not additional product controls.
