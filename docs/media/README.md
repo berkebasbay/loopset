@@ -20,6 +20,10 @@ Stock music and effects are incorporated into the films; their standalone source
 
 ## Interface screenshots
 
+`loopset-service-workspace.png` shows the actual Service Studio workspace before the recorded team change. It is taken from the same high-resolution native capture used in the current films. The full-run metrics and the replay's momentary scene counters describe different scopes.
+
+`loopset-service-edit.png` and `loopset-service-compare.png` are stills from the published English walkthrough, at 34.4 and 39.5 seconds. They retain the real editor/table and the film's larger editorial annotations. The field has been applied before the edit still; the comparison shows the same synthetic case described above. No interface control or numerical value was reconstructed for these images.
+
 The PNG screenshots in this directory document the RC14 workspace, template gallery and recorded-result surfaces. `loopset-facility.png` uses the enhanced Little Factory layout; its source is [`examples/facility.json`](../../examples/facility.json). `loopset-compare.png` shows that Factory's separate station/team experiment, 40 → 77 completed orders; it is not the Service Studio comparison in the current films.
 
 `public/previews/templates/` contains the twelve starter scene previews. All models and examples shown are synthetic. Original browser captures omit local-origin footers. NVIDIA CC BY 4.0 models, Quaternius/Poly Haven CC0 material and fonts retain the creator/source/license records linked above.
