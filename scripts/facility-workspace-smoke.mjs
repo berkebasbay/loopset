@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { headerProjectInput, runPlan, canvasDropPoint } from './ui-actions.mjs';
+import { dismissLearningWelcome, headerProjectInput, runPlan, canvasDropPoint } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['localhost', '127.0.0.1'].includes(origin.hostname), 'Use an isolated QA origin.');
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || '.private/evidence/facility-redesign/workspace');
@@ -13,7 +13,7 @@ const checks = [], errors = [];
 const state = p => p.evaluate(() => JSON.parse(window.render_game_to_text()));
 const ready = p => p.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !document.querySelector('.studio-world-picker select')?.disabled && !s.running && s.result?.status === 'completed' && !s.result.stale; });
 async function artwork(p) { await p.waitForFunction(() => { const e = document.querySelector('.world-scene'), s = JSON.parse(e?.getAttribute('data-facility') || '{}'); return e?.getAttribute('data-status') === 'ready' && s.pending === 0 && s.failed === 0; }); }
-async function fresh(width) { const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce', acceptDownloads: true }); const page = await context.newPage(); page.on('pageerror', e => errors.push(String(e))); await page.goto(origin.href); await ready(page); await artwork(page); const pause = page.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click(); return { context, page }; }
+async function fresh(width) { const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce', acceptDownloads: true }); const page = await context.newPage(); page.on('pageerror', e => errors.push(String(e))); await page.goto(origin.href); await dismissLearningWelcome(page); await ready(page); await artwork(page); const pause = page.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click(); return { context, page }; }
 async function download(p, name) { const next = p.waitForEvent('download'); await p.locator('.studio-save').click(); const file = await next, target = path.join(out, name); await file.saveAs(target); return JSON.parse(await fs.readFile(target, 'utf8')); }
 async function findModel(p) { const tray = p.locator('.facility-library'); if (!await tray.isVisible()) await p.locator('[data-build-opener]').click(); await tray.locator('.library-tabs').getByRole('button', { name: '3D models', exact: true }).click(); await tray.getByRole('searchbox', { name: 'Search equipment and objects', exact: true }).fill('Dispensing system'); const tile = tray.getByRole('button', { name: 'Dispensing system · C01', exact: true }); await tile.click(); return { tray, tile }; }
 let page;

@@ -14,9 +14,10 @@ import './templates.css';
 export type StarterTemplate = StarterId | 'blank';
 interface Props {
   project: Project; intent: 'browse' | 'save'; blockedReason?: string; saveBlockedReason?: string;
+  onSaved?: (project: Project, template: TemplateMetadata) => void;
   onStarter: (template: StarterTemplate) => void | Promise<void>; onUse: (project: Project) => boolean;
 }
-export function TemplatesPanel({ project, intent, blockedReason, saveBlockedReason, onStarter, onUse }: Props) {
+export function TemplatesPanel({ project, intent, blockedReason, saveBlockedReason, onStarter, onUse, onSaved }: Props) {
   const [tab, setTab] = useState<'starters' | 'mine'>(intent === 'save' ? 'mine' : 'starters');
   const [showSave, setShowSave] = useState(intent === 'save');
   const [failedStarter, setFailedStarter] = useState<StarterTemplate | null>(null);
@@ -43,6 +44,7 @@ export function TemplatesPanel({ project, intent, blockedReason, saveBlockedReas
     const snapshot = structuredClone(imported ?? project), templateName = name;
     void perform(async current => {
       const saved = await saveTemplate(snapshot, templateName);
+      onSaved?.(snapshot, saved);
       if (!current()) return;
       setStatus(m.saved(saved.name)); setImported(null); setShowSave(false); setQuery(''); await refresh();
       requestAnimationFrame(() => { if (current()) panel.current?.querySelector<HTMLButtonElement>(`[data-template-id="${saved.id}"] .ql-primary`)?.focus(); });

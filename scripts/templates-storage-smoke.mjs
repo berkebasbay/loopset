@@ -1,3 +1,4 @@
+import { dismissLearningWelcome } from './ui-actions.mjs';
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -17,7 +18,7 @@ try {
   for (const node of project.model.nodes) if (node.kind === 'service') node.duration = { kind: 'empirical', values: Array(10000).fill(30.123456789) };
   project.scenarios = Array.from({ length: 4 }, (_, i) => ({ id: `scenario-${i}`, name: `Synthetic ${i}`, createdAt: '2026-01-01T00:00:00.000Z', model: structuredClone(project.model), world: project.world, layout: project.layout }));
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }), page = await context.newPage();
-  page.on('pageerror', error => errors.push(String(error))); await page.goto(origin.href);
+  page.on('pageerror', error => errors.push(String(error))); await page.goto(origin.href); await dismissLearningWelcome(page);
   await page.locator('.studio-world-picker select').selectOption('save');
   await page.getByLabel('Choose template project JSON', { exact: true }).setInputFiles({ name: 'synthetic-measurements.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(project)) });
   await page.getByRole('button', { name: 'Save imported template', exact: true }).click();
@@ -38,7 +39,7 @@ try {
 
   for (const mode of ['unavailable', 'newer']) {
     const isolated = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }), p = await isolated.newPage(); p.on('pageerror', e => errors.push(String(e)));
-    await p.goto(origin.href);
+    await p.goto(origin.href); await dismissLearningWelcome(p);
     if (mode === 'unavailable') await p.evaluate(() => { const open = indexedDB.open.bind(indexedDB); indexedDB.open = function (name, version) { if (name === 'loopset-templates') throw new DOMException('Synthetic unavailable storage', 'SecurityError'); return open(name, version); }; });
     else await p.evaluate(() => new Promise(resolve => { const request = indexedDB.open('loopset-templates', 2); request.onupgradeneeded = () => request.result.createObjectStore('future-data'); request.onsuccess = () => { request.result.close(); resolve(); }; }));
     await p.locator('.studio-world-picker select').selectOption('save');

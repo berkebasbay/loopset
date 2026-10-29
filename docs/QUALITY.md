@@ -25,6 +25,8 @@ QUEUELAB_URL=http://127.0.0.1:4173 QUEUELAB_UX_PHASE=core node scripts/ux-smoke.
 
 The script uses isolated browser contexts and synthetic models. It requires Playwright browser binaries; it does not install them. Generated screenshots and files stay outside version control.
 
+Run `QUEUELAB_URL=http://127.0.0.1:4173 npm run test:learning` for the first experiment: real selection/edit/run/compare/template save at desktop and 320/390 px, keyboard focus, reduced motion, refresh, original-project/history restoration, storage errors and cancelled loading. Other smoke checks use the welcome's public **Explore on my own** path before testing the workspace.
+
 The facility flow has a separate isolated smoke command:
 
 ```sh

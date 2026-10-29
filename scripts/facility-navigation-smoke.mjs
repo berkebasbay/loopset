@@ -1,3 +1,4 @@
+import { dismissLearningWelcome } from './ui-actions.mjs';
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -9,7 +10,7 @@ await fs.mkdir(out, { recursive: true }); await fs.mkdir('.cache/tmp', { recursi
 let installed = true; try { await fs.access(chromium.executablePath()); } catch { installed = false; }
 const browser = await chromium.launch({ headless: true, ...(installed ? { executablePath: chromium.executablePath() } : { channel: 'chrome' }) });
 const errors = [], checks = []; let page;
-async function fresh(width) { const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce', acceptDownloads: true }); const p = await context.newPage(); p.on('pageerror', e => errors.push(String(e))); await p.goto(origin.href); await p.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !s.running && s.result?.status === 'completed' && !s.result.stale; }); const pause = p.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click(); return { context, page: p }; }
+async function fresh(width) { const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce', acceptDownloads: true }); const p = await context.newPage(); p.on('pageerror', e => errors.push(String(e))); await p.goto(origin.href); await dismissLearningWelcome(p); await p.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !s.running && s.result?.status === 'completed' && !s.result.stale; }); const pause = p.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click(); return { context, page: p }; }
 async function download(p, name) { const next = p.waitForEvent('download'); await p.locator('.studio-save').click(); const file = await next, target = path.join(out, name); await file.saveAs(target); return JSON.parse(await fs.readFile(target, 'utf8')); }
 try {
   const mobile = await fresh(390); page = mobile.page;
