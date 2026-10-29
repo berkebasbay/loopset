@@ -46,6 +46,7 @@ jobs:
       - run: npm run test:catalogue
       - run: npm run check:assets
       - run: npm run check:templates
+      - run: npm run check:demos
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:headless

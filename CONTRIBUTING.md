@@ -40,6 +40,17 @@ Keep the original Factory, Festival and Service numerical examples unchanged unl
 
 Open the starter in the app, apply and calculate both alternatives, inspect the input differences and results, then exercise Undo and JSON download/reopen. When changing layout, capture and inspect the actual preview and alternative layouts. See the [template guide](docs/TEMPLATES.md) and [browser checks](docs/QUALITY.md) for the complete flow and `npm run test:templates` setup. Do not imply physical transport, inventory assembly or real-business calibration through the scenery or copy.
 
+## Update demo copy
+
+The watch page's visible text, accessible labels and English caption cues live in `src/ui/messages/watch.ts`. `scripts/watch-page.html` contains its structural markup. Regenerate the static HTML and WebVTT files after editing the messages:
+
+```sh
+npm run demos:export
+npm run check:demos
+```
+
+CI and the Pages build verify that the committed output matches the message source. The watch page requires no runtime script. Review timing and actual playback when changing caption cues or media.
+
 ## Publication checks
 
 Set up the optional local hooks with `npm run setup:hooks`. They check staged files before a commit and outgoing commit/tag contents before a push. Existing custom hooks are preserved; integrate these checks into a custom setup when needed. Setup enables repository-local `user.useConfigOnly`, so configure your intended Git identity. A GitHub noreply address keeps your contact address private.
