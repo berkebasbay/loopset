@@ -4,6 +4,8 @@ Use **Build facility** for visual arrangement, **Define process** for connected 
 
 Start with a process question: which arrival rate, processing time, team or waiting policy do you want to test? Use **Scenario settings** and **Properties** for common edits. **Tools → Model editor** provides the full model without requiring a second workflow.
 
+**Tools → A little guidance → Watch the video demos** opens the English quick tour and full walkthrough in a new tab, leaving the current project open.
+
 **How it works** in the world opens the optional three-step guide: change one thing, run the changed plan, compare and keep it. On a phone, select a world object and use **Edit selected step** below the scene. Scenario settings links directly to arrivals and related team controls.
 
 The team’s base availability is visible in Properties. Installed capacity, cost and shifts have their own disclosures. A capacity note explains when the base team cannot staff every parallel station; shared use and calendar overrides remain separate limits. Short duration readouts retain the exact editable value when focused.

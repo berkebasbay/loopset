@@ -7,13 +7,13 @@ import { gzipSync } from 'node:zlib';
 const root = await realpath(resolve(process.argv[2] ?? 'dist'));
 const port = Number(process.argv[3] ?? 4173);
 if (!Number.isSafeInteger(port) || port < 1024 || port > 65535) throw new Error('Choose a local port between1024 and65535.');
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8', '.glb': 'model/gltf-binary', '.gz': 'application/gzip', '.hdr': 'application/octet-stream', '.wasm': 'application/wasm' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.vtt': 'text/vtt; charset=utf-8', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8', '.glb': 'model/gltf-binary', '.gz': 'application/gzip', '.hdr': 'application/octet-stream', '.wasm': 'application/wasm' };
 const compressed = new Map();
 createServer(async (request, response) => {
   if (request.method !== 'GET' && request.method !== 'HEAD') { response.writeHead(405, { Allow: 'GET, HEAD' }); response.end(); return; }
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
-    const file = await realpath(resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname)));
+    const file = await realpath(resolve(root, '.' + (pathname.endsWith('/') ? pathname + 'index.html' : pathname)));
     if (!file.startsWith(root + sep) || !(await stat(file)).isFile()) { response.writeHead(404); response.end(); return; }
     const extension = extname(file), headers = { 'Content-Type': types[extension] ?? 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' };
     const mayCompress = ['.html', '.js', '.css', '.json', '.ttf', '.svg', '.glb'].includes(extension);

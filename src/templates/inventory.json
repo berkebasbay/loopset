@@ -1,4 +1,20 @@
 {
+  "service": {
+    "version": 1,
+    "bytes": 72712,
+    "sha256": "ba64c0461a235a5b858a6231476c477eacb354e695dbfe657323a1e1220bba78",
+    "objects": 38,
+    "steps": 8,
+    "resources": 2
+  },
+  "festival": {
+    "version": 1,
+    "bytes": 54477,
+    "sha256": "4fb23ed0bd2c5776de19c7377eacb5db028b2bdab277372a5a27b179afadf2de",
+    "objects": 24,
+    "steps": 8,
+    "resources": 3
+  },
   "factory": {
     "version": 1,
     "bytes": 101417,
@@ -78,21 +94,5 @@
     "objects": 60,
     "steps": 8,
     "resources": 2
-  },
-  "service": {
-    "version": 1,
-    "bytes": 72712,
-    "sha256": "ba64c0461a235a5b858a6231476c477eacb354e695dbfe657323a1e1220bba78",
-    "objects": 38,
-    "steps": 8,
-    "resources": 2
-  },
-  "festival": {
-    "version": 1,
-    "bytes": 54477,
-    "sha256": "4fb23ed0bd2c5776de19c7377eacb5db028b2bdab277372a5a27b179afadf2de",
-    "objects": 24,
-    "steps": 8,
-    "resources": 3
   }
 }
