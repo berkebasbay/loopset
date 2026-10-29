@@ -18,9 +18,16 @@ Loopset lets you build a small factory, service team or event, then see how a di
 
 ## See it in action
 
-[Watch the 30-second demo](https://berkebasbay.github.io/loopset/watch/#short)
+https://github.com/user-attachments/assets/42cf61e9-e756-4939-8fbe-9a2239fef163
 
-<sub>30-second tour · <a href="https://berkebasbay.github.io/loopset/watch/#full">Full 55-second walkthrough</a> · <a href="docs/media/README.md">Video credits</a></sub>
+<sub>30-second tour · <a href="https://berkebasbay.github.io/loopset/watch/">Captions & downloads</a> · <a href="docs/media/README.md">Video credits</a></sub>
+
+<details>
+<summary><strong>Watch the full walkthrough · 55 seconds</strong></summary>
+
+https://github.com/user-attachments/assets/03fb5577-61f1-4ac8-a22f-95c133f78d10
+
+</details>
 
 ## Build. Run. Compare.
 
