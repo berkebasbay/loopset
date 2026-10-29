@@ -3,7 +3,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { openPanel, runPlan, headerProjectInput, canvasDropPoint } from './ui-actions.mjs';
+import { dismissLearningWelcome, openPanel, runPlan, headerProjectInput, canvasDropPoint } from './ui-actions.mjs';
 
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use a separate loopback QA origin.');
@@ -19,7 +19,7 @@ const close = p => p.getByRole('button', { name: 'Close dialog', exact: true }).
 async function fresh(width = 1440) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
   const p = await context.newPage(); p.on('pageerror', e => errors.push(String(e)));
-  await p.goto(origin.href); await ready(p); return { context, page: p };
+  await p.goto(origin.href); await dismissLearningWelcome(p); await ready(p); return { context, page: p };
 }
 async function download(p, name) {
   const next = p.waitForEvent('download'); await p.locator('.studio-save').click();
@@ -122,7 +122,7 @@ try {
       tx.oncomplete = () => { db.close(); resolve(); }; tx.onabort = () => { db.close(); reject(String(tx.error)); };
     };
   }), saved.templates[0]);
-  const other = await desktop.context.newPage(); other.on('pageerror', e => errors.push(String(e))); await other.goto(origin.href); await ready(other);
+  const other = await desktop.context.newPage(); other.on('pageerror', e => errors.push(String(e))); await other.goto(origin.href); await dismissLearningWelcome(other); await ready(other);
   await myTemplates(page); await page.locator('.templates-panel').getByRole('button', { name: 'Save as template', exact: true }).click(); await myTemplates(other); await other.locator('.templates-panel').getByRole('button', { name: 'Save as template', exact: true }).click();
   for (const [p, name] of [[page, 'Concurrent A'], [other, 'Concurrent B']]) { await p.bringToFront(); await p.getByRole('textbox', { name: 'Template name', exact: true }).fill(name); }
   // Activate the two real form handlers together; background-tab frame throttling must not serialize this transaction race.

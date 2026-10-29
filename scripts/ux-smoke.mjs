@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { openPanel, primaryRunButton, headerProjectInput } from './ui-actions.mjs';
+import { dismissLearningWelcome, openPanel, primaryRunButton, headerProjectInput } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['localhost', '127.0.0.1'].includes(origin.hostname), 'Use a loopback QA server.');
 const kind = process.env.QUEUELAB_BROWSER || 'chromium', phase = process.env.QUEUELAB_UX_PHASE || 'core';
@@ -36,7 +36,7 @@ async function inspect(page, label, intent = 'single') {
 async function field(page, name, value, scope = page) { const input = scope.getByRole('spinbutton', { name, exact: true }); await input.fill(String(value)); await input.press('Enter'); return input; }
 async function fresh(world = 'factory', width = viewportWidth, height = viewportHeight) {
   const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', acceptDownloads: true }); const page = await context.newPage();
-  page.on('pageerror', error => receipt.errors.push(String(error))); await page.goto(origin.href); await ready(page);
+  page.on('pageerror', error => receipt.errors.push(String(error))); await page.goto(origin.href); await dismissLearningWelcome(page); await ready(page);
   if (world !== 'factory') { await page.locator('.studio-world-picker select').selectOption(world); await ready(page); }
   const pause = page.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click(); return { context, page };
 }
@@ -196,6 +196,7 @@ async function qualityPhase() {
  try {
   const original = await projectJSON(page, 'quality-original.json'), initial = await state(page);
   const packing = original.model.nodes.find(node => node.id === 'station-c');
+  await inspect(page, packing.label);
   const mean = (packing.duration.min + packing.duration.mode + packing.duration.max) / 3;
   const meanInput = page.getByRole('spinbutton', { name: 'Mean processing time', exact: true });
   assert.equal(await meanInput.inputValue(), String(mean));
@@ -240,7 +241,8 @@ async function qualityPhase() {
   const team = page.locator('.ease-team').filter({ hasText: 'Packing team' });
   assert(await team.getByRole('spinbutton', { name: 'Base available units', exact: true }).isVisible());
   assert.equal((await state(page)).revision, navigationRevision);
-  await page.getByRole('button', { name: 'How it works', exact: true }).click();
+  await page.getByRole('button', { name: 'Learn by doing', exact: true }).click();
+  await page.getByRole('button', { name: 'Just show me the controls', exact: true }).click();
   assert.equal(await page.locator('.quality-guide-progress li').count(), 3);
   await page.getByRole('button', { name: 'Next step', exact: true }).click();
   await page.getByRole('heading', { name: 'Run the changed plan', exact: true }).waitFor();

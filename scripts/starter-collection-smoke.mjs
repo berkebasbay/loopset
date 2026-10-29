@@ -3,7 +3,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { openPanel, runPlan } from './ui-actions.mjs';
+import { dismissLearningWelcome, openPanel, runPlan } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use a separate loopback QA origin.');
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || '.private/evidence/template-collection/smoke');
@@ -18,7 +18,7 @@ const ready = p => p.waitForFunction(() => { const s = JSON.parse(window.render_
 const artwork = p => p.waitForFunction(() => { const h = document.querySelector('.world-scene'), f = JSON.parse(h?.getAttribute('data-facility') || '{}'); return h?.getAttribute('data-status') === 'ready' && f.pending === 0 && f.failed === 0; });
 async function fresh(width = 1440) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
-  const p = await context.newPage(); p.on('pageerror', e => errors.push(String(e))); await p.goto(origin.href); await ready(p); return { context, page: p };
+  const p = await context.newPage(); p.on('pageerror', e => errors.push(String(e))); await p.goto(origin.href); await dismissLearningWelcome(p); await ready(p); return { context, page: p };
 }
 async function download(p, name) {
   const next = p.waitForEvent('download'); await p.locator('.studio-save').click(); const file = await next, target = path.join(out, `${name}.json`); await file.saveAs(target); return JSON.parse(await fs.readFile(target, 'utf8'));

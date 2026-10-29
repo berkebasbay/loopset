@@ -1,5 +1,15 @@
 # Quickstart
 
+## Learn by doing
+
+On your first visit, choose **Start my first experiment**. You can also open **Learn by doing** from the playground at any time.
+
+The five-step exercise opens a separate Service Studio project. Select **Specialists**, change its shared team from **2** to **3**, run the changed plan, compare completed work, waiting and resource cost, then optionally save your own template. The guide highlights the actual controls and follows your applied edits and completed calculations.
+
+You can minimize or leave the guide at any time. Existing work is saved before practice starts; **Back to my previous project** reopens it. Refreshing an active practice restores its saved draft and asks you to run again before comparing. Templates and projects stay in this browser; download project JSON for a portable backup.
+
+Choose **Explore on my own** to start without the exercise, or **Just show me the controls** for a short reference tour.
+
 ## Open a world
 
 Open **[the live demo](https://berkebasbay.github.io/loopset/)**. No installation or account is required.

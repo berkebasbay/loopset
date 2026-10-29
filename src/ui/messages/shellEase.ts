@@ -23,11 +23,12 @@ export const shellEaseMessages = {
     { title: 'Run the changed plan', text: 'Choose Run & compare to calculate. Your original result stays available. Replay shows the recorded run; changing its speed never changes the answer.', target: 'run', action: 'Go to Run' },
     { title: 'Compare and keep it', text: 'Compare shows which inputs changed and what happened to completed work, waiting and cost. Save an alternative here. Download project JSON in the header for a portable copy; Open restores it later.', target: 'compare', action: 'Open comparison' },
   ],
-  localProject: 'ON THIS DEVICE', firstSteps: 'How it works', workspaceQuestion: 'What changes when demand or capacity changes?',
+  localProject: 'ON THIS DEVICE', firstSteps: 'Learn by doing', workspaceQuestion: 'What changes when demand or capacity changes?',
   worldQuestions: { factory: 'What is holding up the packing line?', festival: 'How can you keep the entrance moving?', service: 'Where does the shared team need more capacity?' },
   startFlow: 'Arrival → waiting → processing → completion',
   commandScope: 'Typing searches the available actions. Calculations, downloads and new models start only when you select their action.',
   noCommands: 'No matching action or setting.', commands: {
+    learn: { label: 'Practice your first experiment', keywords: 'learn guide tutorial onboarding practice learn by doing' },
     newModel: { label: 'Create a new process', keywords: 'new blank start model yeni boş başlangıç' },
     scenario: { label: 'Run length and scenario', keywords: 'duration time horizon days hours minutes süre zaman' },
     demand: { label: 'Arrival demand', keywords: 'arrivals people orders intensity rate geliş insan sipariş yoğunluk' },

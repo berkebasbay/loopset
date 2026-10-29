@@ -1,6 +1,6 @@
 {
   "name": "queuelab",
-  "version": "1.0.0-rc.14",
+  "version": "1.0.0-rc.15",
   "private": true,
   "type": "module",
   "description": "A playable process and capacity simulation laboratory",
@@ -15,6 +15,7 @@
     "simulate": "node scripts/simulate.mjs",
     "examples:export": "npm run build:engine && node scripts/export-examples.mjs",
     "test:headless": "npm run build:engine && node examples/verify.mjs",
+    "test:learning": "node scripts/learning-smoke.mjs",
     "test:ux": "node scripts/ux-smoke.mjs",
     "setup:hooks": "node scripts/setup-hooks.mjs",
     "check:publication": "node scripts/check-publication.mjs",

@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { headerProjectInput, runPlan } from './ui-actions.mjs';
+import { dismissLearningWelcome, headerProjectInput, runPlan } from './ui-actions.mjs';
 
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['localhost', '127.0.0.1'].includes(origin.hostname));
@@ -18,7 +18,7 @@ const ready = page => page.waitForFunction(() => { const state = JSON.parse(wind
 async function fresh(width = 1440) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
   const page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
-  await page.goto(origin.href); await ready(page);
+  await page.goto(origin.href); await dismissLearningWelcome(page); await ready(page);
   // Use the original numerical fixture for these compatibility checks.
   if (width > 740) { await page.locator('.studio-world-picker select').selectOption('factory'); await ready(page); }
   const pause = page.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click();

@@ -3,7 +3,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { headerProjectInput, openPanel, runPlan, canvasDropPoint } from './ui-actions.mjs';
+import { dismissLearningWelcome, headerProjectInput, openPanel, runPlan, canvasDropPoint } from './ui-actions.mjs';
 
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use a separate loopback QA origin.');
@@ -18,7 +18,7 @@ const ready = page => page.waitForFunction(() => { const s = JSON.parse(window.r
 async function fresh(width = 1440) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
   const page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
-  await page.goto(origin.href); await ready(page);
+  await page.goto(origin.href); await dismissLearningWelcome(page); await ready(page);
   // Use the original numerical fixture for these compatibility checks.
   await page.locator('.studio-world-picker select').selectOption('factory'); await ready(page);
   const pause = page.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click();

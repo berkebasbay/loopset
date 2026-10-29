@@ -17,7 +17,7 @@ export function ProcessList({ project, selectedId, selectedIds, onSelect }: Prop
     <p className="ease-process-count"><span>{m.stepsCount(nodes.length, project.model.nodes.length)}</span><span>{m.selectionCount(selectedIds.length)}</span></p>
     <ul>{nodes.map(node => <li key={node.id} className={selectedIds.includes(node.id) ? 'is-selected' : ''}>
       <input type="checkbox" aria-label={m.selectForGroup(node.label)} checked={selectedIds.includes(node.id)} onChange={() => onSelect(node.id, 'toggle')} />
-      <button type="button" aria-label={m.selectStep(node.label)} aria-current={selectedId === node.id ? 'step' : undefined} onClick={() => onSelect(node.id, 'single')}><strong>{node.label}</strong><small>{stepKindLabels[node.kind]}</small></button>
+      <button type="button" data-learning-target={`step-${node.id}`} aria-label={m.selectStep(node.label)} aria-current={selectedId === node.id ? 'step' : undefined} onClick={() => onSelect(node.id, 'single')}><strong>{node.label}</strong><small>{stepKindLabels[node.kind]}</small></button>
     </li>)}</ul>
     {!nodes.length && <p className="ease-help">{m.noMatchingSteps}</p>}
     {search && <button type="button" className="ease-link" onClick={() => setSearch('')}>{m.clearSearch}</button>}

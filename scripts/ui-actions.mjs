@@ -9,6 +9,19 @@ const panelNames = {
   insights: 'Run insights', compare: 'Compare plans', data: 'Files & reports',
 };
 
+/** Use the public skip path before testing unrelated workspace interactions. */
+export async function dismissLearningWelcome(page) {
+  await page.waitForFunction(() => {
+    const state = JSON.parse(window.render_game_to_text?.() || '{}');
+    return !state.running && (state.workspaceMode === 'layout' || state.result?.status === 'completed');
+  });
+  const welcome = page.locator('[data-panel="learn"]');
+  if (await welcome.count()) {
+    await welcome.getByRole('button', { name: 'Explore on my own', exact: true }).click();
+    await welcome.waitFor({ state: 'detached' });
+  }
+}
+
 export async function panelOpener(page, panel) {
   if (!Object.hasOwn(panelNames, panel)) throw new Error(`Unknown studio panel: ${panel}`);
   if (toolPanels.has(panel)) {

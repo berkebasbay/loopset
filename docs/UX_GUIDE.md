@@ -6,9 +6,17 @@ Start with a process question: which arrival rate, processing time, team or wait
 
 **Tools → A little guidance → Watch the video demos** opens the English quick tour and full walkthrough in a new tab, leaving the current project open.
 
-**How it works** in the world opens the optional three-step guide: change one thing, run the changed plan, compare and keep it. On a phone, select a world object and use **Edit selected step** below the scene. Scenario settings links directly to arrivals and related team controls.
+**Learn by doing → Just show me the controls** opens the optional three-step guide: change one thing, run the changed plan, compare and keep it. On a phone, select a world object and use **Edit selected step** below the scene. Scenario settings links directly to arrivals and related team controls.
 
 The team’s base availability is visible in Properties. Installed capacity, cost and shifts have their own disclosures. A capacity note explains when the base team cannot staff every parallel station; shared use and calendar overrides remain separate limits. Short duration readouts retain the exact editable value when focused.
+
+## Guided first experiment
+
+**Learn by doing** opens a five-step Service Studio practice: select Specialists, apply a shared-team change, calculate, read the comparison and optionally save a reusable template. Progress follows real edits and completed runs. Highlighted controls remain ordinary editor controls with the same validation and Undo behavior.
+
+The guide can be minimized or dismissed. It preserves an existing project before switching, offers a return action and resumes a saved practice after refresh. If you change other numerical inputs, it lets you keep exploring or start a fresh practice. Failed calculations and template saves remain incomplete and can be retried. The optional finish path explicitly says that no template was saved.
+
+A first-visit welcome is shown only when no saved project is restored. Returning users can start the exercise from the playground. **Just show me the controls** retains the short reference tour.
 
 ## Start from a template
 

@@ -1,4 +1,7 @@
 import { appMessages as m } from './ui/messages/App';
+import { learningMessages as lm } from './ui/messages/learning';
+import { LearningIntro, LearningCoach } from './features/LearningGuide';
+import { createLearningSession, learningReturnMatches, learningModelMatches, learningRunMatches, learningStage, originalLearningProject, readLearningSession, rememberLearningSession, hasSeenLearningWelcome, rememberLearningWelcome, LEARNING_STEP_ID, LEARNING_POOL_ID, type LearningSession, type LearningStage } from './features/learning';
 import { assetURL } from './assetUrl';
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownToLine, ArrowRight, Box, Check, ChevronRight, CircleHelp, Copy, FileUp, FlaskConical, Focus, GitCompareArrows, Globe2, History, Layers3, Link2, List, LoaderCircle, MousePointer2, Move, Pause, Play, Plus, Redo2, Search, ShieldCheck, SkipBack, Undo2, X } from 'lucide-react';
@@ -70,7 +73,7 @@ import { buildCouplingManifest } from './engine/provenance';
 import { ExperimentsPanel } from './lab/ExperimentsPanel';
 import { SavedScenarios } from './lab/SavedScenarios';
 import { RunInsights } from './lab/RunInsights';
-import { captureSaveContext, loadLastProject, rememberOpenedProject, saveProject } from './storage/projectStore';
+import { captureSaveContext, loadLastProject, loadProject, rememberOpenedProject, saveProject } from './storage/projectStore';
 import { BoundedCache } from './storage/boundedCache';
 import { ProjectSaveQueue, type SaveInput } from './storage/projectSaveQueue';
 import { openProjectJSON, serializeProject } from './storage/projectFile';
@@ -86,7 +89,7 @@ const clock = (s: number) => !Number.isFinite(s) ? '—' : `${Math.floor(s / 60)
 const wait = (s: number) => !Number.isFinite(s) ? '—' : s >= 60 ? m.minutes((s / 60).toFixed(1)) : m.seconds(Math.round(s));
 const money = (n: number, currency: string) => new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n);
 const number = (n: number) => new Intl.NumberFormat('en', { maximumFractionDigits: 0 }).format(n);
-type Panel = 'worlds' | 'model' | 'compare' | 'data' | 'experiments' | 'insights' | 'budget' | 'history' | 'help' | 'scenario' | 'view' | 'rename' | 'search' | 'guide' | 'brief' | null;
+type Panel = 'worlds' | 'model' | 'compare' | 'data' | 'experiments' | 'insights' | 'budget' | 'history' | 'help' | 'scenario' | 'view' | 'rename' | 'search' | 'guide' | 'brief' | 'learn' | null;
 
 function focusChangedSince(origin: Element | null): boolean {
   const chosen = document.activeElement;
@@ -97,6 +100,14 @@ export default function App() {
   const [pendingEdits, setPendingEdits] = useState(false);
   const [guideIndex, setGuideIndex] = useState(0);
   const [project, setProject] = useState<Project>(() => createWorkshopFacility());
+  const initialProjectId = useRef(project.id), restoredExistingProject = useRef(false), earlyInteraction = useRef(false);
+  const [learning, setLearningState] = useState<LearningSession | null>(null), learningRef = useRef<LearningSession | null>(null);
+  const [learningMinimized, setLearningMinimized] = useState(false), [learningStarting, setLearningStarting] = useState(false), [learningError, setLearningError] = useState<string | null>(null);
+  const learningRequest = useRef(0), learningAbort = useRef<AbortController | null>(null);
+  const focusedLearningStep = useRef('');
+  const learningReturn = useRef<{ project: Project; result: RunResult | null; baseline: RunResult | null; attempt: RunResult | null; history: ReturnType<typeof emptyHistory>; selection: EditorSelection; time: number; speed: number } | null>(null);
+  useEffect(() => () => { learningRequest.current++; learningAbort.current?.abort(); }, []);
+
   const [history, setHistory] = useState(emptyHistory); const historyRef = useRef(history); historyRef.current = history;
   const [selection, setSelection] = useState<EditorSelection>({ ids: ['station-c'], primary: 'station-c' });
   const selectionRef = useRef(selection); selectionRef.current = selection;
@@ -172,6 +183,9 @@ export default function App() {
   live.current = { project, result, latestAttempt, time, playing, speed, selected, selectedIds: selection.ids, running: sim.running, canReplay, replayUntil };
   const singleCoupling = useMemo(() => baseline && shownResult && baseline.provenance && shownResult.provenance ? buildCouplingManifest(baseline, shownResult) : null, [baseline, shownResult]);
   const singlePaired = Boolean(baseline && shownResult && singleCoupling?.compatibility.sameExternalDemand && singleCoupling.compatibility.sameMeasurementPolicies && baseline.demandHash === shownResult.demandHash);
+  const learningActive = Boolean(learning && learning.projectId === project.id);
+  const lessonStage: LearningStage | null = learningActive ? learningStage({ session: learning!, project, baseline, result: shownResult, pending: pendingEdits, running: sim.running, valid: !hasErrors, comparable: singlePaired }) : null;
+  const learningComparison = Boolean(learningActive && learningRunMatches(baseline, learning!.baseHash, learning!.seed) && learningRunMatches(shownResult, learning!.changedHash, learning!.seed) && singlePaired);
   const frame = useMemo(() => frameAt(visualProject, shownResult, time), [visualProject, shownResult, time]);
   const selectedStep = project.model.nodes.find(n => n.id === selected);
   const worldInfo = WORLD_INFO[project.world];
@@ -215,7 +229,18 @@ export default function App() {
     updateSelection(pruneSelection(selectStep(selectionRef.current, id, intent), live.current.project.model.nodes));
   }
 
+  function updateLearning(next: LearningSession | null) { learningRef.current = next; setLearningState(next); rememberLearningSession(next); }
+  function patchLearning(patch: Partial<LearningSession>) { if (learningRef.current) updateLearning({ ...learningRef.current, ...patch }); }
+  function leaveLearning() {
+    ++learningRequest.current; learningAbort.current?.abort(); learningAbort.current = null;
+    setLearningStarting(false); setLearningError(null); updateLearning(null); learningReturn.current = null;
+    rememberLearningWelcome();
+  }
   function setPanel(next: Panel, opener?: HTMLElement | null, keepExperimentContext = false) {
+    if (currentPanel.current === 'learn' && next !== 'learn') {
+      rememberLearningWelcome(); ++learningRequest.current; learningAbort.current?.abort(); learningAbort.current = null; setLearningStarting(false);
+    }
+
     if (next !== currentPanel.current && starterAbort.current) { starterRequest.current++; starterAbort.current.abort(); starterAbort.current = null; setStarterLoading(false); }
     if (next === 'experiments' && !keepExperimentContext) setExperimentContext(null);
     if (next === currentPanel.current) return;
@@ -242,12 +267,13 @@ export default function App() {
       if (generation !== requestGeneration.current) return;
       if (r.status !== 'completed') { calculationStatus.controller.finish(announcementId, '', panelGeneration.current); setLatestAttempt(r); setToast(r.reason ?? m.incompleteRunNotice(r.status)); return; }
       setLatestAttempt(null);
-      runDisplayNames.current.set(r, p.name);
+      const lesson = learningRef.current;
+      runDisplayNames.current.set(r, lesson?.projectId === p.id ? r.modelHash === lesson.baseHash ? lm.originalPlan : lm.changedPlan : p.name);
       runPresentations.current.set(r, capturePresentation(p));
       setResult(r); if (establishBaseline || !baseline) setBaseline(r);
       const coverage = replayManifest(r).coverage;
       setTime(establishBaseline ? Math.min(p.model.horizon * .38, coverage.at(-1)?.end ?? 0) : 0);
-      setPlaying(establishBaseline && coverage.length > 0); manualClock.current = false;
+      setPlaying(establishBaseline && coverage.length > 0 && !currentPanel.current && learningRef.current?.projectId !== p.id); manualClock.current = false;
       const current = live.current.project;
       const earlier = !sameNumericalSnapshot(
         { projectId: p.id, modelHash: r.modelHash, seed: r.seed, valid: true },
@@ -262,12 +288,15 @@ export default function App() {
     const surface = panelGeneration.current;
     const completed = await compute(snapshot);
     const current = live.current.project;
-    if (!completed || surface !== panelGeneration.current || current.id !== snapshot.id ||
+    if (!completed || pendingEditsRef.current || surface !== panelGeneration.current || current.id !== snapshot.id ||
       !sameNumericalSnapshot(
         { projectId: snapshot.id, modelHash: completed.modelHash, seed: completed.seed, valid: true },
         { projectId: current.id, modelHash: modelHash(current.model), seed: current.model.seed, valid: !validateProject(current).some(issue => issue.severity === 'error') },
       )) return;
+    const lesson = learningRef.current;
+    if (lesson?.projectId === current.id && learningModelMatches(current, lesson) && learningRunMatches(completed, lesson.changedHash, lesson.seed) && learningRunMatches(baseline, lesson.baseHash, lesson.seed)) patchLearning({ ran: true, reviewed: false });
     setPanel('compare', opener);
+    return completed;
   }
   function cancelCalculation() {
     calculationStatus.controller.stopping(String(requestGeneration.current), m.stoppingCalculation, panelGeneration.current);
@@ -284,8 +313,19 @@ export default function App() {
         const initial = untouched ? saved ?? project : live.current.project;
         if (saved) acknowledgedContent.current.set(saved.id, recoveryProjectKey(saved));
         if (saved && untouched) { rememberOpenedProject(saved); setProject(saved); live.current = { ...live.current, project: saved }; setLocalRevision(saved.revision); setSelected(serviceNodes(saved)[0]?.id ?? null); }
+        restoredExistingProject.current = Boolean(saved);
         storageGate.current!.resolve(); setStorageReady(true);
-        if (!isLayoutOnly(initial) && !validateProject(initial).some(issue => issue.severity === 'error')) void compute(initial, true);
+        const resume = readLearningSession();
+        if (resume && initial.id === resume.projectId) {
+          updateLearning(resume); setLibraryTab('steps'); setBuildTrayOpen(false); setSelected(resume.selected ? LEARNING_STEP_ID : null);
+          const original = originalLearningProject(initial, resume);
+          if (original) { original.name = lm.originalPlan; void compute(original, true); }
+          else if (!isLayoutOnly(initial) && !validateProject(initial).some(issue => issue.severity === 'error')) void compute(initial, true);
+        } else {
+          rememberLearningSession(null);
+          if (!isLayoutOnly(initial) && !validateProject(initial).some(issue => issue.severity === 'error')) void compute(initial, true);
+          if (!saved && untouched && !earlyInteraction.current && !currentPanel.current && !hasSeenLearningWelcome()) setPanel('learn');
+        }
       }).catch(error => {
         if (!alive) return;
         setStorageError(error instanceof Error ? error.message : m.browserStorageIsUnavailableKeepADownloadedBackup);
@@ -418,7 +458,43 @@ export default function App() {
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(null), 6000); return () => clearTimeout(id); }, [toast]);
   // Adopt a document's inspector before it can receive input. A deferred reset
   // can otherwise overwrite a Tools choice made just after the new world appears.
-  useLayoutEffect(() => { setObjectDetailsOpen(!project.facility && !matchMedia('(max-width:740px)').matches); setInspectorTab('object'); }, [project.id]);
+  useLayoutEffect(() => {
+    const lesson = learningRef.current?.projectId === project.id ? learningRef.current : null;
+    setObjectDetailsOpen(Boolean(lesson) || (!project.facility && !matchMedia('(max-width:740px)').matches));
+    setInspectorTab(lesson && !lesson.selected ? 'steps' : 'object');
+  }, [project.id]);
+  useEffect(() => {
+    if (learningRef.current?.projectId === project.id && selected === LEARNING_STEP_ID && !learningRef.current.selected) patchLearning({ selected: true });
+  }, [project.id, selected, learning?.selected]);
+  useEffect(() => {
+    if (!learningActive || !lessonStage || learningMinimized || (panel && panel !== 'compare' && panel !== 'worlds')) return;
+    const selector = learningSelector(lessonStage);
+    let target = selector ? document.querySelector<HTMLElement>(selector) : null;
+    if (!target?.checkVisibility({ visibilityProperty: true }) || target.closest('[inert]')) target = document.querySelector<HTMLElement>('.learning-coach [data-learning-action]');
+    if (!target) return;
+    target.classList.add('learning-target');
+    const description = new Set((target.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean));
+    description.add('learning-instruction'); target.setAttribute('aria-describedby', [...description].join(' '));
+    let handle = 0;
+    const key = `${project.id}:${lessonStage}`;
+    const active = document.activeElement;
+    const fromGuide = active === document.body || (active instanceof HTMLElement && Boolean(active.closest('.learning-coach,.learning-intro,[data-learning-target],[inert]') || active.matches('[data-panel-opener="learn"]')));
+    const focus = lessonStage === 'review' ? document.querySelector<HTMLElement>('.learning-coach [data-learning-action]') : target;
+    if (fromGuide && focus?.matches('input,button,select') && !focus.matches(':disabled') && !['preparing', 'complete', 'off-track'].includes(lessonStage) && focusedLearningStep.current !== key) {
+      focusedLearningStep.current = key;
+      const origin = document.activeElement, surface = panelGeneration.current;
+      handle = requestAnimationFrame(() => {
+        if (learningRef.current?.projectId !== project.id || surface !== panelGeneration.current || focusChangedSince(origin) || !focus.isConnected || focus.closest('[inert],[hidden]')) return;
+        focus.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' }); focus.focus({ preventScroll: true });
+      });
+    }
+    return () => {
+      cancelAnimationFrame(handle); target.classList.remove('learning-target');
+      const remaining = (target.getAttribute('aria-describedby') ?? '').split(' ').filter(id => id && id !== 'learning-instruction');
+      if (remaining.length) target.setAttribute('aria-describedby', remaining.join(' ')); else target.removeAttribute('aria-describedby');
+    };
+  }, [learningActive, lessonStage, learningMinimized, project.id, panel, inspectorTab, objectDetailsOpen, pendingEdits]);
+
 
 
   function updateRetained(next: RetainedDraft[]) { retained.current = next; setRetainedDrafts(next); }
@@ -688,14 +764,15 @@ export default function App() {
     setSelected(id, intent);
     if (id) { setInspectorTab('object'); setObjectDetailsOpen(true); }
   }
-  function acceptProject(next: Project, label: string = m.openProjectFile): Project | null {
+  function acceptProject(next: Project, label: string = m.openProjectFile, calculate = true, keepLearning = false): Project | null {
     const previous = live.current.project;
     setLinkFrom(null);
     if (next.id === previous.id) { ++requestGeneration.current; calculationStatus.controller.invalidate(panelGeneration.current); sim.cancel(); setLatestAttempt(null); if (!edit(next, label)) return null; return live.current.project; }
     if (!preserveOutgoing(previous)) return null;
+    if (!keepLearning && learningRef.current) leaveLearning();
     ++requestGeneration.current; calculationStatus.controller.invalidate(panelGeneration.current); sim.cancel(); setLatestAttempt(null);
     setProject(next); live.current = { ...live.current, project: next }; const cleared = emptyHistory(); historyRef.current = cleared; setHistory(cleared); updateSelection(emptySelection()); setResult(null); setBaseline(null); setSelected(serviceNodes(next)[0]?.id ?? null); setBackupRequestedRevision(null); setLocalRevision(null); setStorageError(null);
-    if (!isLayoutOnly(next) && !validateProject(next).some(issue => issue.severity === 'error')) void compute(next, true);
+    if (calculate && !isLayoutOnly(next) && !validateProject(next).some(issue => issue.severity === 'error')) void compute(next, true);
     return next;
   }
   function openTemplates(intent: 'browse' | 'save' = 'browse', opener?: HTMLElement) { setTemplateIntent(intent); setPanel('worlds', opener); }
@@ -718,6 +795,122 @@ export default function App() {
       useTemplateProject(next);
     } catch (error) { if (request === starterRequest.current && surface === panelGeneration.current) { if (currentPanel.current === 'worlds') throw error; setToast(error instanceof Error ? error.message : stm.failed); } }
     finally { clearTimeout(timeout); if (request === starterRequest.current) { starterAbort.current = null; setStarterLoading(false); } }
+  }
+  async function startLearning() {
+    if (learningStarting) return;
+    if (!storageReady || pendingEditsRef.current || sim.running) { setLearningError(pendingEditsRef.current ? lm.pending : sim.running ? lm.waiting : lm.storageWaiting); return; }
+    const token = ++learningRequest.current, origin = live.current.project, surface = panelGeneration.current;
+    const previousLesson = learningRef.current;
+    const continuing = previousLesson?.projectId === origin.id && !previousLesson.finished;
+    const pristine = !restoredExistingProject.current && origin.id === initialProjectId.current && origin.revision === 0;
+    const returnId = continuing ? previousLesson!.returnProjectId : pristine ? null : origin.id;
+    const original = continuing ? learningReturn.current : { project: origin, result, baseline, attempt: latestAttempt, history: historyRef.current, selection: selectionRef.current, time, speed };
+    const controller = new AbortController(); learningAbort.current?.abort(); learningAbort.current = controller;
+    const current = () => token === learningRequest.current && surface === panelGeneration.current && live.current.project.id === origin.id && live.current.project.revision === origin.revision && !pendingEditsRef.current;
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    setLearningStarting(true); setLearningError(null);
+    try {
+      try { await persistProject(origin, false, captureSaveContext(origin.id)); }
+      catch { if (!pristine) throw new Error(lm.preservationFailed); }
+      if (!current()) return;
+      const next = await loadStarter('service', fetch, controller.signal);
+      if (!current()) return;
+      next.name = lm.practiceName;
+      const session = createLearningSession(next, returnId);
+      if (!session) throw new Error(lm.starterChanged);
+      if (!acceptProject(next, lm.practiceName, true, true)) return;
+      learningReturn.current = original; updateLearning(session); rememberLearningWelcome();
+      setLearningMinimized(false); setSelected(null); setLibraryTab('steps'); setBuildTrayOpen(false); setPlaying(false);
+      setPanel(null);
+    } catch (error) {
+      if (current()) setLearningError(error instanceof Error ? error.message : lm.startFailed);
+    } finally {
+      clearTimeout(timeout);
+      if (token === learningRequest.current) { learningAbort.current = null; setLearningStarting(false); }
+    }
+  }
+  async function returnFromLearning() {
+    const session = learningRef.current;
+    if (!session?.returnProjectId || learningStarting) return;
+    if (pendingEditsRef.current) { setLearningError(lm.pending); return; }
+    const origin = live.current.project, surface = panelGeneration.current, token = ++learningRequest.current;
+    const snapshot = learningReturn.current;
+    setLearningStarting(true); setLearningError(null);
+    try {
+      const saved = await loadProject(session.returnProjectId, { observe: false });
+      if (token !== learningRequest.current || surface !== panelGeneration.current || origin.id !== live.current.project.id || origin.revision !== live.current.project.revision || pendingEditsRef.current) return;
+      if (!saved) throw new Error(lm.returnMissing);
+      const same = snapshot && learningReturnMatches(snapshot.project, saved);
+      const accepted = acceptProject(saved, lm.return, !same);
+      if (!accepted) return;
+      rememberOpenedProject(accepted); setLocalRevision(saved.revision);
+      if (same && snapshot) {
+        setResult(snapshot.result); setBaseline(snapshot.baseline); setLatestAttempt(snapshot.attempt);
+        historyRef.current = snapshot.history; setHistory(snapshot.history); updateSelection(snapshot.selection);
+        setTime(snapshot.time); setSpeed(snapshot.speed); setPlaying(false);
+      }
+      setPanel(null); setLibraryTab(isLayoutOnly(saved) ? 'objects' : 'steps'); setBuildTrayOpen(false);
+    } catch (error) {
+      if (token === learningRequest.current) setLearningError(error instanceof Error ? error.message : lm.returnFailed);
+    } finally { if (token === learningRequest.current) setLearningStarting(false); }
+  }
+  function learningSelector(stage: LearningStage): string | null {
+    if (stage === 'select') return `[data-learning-target="step-${LEARNING_STEP_ID}"]`;
+    if (stage === 'edit') return `[data-learning-target="capacity-${LEARNING_POOL_ID}"] input`;
+    if (stage === 'run') return currentPanel.current === 'compare' ? '.comparison-run' : '[data-learning-target="run"]';
+    if (stage === 'review') return currentPanel.current === 'compare' ? '[data-learning-target="comparison-cost"]' : '[data-panel-opener="compare"]';
+    if (stage === 'save') return currentPanel.current === 'worlds' ? '.template-save input' : '.studio-world-picker select';
+    return null;
+  }
+  function focusLearningTarget(stage: LearningStage) {
+    const id = learningRef.current?.projectId, surface = panelGeneration.current;
+    requestAnimationFrame(() => {
+      if (!id || learningRef.current?.projectId !== id || live.current.project.id !== id || panelGeneration.current !== surface) return;
+      const selector = learningSelector(stage); const target = selector ? document.querySelector<HTMLElement>(selector) : null;
+      if (!target || target.closest('[hidden],[inert]')) return;
+      let ancestor = target.parentElement;
+      while (ancestor) { if (ancestor instanceof HTMLDetailsElement) ancestor.open = true; ancestor = ancestor.parentElement; }
+      target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' }); target.focus({ preventScroll: true });
+    });
+  }
+  async function learningAction() {
+    const session = learningRef.current;
+    if (!session || session.projectId !== live.current.project.id || !lessonStage) return;
+    setLearningError(null); setLearningMinimized(false);
+    if (lessonStage === 'complete') { leaveLearning(); setPanel(null); return; }
+    if (lessonStage === 'off-track') { await startLearning(); return; }
+    if (lessonStage === 'baseline') {
+      const original = originalLearningProject(live.current.project, session);
+      if (original) { original.name = lm.originalPlan; patchLearning({ ran: false, reviewed: false }); await compute(original, true); }
+      return;
+    }
+    if (lessonStage === 'select') { setPanel(null); setBuildTrayOpen(false); setLibraryTab('steps'); openStepList(); focusLearningTarget('select'); return; }
+    if (lessonStage === 'edit') { setPanel(null); setBuildTrayOpen(false); setLibraryTab('steps'); editSceneNode(LEARNING_STEP_ID); focusLearningTarget('edit'); return; }
+    if (lessonStage === 'run') {
+      if (!pendingEditsRef.current && !sim.running) {
+        const opener = document.activeElement instanceof HTMLElement ? document.activeElement : document.querySelector<HTMLElement>('[data-learning-target="run"]');
+        if (opener) await runAndCompare(opener);
+      }
+      return;
+    }
+    if (lessonStage === 'review') {
+      if (currentPanel.current !== 'compare') { setPanel('compare'); return; }
+      if (!learningComparison || pendingEditsRef.current) return;
+      patchLearning({ reviewed: true }); openTemplates('save'); return;
+    }
+    if (lessonStage === 'save') {
+      if (currentPanel.current === 'worlds' && templateIntent === 'save') focusLearningTarget('save');
+      else openTemplates('save');
+    }
+  }
+  function onLearningTemplateSaved(snapshot: Project, template: { id: string; name: string }) {
+    const session = learningRef.current, current = live.current.project;
+    if (!session || !session.reviewed || !session.ran || snapshot.id !== session.projectId || current.id !== session.projectId || current.model.seed !== session.seed || snapshot.model.seed !== session.seed || modelHash(snapshot.model) !== session.changedHash || modelHash(current.model) !== session.changedHash || pendingEditsRef.current) return;
+    patchLearning({ finished: true, savedName: template.name }); rememberLearningWelcome(); setLearningMinimized(false);
+  }
+  function finishLearningWithoutSave() {
+    if (lessonStage !== 'save' || !learningComparison || pendingEditsRef.current) return;
+    patchLearning({ finished: true }); rememberLearningWelcome(); setPanel(null); setLearningMinimized(false);
   }
   function applyBriefScenario(id: string) {
     facilityAction(() => {
@@ -759,6 +952,7 @@ export default function App() {
     if (command === 'newModel') { createProcess(); return; }
     if (command === 'steps') { setPanel(null); openStepList(); return; }
     if (command === 'data') { openFiles('projects'); return; }
+    if (command === 'learn') { setLearningError(null); setPanel('learn'); return; }
     if (command === 'download') { downloadProject(); setPanel(null); return; }
     if (command === 'demand' || command === 'team') {
       const kind = command === 'demand' ? 'source' : 'service';
@@ -774,9 +968,10 @@ export default function App() {
     if (target === 'steps') { openStepList(); return; }
     requestAnimationFrame(() => document.querySelector<HTMLElement>(target === 'download' ? '.studio-save' : '.studio-command-actions .studio-primary')?.focus());
   }
-  const panelTitle = (surface: Exclude<Panel, null>) => ({ worlds: m.chooseYourLittleWorld, compare: m.aBetterPlanStartsHere, model: m.insideYourModel, data: m.keepYourWorkShareYourFindings, experiments: m.runExperiments, insights: m.yourRunInDetail, budget: m.beforeYouCalculate, history: m.yourRecentActions, help: m.helpHeading, scenario: sx.scenario, view: sx.view, rename: sx.renameProject, search: sx.search, guide: sx.guide, brief: stm.brief }[surface]);
+  const panelTitle = (surface: Exclude<Panel, null>) => ({ worlds: m.chooseYourLittleWorld, compare: m.aBetterPlanStartsHere, model: m.insideYourModel, data: m.keepYourWorkShareYourFindings, experiments: m.runExperiments, insights: m.yourRunInDetail, budget: m.beforeYouCalculate, history: m.yourRecentActions, help: m.helpHeading, scenario: sx.scenario, view: sx.view, rename: sx.renameProject, search: sx.search, guide: sx.guide, brief: stm.brief, learn: lm.title }[surface]);
+  const learningCoach = learning && lessonStage ? <LearningCoach session={learning} stage={lessonStage} minimized={learningMinimized} busy={sim.running || learningStarting} busyLabel={learningStarting ? lm.opening : undefined} pending={pendingEdits} comparisonOpen={panel === 'compare'} saveOpen={panel === 'worlds' && templateIntent === 'save'} baseline={learningComparison ? baseline : null} result={learningComparison ? shownResult : null} error={learningError ?? (attemptMatchesDraft ? latestAttempt?.reason ?? lm.calculationIncomplete : null)} onAction={() => void learningAction()} onMinimize={() => setLearningMinimized(value => !value)} onLeave={leaveLearning} onReturn={() => void returnFromLearning()} onFinishWithoutSave={finishLearningWithoutSave} /> : null;
   const draftSummary = layoutOnly ? tm.layoutMode : normalBudget ? sx.quickSummary(ease.duration(project.model.horizon), number(normalBudget.groups[0].arrivalsPerRun), normalBudget.groups[0].stochastic, project.model.resources.length) : sx.reviewInputs;
-  return <NumericDraftProvider onPendingChange={setPendingEdits}><div className="app-shell studio-shell facility-studio">
+  return <NumericDraftProvider onPendingChange={setPendingEdits}><div className={`app-shell studio-shell facility-studio${learningActive ? ' learning-workspace' : ''}${reducedMotion ? ' learning-reduced-motion' : ''}`} onPointerDownCapture={() => { if (!storageReady) earlyInteraction.current = true; }} onKeyDownCapture={() => { if (!storageReady) earlyInteraction.current = true; }}>
     <header className="studio-header" inert={Boolean(panel)}>
       <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>{m.queueLab}<span className="studio-brand-dot">.</span></span></a>
       <div className="studio-project"><h1><button className="studio-project-name" data-panel-opener="rename" title={sx.renameProjectLabel(project.name)} aria-label={sx.renameProjectLabel(project.name)} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{sx.localProject}</span></div>
@@ -786,10 +981,11 @@ export default function App() {
         <button className="studio-save" aria-label={m.saveProject} onClick={downloadProject}><ArrowDownToLine size={16} /><span>{m.saveProject}</span></button>
         <button className="studio-icon-button ease-search-opener" data-panel-opener="search" aria-label={sx.search} title={sx.search} onClick={event => setPanel('search', event.currentTarget)}><Search size={17} /></button><span className="studio-command-divider" />
         <button data-panel-opener="compare" className="studio-button" aria-label={m.comparePlans} onClick={event => setPanel('compare', event.currentTarget)}><GitCompareArrows size={16} />{m.compareTool}</button>
-        <button className="studio-button ease-scenario-opener" data-panel-opener="scenario" aria-label={sx.scenario} onClick={event => setPanel('scenario', event.currentTarget)}><span>{sx.scenario}</span><small>{draftSummary}</small></button><button className="studio-button studio-primary" title={layoutOnly ? tm.processRequired : undefined} disabled={sim.running || hasErrors || pendingEdits || layoutOnly || starterLoading} onClick={event => { if (stale && baseline) void runAndCompare(event.currentTarget); else void compute(project); }}>{sim.running ? <LoaderCircle size={16} className="spin" /> : <Play size={15} fill="currentColor" />}{sim.running ? m.calculationProgress(Math.round(sim.progress * 100)) : stale && baseline ? m.runAndCompare : m.runSimulation}</button>
+        <button className="studio-button ease-scenario-opener" data-panel-opener="scenario" aria-label={sx.scenario} onClick={event => setPanel('scenario', event.currentTarget)}><span>{sx.scenario}</span><small>{draftSummary}</small></button><button className="studio-button studio-primary" data-learning-target="run" title={layoutOnly ? tm.processRequired : undefined} disabled={sim.running || hasErrors || pendingEdits || layoutOnly || starterLoading} onClick={event => { if ((stale && baseline) || (learningActive && currentHash === learning!.changedHash)) void runAndCompare(event.currentTarget); else void compute(project); }}>{sim.running ? <LoaderCircle size={16} className="spin" /> : <Play size={15} fill="currentColor" />}{sim.running ? m.calculationProgress(Math.round(sim.progress * 100)) : stale && baseline ? m.runAndCompare : m.runSimulation}</button>
       </div>
     </header>
     <FacilityWorkflow tab={libraryTab} open={buildTrayOpen} objects={project.facility?.objects.length ?? 0} steps={project.model.nodes.length} inert={Boolean(panel)} onBuild={(element, tab) => { chooseLibraryTab(tab); showBuildTray(element); }} onResults={element => setPanel('insights', element)} onTools={openTools} onView={element => setPanel('view', element)} />
+    {!panel && learningActive && learningCoach}
     <div className="studio-body" inert={Boolean(panel)}>
       <aside className="studio-library-dock" hidden={!buildTrayOpen}><BuildTray activeTab={libraryTab} onTabChange={chooseLibraryTab} key={project.id} onExample={() => openTemplates()} onSaveTemplate={() => openTemplates('save')} onStartProcess={startProcess} selectedObject={Boolean(project.facility?.objects.some(object => object.id === facilitySelection))} onReplace={asset => facilityAction(() => { if (facilitySelection) { edit(replaceFacilityAsset(live.current.project, facilitySelection, asset.id), fm.assetChanged); setBuildTrayOpen(false); } })} onNew={() => void chooseStarter('blank')} project={project} onPlace={addLibraryAsset} onCell={addLibraryCell} selectedStep={Boolean(selectedStep)} onAppearance={asset => facilityAction(() => { if (selected) edit(setNodeAsset(live.current.project, selected, asset.id), fm.assetChanged); })} world={project.world} serviceCount={serviceNodes(project).length} insertionLabel={insertionAnchor(project)?.label} insertionId={insertionAnchor(project)?.id} followingLabel={project.model.nodes.find(node => node.id === insertionAnchor(project)?.next)?.label} insertionOptions={project.model.nodes.filter(node => 'next' in node).map(node => ({ id: node.id, label: node.label }))} onInsertionChange={id => setSelected(id)} disabled={hasErrors || revisionExhausted || sim.running} disabledReason={hasErrors ? m.repairYourModelFirst : revisionExhausted ? m.revisionLimitReached : sim.running ? m.addingWhileRunning : project.model.nodes.length >= 100 ? m.stepLimitReached : undefined} onAdd={addProcess} onClose={closeBuildTray} /></aside>
 
@@ -806,7 +1002,7 @@ export default function App() {
           {selection.ids.length > 1 && <div className="studio-selection-summary"><span>{m.selectionSummary(selection.ids.length, selectedStep?.label ?? m.step)}</span><button onClick={event => setPanel('model', event.currentTarget)}>{m.moveOrEditSelection}</button><button onClick={() => setSelected(null)}>{m.clearSelection}</button></div>}
           {linkFrom && selectedStep && <div className="ease-connect-review"><ConnectionPicker project={project} node={project.model.nodes.find(node => node.id === linkFrom) ?? selectedStep} onChange={(next,label) => { edit(next,label); setLinkFrom(null); setConnectionPreview(null); }} onPreview={to => setConnectionPreview(previous => to ? { owner: 'tool', from: linkFrom, to } : previous?.owner === 'tool' ? null : previous)} /></div>}
           <div className="scene-area studio-canvas">
-            <div className="quality-world-brief"><div><small>{libraryTab === 'objects' ? fm.canvasTitle : fm.processTitle}</small><p title={project.name}>{project.name}</p></div><div className="world-brief-actions"><button type="button" data-panel-opener="brief" onClick={event => setPanel('brief', event.currentTarget)}><List size={14} />{stm.brief}</button><button type="button" data-panel-opener="guide" aria-label={sx.firstSteps} onClick={event => { setGuideIndex(0); setPanel('guide', event.currentTarget); }}><CircleHelp size={14} /><span>{sx.firstSteps}</span></button></div></div>
+            <div className="quality-world-brief"><div><small>{libraryTab === 'objects' ? fm.canvasTitle : fm.processTitle}</small><p title={project.name}>{project.name}</p></div><div className="world-brief-actions"><button type="button" data-panel-opener="brief" onClick={event => setPanel('brief', event.currentTarget)}><List size={14} />{stm.brief}</button><button type="button" data-panel-opener="learn" aria-label={lm.entry} onClick={event => { setLearningError(null); setPanel('learn', event.currentTarget); }}><CircleHelp size={14} /><span>{sx.firstSteps}</span></button></div></div>
             <div className="facility-canvas-tools" role="toolbar" aria-label={fm.canvasTools}>
               <button type="button" title={fm.libraryToggle} aria-label={fm.libraryToggle} aria-pressed={buildTrayOpen} onClick={event => buildTrayOpen ? closeBuildTray() : showBuildTray(event.currentTarget)}><Box size={17} /></button>
               <span />
@@ -846,14 +1042,16 @@ export default function App() {
       </main>
       {objectDetailsOpen && <aside id="object-properties" className="inspector studio-inspector" aria-label={inspectorTab === 'tools' ? m.studioTools : m.stationInspector}>
         <div className="studio-inspector-tabs"><button className={inspectorTab === 'steps' ? 'selected' : ''} onClick={() => setInspectorTab('steps')}>{sx.steps}</button><button className={inspectorTab === 'object' ? 'selected' : ''} onClick={() => setInspectorTab('object')}>{m.properties}</button><button className={inspectorTab === 'tools' ? 'selected' : ''} onClick={() => setInspectorTab('tools')}>{m.toolsTool}</button><button className={inspectorTab === 'objects' ? 'selected' : ''} onClick={() => setInspectorTab('objects')}>{fm.placedTab}</button><button className="studio-inspector-close" data-object-details-close="" aria-label={m.closeObjectDetails} onClick={closeObjectDetails}><X size={16} /></button></div>
-        {inspectorTab === 'objects' ? <FacilityInspector onFocus={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:focus'))} project={project} selectedId={facilitySelection} onSelect={selectFacility} onChange={edit} onDuplicate={copyFacility} onRemove={deleteFacility} disabled={revisionExhausted || hasErrors} /> : inspectorTab === 'tools' ? <div className="studio-tool-list"><h2>{m.processTools}</h2><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><button data-panel-opener="model" onClick={event => setPanel('model', event.currentTarget)}><List size={17} /><span>{m.processEditor}</span><ChevronRight size={14} /></button><button data-panel-opener="experiments" onClick={event => setPanel('experiments', event.currentTarget)}><FlaskConical size={17} /><span>{m.experiments}</span><ChevronRight size={14} /></button><button data-panel-opener="budget" onClick={event => setPanel('budget', event.currentTarget)}><ShieldCheck size={17} /><span>{m.runLimits}</span><ChevronRight size={14} /></button><button data-panel-opener="history" onClick={event => setPanel('history', event.currentTarget)}><History size={17} /><span>{m.actionHistory}</span><ChevronRight size={14} /></button><button data-panel-opener="worlds" onClick={event => openTemplates('browse', event.currentTarget)}><Globe2 size={17} /><span>{m.exploreWorlds}</span><ChevronRight size={14} /></button><button data-panel-opener="help" onClick={event => setPanel('help', event.currentTarget)}><CircleHelp size={17} /><span>{m.aLittleGuidance}</span><ChevronRight size={14} /></button><div className="studio-tool-note"><ShieldCheck size={15} />{m.yourWorldStaysOnYourDevice}</div></div> : inspectorTab === 'steps' ? <ProcessList project={project} selectedId={selected} selectedIds={selection.ids} onSelect={(id, intent) => { if (intent === 'toggle') setSelected(id, intent); else if (id) editSceneNode(id); }} /> : selectedStep ? <fieldset className="studio-properties" aria-label={m.properties} disabled={revisionExhausted}>{!('next' in selectedStep) && <p className="ease-help">{processEaseMessages.noOutgoing}</p>}<QuickProperties key={`${project.id}:${selectedStep.id}`} project={project} node={selectedStep} result={shownResult} onChange={edit} onAdvanced={() => setPanel('model')} onPreviewConnection={to => { if (to) setBuildTrayOpen(false); setConnectionPreview(previous => to ? { owner: 'quick', from: selectedStep.id, to } : previous?.owner === 'quick' ? null : previous); }} /><EquipmentAppearance project={project} nodeId={selectedStep.id} onChange={edit} onLibrary={showBuildTray} /></fieldset> : <div className="studio-empty-properties"><MousePointer2 size={26} /><h2>{m.properties}</h2><p>{m.selectionEmpty}</p><button className="studio-button" onClick={event => showBuildTray(event.currentTarget)}><Plus size={15} />{m.processBlocks}</button></div>}
+        {inspectorTab === 'objects' ? <FacilityInspector onFocus={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:focus'))} project={project} selectedId={facilitySelection} onSelect={selectFacility} onChange={edit} onDuplicate={copyFacility} onRemove={deleteFacility} disabled={revisionExhausted || hasErrors} /> : inspectorTab === 'tools' ? <div className="studio-tool-list"><h2>{m.processTools}</h2><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><button data-panel-opener="model" onClick={event => setPanel('model', event.currentTarget)}><List size={17} /><span>{m.processEditor}</span><ChevronRight size={14} /></button><button data-panel-opener="experiments" onClick={event => setPanel('experiments', event.currentTarget)}><FlaskConical size={17} /><span>{m.experiments}</span><ChevronRight size={14} /></button><button data-panel-opener="budget" onClick={event => setPanel('budget', event.currentTarget)}><ShieldCheck size={17} /><span>{m.runLimits}</span><ChevronRight size={14} /></button><button data-panel-opener="history" onClick={event => setPanel('history', event.currentTarget)}><History size={17} /><span>{m.actionHistory}</span><ChevronRight size={14} /></button><button data-panel-opener="worlds" onClick={event => openTemplates('browse', event.currentTarget)}><Globe2 size={17} /><span>{m.exploreWorlds}</span><ChevronRight size={14} /></button><button data-panel-opener="help" onClick={event => setPanel('help', event.currentTarget)}><CircleHelp size={17} /><span>{m.aLittleGuidance}</span><ChevronRight size={14} /></button><div className="studio-tool-note"><ShieldCheck size={15} />{m.yourWorldStaysOnYourDevice}</div></div> : inspectorTab === 'steps' ? <ProcessList project={project} selectedId={selected} selectedIds={selection.ids} onSelect={(id, intent) => { if (intent === 'toggle') setSelected(id, intent); else if (id) editSceneNode(id); }} /> : selectedStep ? <fieldset className="studio-properties" aria-label={m.properties} disabled={revisionExhausted}>{!('next' in selectedStep) && <p className="ease-help">{processEaseMessages.noOutgoing}</p>}<QuickProperties teamHint={learningActive && !learningMinimized && lessonStage === 'edit' ? { poolId: LEARNING_POOL_ID, text: lm.fieldHint } : undefined} key={`${project.id}:${selectedStep.id}`} project={project} node={selectedStep} result={shownResult} onChange={edit} onAdvanced={() => setPanel('model')} onPreviewConnection={to => { if (to) setBuildTrayOpen(false); setConnectionPreview(previous => to ? { owner: 'quick', from: selectedStep.id, to } : previous?.owner === 'quick' ? null : previous); }} /><EquipmentAppearance project={project} nodeId={selectedStep.id} onChange={edit} onLibrary={showBuildTray} /></fieldset> : <div className="studio-empty-properties"><MousePointer2 size={26} /><h2>{m.properties}</h2><p>{m.selectionEmpty}</p><button className="studio-button" onClick={event => showBuildTray(event.currentTarget)}><Plus size={15} />{m.processBlocks}</button></div>}
       </aside>}
     </div>
     {storageError && <button className="storage-warning" onClick={event => { setToast(storageError); setPanel('data', event.currentTarget); }}>{m.localSaveNeedsAttentionDownloadABackup}</button>}
     {!panel && (toast || sim.error) && <div role="status" className="toast"><span>{toast ?? sim.error}</span><button aria-label={m.dismissNotification} onClick={() => { setToast(null); sim.clearError(); }}><X size={15} /></button></div>}
     {sim.running && <button className="cancel-run" disabled={sim.cancelling} onClick={cancelCalculation}>{sim.cancelling ? m.stoppingCalculation : m.cancelCalculation}<X size={14} /></button>}
-    {panel && <div className="modal-backdrop" onClick={() => setPanel(null)}><section data-panel={panel} className={`modal ${panel === 'model' || panel === 'data' || panel === 'experiments' || panel === 'insights' || panel === 'worlds' ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">{m.modalEyebrow(m.modalSection(panel))}</span><h2 id="modal-title">{panelTitle(panel)}</h2></div><button className="icon-button" aria-label={m.closeDialog} onClick={() => setPanel(null)}><X size={20} /></button></div>
+    {panel && <div className="modal-backdrop" onClick={() => setPanel(null)}><section data-panel={panel} className={`modal ${panel === 'model' || panel === 'data' || panel === 'experiments' || panel === 'insights' || panel === 'worlds' || panel === 'learn' ? 'wide-modal' : ''}${panel === 'compare' && learningComparison ? ' guided-comparison' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">{m.modalEyebrow(m.modalSection(panel))}</span><h2 id="modal-title">{panelTitle(panel)}</h2></div><button className="icon-button" aria-label={m.closeDialog} onClick={() => setPanel(null)}><X size={20} /></button></div>
       <div key={panel} className="modal-body">
+      {learningActive && (panel === 'compare' || panel === 'worlds') && learningCoach}
+      {panel === 'learn' && <LearningIntro busy={learningStarting} blocked={!storageReady ? lm.storageWaiting : pendingEdits ? lm.pending : sim.running ? lm.waiting : undefined} error={learningError} onStart={() => void startLearning()} onExplore={() => setPanel(null)} onReference={() => { setGuideIndex(0); setPanel('guide'); }} />}
       <CalculationStatus announcement={calculationStatus.announcement} active={calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />{sim.error && <p role="alert" className="ease-error">{sim.error}</p>}
       {panel === 'brief' && <ProjectBrief project={project} blocked={pendingEdits || sim.running || revisionExhausted} onApply={applyBriefScenario} onCompare={() => setPanel('compare')} />}
       {panel === 'scenario' && <ScenarioSettings project={project} onChange={edit} onBudget={() => setPanel('budget')} onInspect={id => { setPanel(null); editSceneNode(id); }} />}
@@ -863,7 +1061,7 @@ export default function App() {
       {panel === 'view' && <div className="ease-view"><p>{sx.viewScope}</p><label className="ease-select-label">{sx.detail}<select value={quality} onChange={event => setQuality(event.currentTarget.value as 'high' | 'low')}><option value="high">{sx.high}</option><option value="low">{sx.low}</option></select></label><label className="ease-checkbox"><input type="checkbox" checked={project.facility?.scenery !== false} onChange={event => facilityAction(() => { edit(setFacilityScenery(live.current.project, event.currentTarget.checked), fm.scenery); })} />{fm.scenery}</label><label className="ease-checkbox"><input type="checkbox" checked={reducedMotion} onChange={event => setReducedMotion(event.currentTarget.checked)} />{sx.reducedMotion}</label><div className="ease-actions"><button className="ease-button" onClick={() => { setPanel(null); document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:focus')); }}>{facilitySelection ? fm.focusObject : rx.focus}<kbd>G</kbd></button><button className="ease-button" onClick={() => { setPanel(null); requestAnimationFrame(() => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.querySelector<HTMLElement>('.world-workspace')?.requestFullscreen?.().catch(() => setToast(m.fullScreenIsUnavailableInThisBrowser)); }); }}>{rx.fullscreen}<kbd>F</kbd></button></div><p>{sx.shortcuts}</p><p>{sx.inputHelp}</p></div>}
       {panel === 'history' && <ActionHistory history={history} revision={project.revision} onUndo={undo} onRedo={redo} />}
       {panel === 'budget' && (layoutOnly ? <p className="modal-intro">{tm.processRequired}</p> : normalBudget ? <CalculationBudget budget={normalBudget} /> : <p className="modal-intro">{m.repairYourModelToSeeTheWorkloadEstimateThe}</p>)}
-      {panel === 'worlds' && <TemplatesPanel key={project.id} project={project} intent={templateIntent} blockedReason={pendingEdits ? tm.pending : !storageReady ? m.openingLocalProject : undefined} saveBlockedReason={hasErrors ? tm.repair : undefined} onStarter={chooseStarter} onUse={useTemplateProject} />}
+      {panel === 'worlds' && <TemplatesPanel key={project.id} project={project} intent={templateIntent} blockedReason={pendingEdits ? tm.pending : !storageReady ? m.openingLocalProject : undefined} saveBlockedReason={hasErrors ? tm.repair : undefined} onStarter={chooseStarter} onUse={useTemplateProject} onSaved={onLearningTemplateSaved} />}
       {panel === 'compare' && <><p className="modal-intro">{m.keepYourOriginalPlanChangeAStationRunIt}</p>
         {singlePaired && baseline && shownResult && <section className="comparison-summary" aria-label={m.whatChanged}>
           <span className="eyebrow">{m.whatChanged}</span>
@@ -871,7 +1069,7 @@ export default function App() {
           <p>{shownResult.summary.waitSampleSize && baseline.summary.waitSampleSize ? m.waitingOutcome(shownResult.summary.meanWait - baseline.summary.meanWait, wait(Math.abs(shownResult.summary.meanWait - baseline.summary.meanWait))) : m.noComparableWaitSamples} {shownResult.model.currency === baseline.model.currency ? m.costOutcome(shownResult.summary.cost - baseline.summary.cost, money(Math.abs(shownResult.summary.cost - baseline.summary.cost), shownResult.model.currency)) : m.differentCostCurrencies}</p>
           <small>{m.compareScope}</small>
         </section>}
-        {stale && <button className="primary-button comparison-run" disabled={hasErrors || sim.running} onClick={event => void runAndCompare(event.currentTarget)}>{sim.running ? <LoaderCircle className="spin" size={16} /> : <Play size={16} />}{m.runAndCompare}</button>}<InputDifferences before={baseline?.model ?? project.model} after={shownResult?.model ?? project.model} /><div className="comparison-table"><div className="comparison-row table-header"><span>{m.fullRunHeading}</span><span>{m.baseline}<strong className="ease-plan-name">{baseline ? runDisplayNames.current.get(baseline) ?? baseline.model.name : '—'}</strong>{baseline && <small>{ease.duration(baseline.model.horizon)} · {baseline.id.slice(0,8)}</small>}</span><span>{m.currentPlan}<strong className="ease-plan-name">{shownResult ? runDisplayNames.current.get(shownResult) ?? shownResult.model.name : project.name}</strong><small>{ease.duration(shownResult?.model.horizon ?? project.model.horizon)}{shownResult ? ` · ${shownResult.id.slice(0,8)}` : ''}</small></span></div>{[[m.completed, baseline?.summary.completed, shownResult?.summary.completed, ''], [m.averageWait, baseline?.summary.waitSampleSize ? baseline.summary.meanWait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.meanWait : null, 'wait'], [m.label95thPercentileWait, baseline?.summary.waitSampleSize ? baseline.summary.p95Wait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.p95Wait : null, 'wait'], [m.resourceCost, baseline?.summary.cost, shownResult?.summary.cost, 'cost']].map(([label, a, b, kind]) => <div className="comparison-row" key={String(label)}><span>{label}</span><strong>{typeof a === 'number' ? kind === 'wait' ? wait(a) : kind === 'cost' ? money(a, baseline?.model.currency ?? project.model.currency) : number(a) : '—'}</strong><strong>{typeof b === 'number' ? kind === 'wait' ? wait(b) : kind === 'cost' ? money(b, shownResult?.model.currency ?? project.model.currency) : number(b) : shownResult ? '—' : m.runYourPlan}</strong></div>)}</div><div className="comparison-note"><ShieldCheck size={16} />{singlePaired ? m.sameExternalDemandSeed(shownResult?.seed) : !shownResult ? m.runTheCurrentDraftToCompareItWithThe : !singleCoupling ? m.matchingScopeWasNotRecordedInThisOlderRun : m.demandSeedOrMeasurementPoliciesDifferTheseAreSeparate}{m.samplingUncertaintyNote}</div>{baseline && shownResult && singleCoupling && <details className="comparison-disclosure"><summary>{m.comparisonDetails}</summary><CouplingDetails manifest={singleCoupling} baseline={baseline} candidate={shownResult} /></details>}<button className="secondary-button" disabled={!shownResult} onClick={() => { if (shownResult) { setBaseline(shownResult); setToast(m.currentRunIsNowYourBaseline); } }}><Copy size={16} />{m.useCurrentRunAsBaseline}</button><DecisionGuide project={project} result={shownResult} onInspect={id => { setPanel(null); editSceneNode(id); }} /><SavedScenarios project={project} baseline={baseline} baselinePresentation={baseline ? runPresentations.current.get(baseline) : undefined} busy={sim.running} onChange={edit} onBaseline={async snapshot => { if (isLayoutOnly(snapshot)) throw new Error(tm.processRequired); const generation = ++requestGeneration.current; calculationStatus.controller.invalidate(panelGeneration.current); setLatestAttempt(null); const computed = await sim.run(snapshot.model); if (generation !== requestGeneration.current) throw new Error(m.supersededByANewerRun); if (computed.status !== 'completed') { setLatestAttempt(computed); throw new Error(computed.reason ?? m.baselineRunDidNotComplete); } setLatestAttempt(null); runDisplayNames.current.set(computed, snapshot.name); runPresentations.current.set(computed, capturePresentation(snapshot)); setBaseline(computed); }} /><button className="secondary-button" disabled={!baseline || !shownResult} onClick={event => { setExperimentContext({ project: structuredClone(live.current.project), baseline: baseline ? structuredClone(baseline) : null }); setPanel('experiments', event.currentTarget, true); }}>{sx.repeatComparison}</button></>}
+        {stale && <button className="primary-button comparison-run" disabled={hasErrors || sim.running} onClick={event => void runAndCompare(event.currentTarget)}>{sim.running ? <LoaderCircle className="spin" size={16} /> : <Play size={16} />}{m.runAndCompare}</button>}<InputDifferences before={baseline?.model ?? project.model} after={shownResult?.model ?? project.model} /><div className="comparison-table"><div className="comparison-row table-header"><span>{m.fullRunHeading}</span><span>{m.baseline}<strong className="ease-plan-name">{baseline ? runDisplayNames.current.get(baseline) ?? baseline.model.name : '—'}</strong>{baseline && <small>{ease.duration(baseline.model.horizon)} · {baseline.id.slice(0,8)}</small>}</span><span>{m.currentPlan}<strong className="ease-plan-name">{shownResult ? runDisplayNames.current.get(shownResult) ?? shownResult.model.name : project.name}</strong><small>{ease.duration(shownResult?.model.horizon ?? project.model.horizon)}{shownResult ? ` · ${shownResult.id.slice(0,8)}` : ''}</small></span></div>{[[m.completed, baseline?.summary.completed, shownResult?.summary.completed, ''], [m.averageWait, baseline?.summary.waitSampleSize ? baseline.summary.meanWait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.meanWait : null, 'wait'], [m.label95thPercentileWait, baseline?.summary.waitSampleSize ? baseline.summary.p95Wait : null, shownResult?.summary.waitSampleSize ? shownResult.summary.p95Wait : null, 'wait'], [m.resourceCost, baseline?.summary.cost, shownResult?.summary.cost, 'cost']].map(([label, a, b, kind]) => <div className="comparison-row" data-learning-target={kind === 'cost' ? 'comparison-cost' : undefined} key={String(label)}><span>{label}</span><strong>{typeof a === 'number' ? kind === 'wait' ? wait(a) : kind === 'cost' ? money(a, baseline?.model.currency ?? project.model.currency) : number(a) : '—'}</strong><strong>{typeof b === 'number' ? kind === 'wait' ? wait(b) : kind === 'cost' ? money(b, shownResult?.model.currency ?? project.model.currency) : number(b) : shownResult ? '—' : m.runYourPlan}</strong></div>)}</div><div className="comparison-note"><ShieldCheck size={16} />{singlePaired ? m.sameExternalDemandSeed(shownResult?.seed) : !shownResult ? m.runTheCurrentDraftToCompareItWithThe : !singleCoupling ? m.matchingScopeWasNotRecordedInThisOlderRun : m.demandSeedOrMeasurementPoliciesDifferTheseAreSeparate}{m.samplingUncertaintyNote}</div>{baseline && shownResult && singleCoupling && <details className="comparison-disclosure"><summary>{m.comparisonDetails}</summary><CouplingDetails manifest={singleCoupling} baseline={baseline} candidate={shownResult} /></details>}<button className="secondary-button comparison-advanced-action" disabled={!shownResult} onClick={() => { if (shownResult) { setBaseline(shownResult); setToast(m.currentRunIsNowYourBaseline); } }}><Copy size={16} />{m.useCurrentRunAsBaseline}</button><DecisionGuide project={project} result={shownResult} onInspect={id => { setPanel(null); editSceneNode(id); }} /><SavedScenarios project={project} baseline={baseline} baselinePresentation={baseline ? runPresentations.current.get(baseline) : undefined} busy={sim.running} onChange={edit} onBaseline={async snapshot => { if (isLayoutOnly(snapshot)) throw new Error(tm.processRequired); const generation = ++requestGeneration.current; calculationStatus.controller.invalidate(panelGeneration.current); setLatestAttempt(null); const computed = await sim.run(snapshot.model); if (generation !== requestGeneration.current) throw new Error(m.supersededByANewerRun); if (computed.status !== 'completed') { setLatestAttempt(computed); throw new Error(computed.reason ?? m.baselineRunDidNotComplete); } setLatestAttempt(null); runDisplayNames.current.set(computed, snapshot.name); runPresentations.current.set(computed, capturePresentation(snapshot)); setBaseline(computed); }} /><button className="secondary-button comparison-advanced-action" disabled={!baseline || !shownResult} onClick={event => { setExperimentContext({ project: structuredClone(live.current.project), baseline: baseline ? structuredClone(baseline) : null }); setPanel('experiments', event.currentTarget, true); }}>{sx.repeatComparison}</button></>}
       {panel === 'model' && <ModelEditor project={project} onChange={edit} selectedId={selected} selectedIds={selection.ids} onSelect={setSelected} onMove={moveSelected} />}
       {panel === 'insights' && <RunInsights displayName={result ? runDisplayNames.current.get(result) : undefined} result={result} draft={project.model} onReport={() => openFiles('reports')} onExperiments={() => setPanel('experiments')} onSelectNode={id => { if (!project.model.nodes.some(node => node.id === id)) return; setPanel(null); editSceneNode(id); }} />}
       {panel === 'experiments' && layoutOnly && <div><p>{tm.processRequired}</p><button className="primary-button" onClick={startProcess}>{tm.startProcess}</button></div>}
