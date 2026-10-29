@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-Open the address printed by Vite. Choose **Little Factory**, **Festival Gate** or **Service Studio**; examples calculate on opening. **New model** starts a valid arrival → waiting → processing → completion flow.
+Open the address printed by Vite. Use **Templates** to choose **Service Studio**, **Festival Gate**, **Little Factory** or another starter; examples calculate on opening. **Blank** starts an empty site, and **Start a process** adds a valid arrival → waiting → processing → completion flow when you are ready.
 
 The working surface has a world, a searchable **Steps** list, contextual **Properties**, and **Run simulation**. **Tools → Model editor** keeps the complete professional model available when you need it.
 
@@ -26,6 +26,23 @@ For a custom facility, choose **Build facility → Empty site**. This starts wit
 5. In Compare, name and **Save current plan**. Save the baseline too if you want an alternative you can restore later. Saving a scenario keeps a model snapshot; it does not run a new calculation.
 
 Use Undo/Redo or **Action history** to reverse model edits. Restoring a saved scenario changes the draft; calculate it to get a new result.
+
+## Reproduce the Service Studio demo
+
+1. Open **Templates → Service Studio** and let the original plan finish calculating.
+2. In **Define process**, select **Specialists** in the world or Steps list, then open **Properties**.
+3. Under **Team or equipment → Shared specialists**, change **Base available units** from **2** to **3** and apply the field with Enter. Leave **Parallel stations**, the installed limit and the shift/break plan unchanged.
+4. Choose **Run & compare**. The original remains the baseline for the comparison.
+
+With the starter's one-hour duration and seed 4207, the same 106 realized arrivals produce these rounded results:
+
+| Outcome | Original · 2 shared units | Changed · 3 shared units |
+| --- | ---: | ---: |
+| Completed requests | 66 | 86 |
+| Average waiting time | 9.5 min | 5.2 min |
+| Modeled resource cost | $85 | $115 |
+
+This is one synthetic example. The arrival estimate in Scenario settings is an expectation; the actual count comes from the recorded run. Cost is a modeled resource charge, not total business cost. The [model guide](MODEL_GUIDE.md#measurement-and-interpretation) explains which work contributes to each metric and how repeated experiments help examine uncertainty.
 
 ## Change duration or demand
 
