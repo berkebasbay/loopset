@@ -5,6 +5,7 @@ import { StarterGallery } from './StarterGallery';
 import type { StarterId } from '../templates/catalogue';
 import { EmptyState } from '../ui/EmptyState';
 import { templateMessages as m } from '../ui/messages/templates';
+import { learningMessages as lm } from '../ui/messages/learning';
 import { listTemplates, loadTemplate, removeTemplate, saveTemplate } from '../storage/templateStore';
 import { instantiateTemplate, TEMPLATE_LIMIT, type TemplateMetadata } from '../storage/templateFormat';
 import { openProjectJSON, serializeProject } from '../storage/projectFile';
@@ -13,11 +14,11 @@ import './templates.css';
 
 export type StarterTemplate = StarterId | 'blank';
 interface Props {
-  project: Project; intent: 'browse' | 'save'; blockedReason?: string; saveBlockedReason?: string;
+  project: Project; intent: 'browse' | 'save'; saveOnly?: boolean; blockedReason?: string; saveBlockedReason?: string;
   onSaved?: (project: Project, template: TemplateMetadata) => void;
   onStarter: (template: StarterTemplate) => void | Promise<void>; onUse: (project: Project) => boolean;
 }
-export function TemplatesPanel({ project, intent, blockedReason, saveBlockedReason, onStarter, onUse, onSaved }: Props) {
+export function TemplatesPanel({ project, intent, blockedReason, saveBlockedReason, onStarter, onUse, onSaved, saveOnly }: Props) {
   const [tab, setTab] = useState<'starters' | 'mine'>(intent === 'save' ? 'mine' : 'starters');
   const [showSave, setShowSave] = useState(intent === 'save');
   const [failedStarter, setFailedStarter] = useState<StarterTemplate | null>(null);
@@ -31,7 +32,14 @@ export function TemplatesPanel({ project, intent, blockedReason, saveBlockedReas
     void listTemplates().then(rows => { if (current) { setItems(rows); setError(''); } }).catch(error => { if (current) setError(error instanceof Error ? error.message : m.storage); }).finally(() => { if (current) setLoading(false); });
     return () => { current = false; alive.current = false; operation.current++; };
   }, []);
-  useEffect(() => { if (intent === 'save') requestAnimationFrame(() => { if (alive.current) nameInput.current?.focus(); }); }, [intent]);
+  useEffect(() => {
+    if (intent !== 'save') return;
+    const origin = document.activeElement;
+    const frame = requestAnimationFrame(() => {
+      if (alive.current && (document.activeElement === origin || document.activeElement === document.body)) nameInput.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [intent]);
   async function perform(action: (current: () => boolean) => Promise<void>, starter?: StarterTemplate) {
     if (busyRef.current) return;
     const token = ++operation.current; busyRef.current = true; setBusy(true); setError(''); setStatus(''); setFailedStarter(starter ?? null);
@@ -61,7 +69,7 @@ export function TemplatesPanel({ project, intent, blockedReason, saveBlockedReas
   }
   const matches = items.filter(item => item.name.toLocaleLowerCase('en').includes(query.trim().toLocaleLowerCase('en')));
   const snapshot = imported ?? project;
-  return <div ref={panel} className="templates-panel ql-feature">
+  return <div ref={panel} className={`templates-panel ql-feature${saveOnly ? ' learning-save-panel' : ''}`}>
     <p className="modal-intro">{m.intro}</p>
     <div className="templates-toolbar"><div className="ql-toolbar" role="group" aria-label={m.title}>
       <button type="button" disabled={busy} className={`ql-tab ${tab === 'starters' ? 'ql-active' : ''}`} aria-pressed={tab === 'starters'} onClick={() => { setTab('starters'); setError(''); setFailedStarter(null); }}>{m.starters}</button>
@@ -72,7 +80,7 @@ export function TemplatesPanel({ project, intent, blockedReason, saveBlockedReas
     {error && <div className="ql-error" role="alert"><p>{error}</p><button type="button" className="ql-button" disabled={busy} onClick={() => failedStarter ? void perform(async () => { await onStarter(failedStarter); }, failedStarter) : void perform(async () => { await refresh(); setLoading(false); })}>{m.retry}</button></div>}
     {tab === 'starters' ? <StarterGallery busy={busy} blocked={Boolean(blockedReason)} onChoose={id => void perform(async () => { await onStarter(id); }, id)} /> : <>
       {showSave && <section className="template-save" aria-label={m.saveTitle}><div><LayoutTemplate size={22} /><h3>{imported ? m.importReady : m.saveTitle}</h3></div><p className="ql-help">{m.saveDescription}</p><p className="template-source-summary">{m.summary(snapshot.facility?.objects.length ?? 0, snapshot.model.nodes.length)}</p>
-        <form onSubmit={event => { event.preventDefault(); save(); }}><label>{m.name}<input ref={nameInput} value={name} maxLength={160} disabled={busy} onChange={event => setName(event.currentTarget.value)} /></label><button type="submit" className="ql-button ql-primary" disabled={busy || loading || Boolean(blockedReason) || (!imported && Boolean(saveBlockedReason)) || !name.trim()}>{busy ? <LoaderCircle size={16} className="spin" /> : <Plus size={16} />}{busy ? m.saving : imported ? m.saveImported : m.saveButton}</button></form>
+        <form onSubmit={event => { event.preventDefault(); save(); }}><label>{saveOnly ? lm.templateName : m.name}<input ref={nameInput} value={name} maxLength={160} disabled={busy} onChange={event => setName(event.currentTarget.value)} /></label><button type="submit" className="ql-button ql-primary" disabled={busy || loading || Boolean(blockedReason) || (!imported && Boolean(saveBlockedReason)) || !name.trim()}>{busy ? <LoaderCircle size={16} className="spin" /> : <Plus size={16} />}{busy ? saveOnly ? lm.saving : m.saving : imported ? m.saveImported : saveOnly ? lm.saveButton : m.saveButton}</button></form>
         {!imported && saveBlockedReason && <p role="status" className="ql-help">{saveBlockedReason}</p>}
         <button type="button" className="ql-button template-cancel-save" disabled={busy} onClick={() => { saveOpener.current?.focus(); setImported(null); setName(project.name); setStatus(''); setShowSave(false); }}>{imported ? m.cancelImport : m.cancel}</button>
       </section>}

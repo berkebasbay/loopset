@@ -50,6 +50,17 @@ describe('learn-by-doing progression', () => {
     expect(createLearningSession(e.project, null)).toBeNull();
     expect(learningStage({ ...e, valid: false })).toBe('off-track');
   });
+  it('lets a learner correct a different team size without discarding the exercise', () => {
+    const e = exercise(); e.session.selected = true;
+    for (const capacity of [0, 4, 12]) {
+      e.project.model.resources.find(pool => pool.id === 'specialists')!.capacity = capacity;
+      const snapshot = structuredClone(e.project);
+      expect(learningModelMatches(e.project, e.session)).toBe(true);
+      expect(learningStage(e)).toBe('edit');
+      expect(originalLearningProject(e.project, e.session)!.model).toEqual(e.original.model);
+      expect(e.project).toEqual(snapshot);
+    }
+  });
   it('keeps completion separate from saving a template', () => {
     const e = exercise(); e.session.finished = true;
     expect(learningStage(e)).toBe('complete'); expect(e.session.savedName).toBeUndefined();

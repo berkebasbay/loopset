@@ -24,7 +24,12 @@ export function createLearningSession(project: Project, returnProjectId: string 
 }
 
 export function learningModelMatches(project: Project, session: LearningSession): boolean {
-  return project.id === session.projectId && project.model.seed === session.seed && [session.baseHash, session.changedHash].includes(modelHash(project.model));
+  if (project.id !== session.projectId || project.model.seed !== session.seed) return false;
+  const original = structuredClone(project.model);
+  const pool = original.resources.find(item => item.id === LEARNING_POOL_ID);
+  if (!pool) return false;
+  pool.capacity = 2;
+  return modelHash(original) === session.baseHash;
 }
 export function originalLearningProject(project: Project, session: LearningSession): Project | null {
   if (!learningModelMatches(project, session)) return null;

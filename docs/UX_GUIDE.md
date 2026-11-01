@@ -12,9 +12,9 @@ The team’s base availability is visible in Properties. Installed capacity, cos
 
 ## Guided first experiment
 
-**Learn by doing** opens a five-step Service Studio practice: select Specialists, apply a shared-team change, calculate, read the comparison and optionally save a reusable template. Progress follows real edits and completed runs. Highlighted controls remain ordinary editor controls with the same validation and Undo behavior.
+**Learn by doing → Try it with me** opens a separate help-desk practice copy. A focused view shows the scene and one task at a time. Choose Specialists, change **People on this team** to 3 and choose **Apply change**. **Try this change** calculates the real result; before/after values explain requests helped, waiting and team costs inside the lesson. The last task lets you name and save your own template.
 
-The guide can be minimized or dismissed. It preserves an existing project before switching, offers a return action and resumes a saved practice after refresh. If you change other numerical inputs, it lets you keep exploring or start a fresh practice. Failed calculations and template saves remain incomplete and can be retried. The optional finish path explicitly says that no template was saved.
+**Show the full workspace** reveals the complete editor; **Continue my lesson** returns to the focused view. The guide can also be dismissed. Unfinished fields must be applied or cancelled first. It preserves an existing project before switching, offers a return action and resumes a saved practice after refresh. A different team number can be corrected in place. If you change other numerical inputs in the full editor, it lets you keep exploring or start a fresh practice. Failed calculations and template saves remain incomplete and can be retried. The optional finish path explicitly says that no template was saved.
 
 A first-visit welcome is shown only when no saved project is restored. Returning users can start the exercise from the playground. **Just show me the controls** retains the short reference tour.
 

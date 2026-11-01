@@ -2,11 +2,11 @@
 
 ## Learn by doing
 
-On your first visit, choose **Start my first experiment**. You can also open **Learn by doing** from the playground at any time.
+On your first visit, choose **Try it with me**. You can also open **Learn by doing** from the playground at any time.
 
-The five-step exercise opens a separate Service Studio project. Select **Specialists**, change its shared team from **2** to **3**, run the changed plan, compare completed work, waiting and resource cost, then optionally save your own template. The guide highlights the actual controls and follows your applied edits and completed calculations.
+The lesson opens a separate practice copy of a small help desk. You see one task at a time beside the scene. Choose **Specialists**, change **People on this team** from **2** to **3**, then choose **Apply change** and **Try this change**. The result explains requests helped, time spent waiting and team costs with clear before/after values. You can then name and save the example as a template.
 
-You can minimize or leave the guide at any time. Existing work is saved before practice starts; **Back to my previous project** reopens it. Refreshing an active practice restores its saved draft and asks you to run again before comparing. Templates and projects stay in this browser; download project JSON for a portable backup.
+**Show the full workspace** opens the complete editor; **Continue my lesson** brings the focused view back. You can also leave the guide. Existing work is saved before practice starts; **Back to my previous project** reopens it. Refreshing an active practice restores its saved draft and asks you to run again before comparing. Templates and projects stay in this browser; download project JSON for a portable backup.
 
 Choose **Explore on my own** to start without the exercise, or **Just show me the controls** for a short reference tour.
 
