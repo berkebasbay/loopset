@@ -184,6 +184,7 @@ export default function App() {
   const singleCoupling = useMemo(() => baseline && shownResult && baseline.provenance && shownResult.provenance ? buildCouplingManifest(baseline, shownResult) : null, [baseline, shownResult]);
   const singlePaired = Boolean(baseline && shownResult && singleCoupling?.compatibility.sameExternalDemand && singleCoupling.compatibility.sameMeasurementPolicies && baseline.demandHash === shownResult.demandHash);
   const learningActive = Boolean(learning && learning.projectId === project.id);
+  const learningFocused = learningActive && !learningMinimized;
   const lessonStage: LearningStage | null = learningActive ? learningStage({ session: learning!, project, baseline, result: shownResult, pending: pendingEdits, running: sim.running, valid: !hasErrors, comparable: singlePaired }) : null;
   const learningComparison = Boolean(learningActive && learningRunMatches(baseline, learning!.baseHash, learning!.seed) && learningRunMatches(shownResult, learning!.changedHash, learning!.seed) && singlePaired);
   const frame = useMemo(() => frameAt(visualProject, shownResult, time), [visualProject, shownResult, time]);
@@ -236,6 +237,16 @@ export default function App() {
     setLearningStarting(false); setLearningError(null); updateLearning(null); learningReturn.current = null;
     rememberLearningWelcome();
   }
+  function toggleLearningGuide() {
+    const next = !learningMinimized, origin = document.activeElement, id = live.current.project.id;
+    if (!next) setPanel(null);
+    const surface = panelGeneration.current;
+    setLearningMinimized(next);
+    requestAnimationFrame(() => {
+      if (live.current.project.id !== id || surface !== panelGeneration.current || focusChangedSince(origin)) return;
+      document.querySelector<HTMLButtonElement>(next ? '[data-learning-resume]' : '[data-learning-toggle]')?.focus();
+    });
+  }
   function setPanel(next: Panel, opener?: HTMLElement | null, keepExperimentContext = false) {
     if (currentPanel.current === 'learn' && next !== 'learn') {
       rememberLearningWelcome(); ++learningRequest.current; learningAbort.current?.abort(); learningAbort.current = null; setLearningStarting(false);
@@ -272,7 +283,7 @@ export default function App() {
       runPresentations.current.set(r, capturePresentation(p));
       setResult(r); if (establishBaseline || !baseline) setBaseline(r);
       const coverage = replayManifest(r).coverage;
-      setTime(establishBaseline ? Math.min(p.model.horizon * .38, coverage.at(-1)?.end ?? 0) : 0);
+      setTime(establishBaseline || (lesson?.projectId === p.id && !learningMinimized) ? Math.min(p.model.horizon * .38, coverage.at(-1)?.end ?? 0) : 0);
       setPlaying(establishBaseline && coverage.length > 0 && !currentPanel.current && learningRef.current?.projectId !== p.id); manualClock.current = false;
       const current = live.current.project;
       const earlier = !sameNumericalSnapshot(
@@ -295,7 +306,7 @@ export default function App() {
       )) return;
     const lesson = learningRef.current;
     if (lesson?.projectId === current.id && learningModelMatches(current, lesson) && learningRunMatches(completed, lesson.changedHash, lesson.seed) && learningRunMatches(baseline, lesson.baseHash, lesson.seed)) patchLearning({ ran: true, reviewed: false });
-    setPanel('compare', opener);
+    if (lesson?.projectId !== current.id || learningMinimized) setPanel('compare', opener);
     return completed;
   }
   function cancelCalculation() {
@@ -447,14 +458,14 @@ export default function App() {
         if (elements.length) elements[next].focus();
         return;
       }
-      if (panel || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || !(event.target instanceof Element) || !event.target.closest('.world-workspace') || (event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA', 'SUMMARY', 'A'].includes(event.target.tagName))) return;
+      if (learningFocused || panel || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || !(event.target instanceof Element) || !event.target.closest('.world-workspace') || (event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA', 'SUMMARY', 'A'].includes(event.target.tagName))) return;
       if (event.code === 'Space' && live.current.canReplay && !(event.target instanceof HTMLButtonElement)) { event.preventDefault(); manualClock.current = false; setPlaying(p => !p); }
       if (event.key.toLowerCase() === 'g') { event.preventDefault(); document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:focus')); }
       if (event.key.toLowerCase() === 'f') { event.preventDefault(); if (document.fullscreenElement) void document.exitFullscreen(); else void document.querySelector<HTMLElement>('.world-workspace')?.requestFullscreen?.().catch(() => setToast(m.fullScreenIsUnavailableInThisBrowser)); }
     };
     document.addEventListener('keydown', keyboard);
     return () => { document.removeEventListener('keydown', keyboard); };
-  }, [panel, linkFrom, moving, objectDetailsOpen, buildTrayOpen]);
+  }, [panel, linkFrom, moving, objectDetailsOpen, buildTrayOpen, learningFocused]);
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(null), 6000); return () => clearTimeout(id); }, [toast]);
   // Adopt a document's inspector before it can receive input. A deferred reset
   // can otherwise overwrite a Tools choice made just after the new world appears.
@@ -478,9 +489,9 @@ export default function App() {
     let handle = 0;
     const key = `${project.id}:${lessonStage}`;
     const active = document.activeElement;
-    const fromGuide = active === document.body || (active instanceof HTMLElement && Boolean(active.closest('.learning-coach,.learning-intro,[data-learning-target],[inert]') || active.matches('[data-panel-opener="learn"]')));
-    const focus = lessonStage === 'review' ? document.querySelector<HTMLElement>('.learning-coach [data-learning-action]') : target;
-    if (fromGuide && focus?.matches('input,button,select') && !focus.matches(':disabled') && !['preparing', 'complete', 'off-track'].includes(lessonStage) && focusedLearningStep.current !== key) {
+    const fromGuide = active === document.body || (active instanceof HTMLElement && Boolean(active.closest('.learning-coach,.learning-intro,.station-label,[data-learning-target],[inert]') || active.matches('[data-panel-opener="learn"]')));
+    const focus = ['review', 'complete'].includes(lessonStage) ? document.querySelector<HTMLElement>('[data-learning-heading]') : target;
+    if (fromGuide && focus?.matches('input,button,select,[data-learning-heading]') && !focus.matches(':disabled') && !['preparing', 'off-track'].includes(lessonStage) && focusedLearningStep.current !== key) {
       focusedLearningStep.current = key;
       const origin = document.activeElement, surface = panelGeneration.current;
       handle = requestAnimationFrame(() => {
@@ -855,11 +866,11 @@ export default function App() {
     } finally { if (token === learningRequest.current) setLearningStarting(false); }
   }
   function learningSelector(stage: LearningStage): string | null {
-    if (stage === 'select') return `[data-learning-target="step-${LEARNING_STEP_ID}"]`;
-    if (stage === 'edit') return `[data-learning-target="capacity-${LEARNING_POOL_ID}"] input`;
-    if (stage === 'run') return currentPanel.current === 'compare' ? '.comparison-run' : '[data-learning-target="run"]';
-    if (stage === 'review') return currentPanel.current === 'compare' ? '[data-learning-target="comparison-cost"]' : '[data-panel-opener="compare"]';
-    if (stage === 'save') return currentPanel.current === 'worlds' ? '.template-save input' : '.studio-world-picker select';
+    if (stage === 'select') return '.world-scene [data-station-id="station-b"]';
+    if (stage === 'edit') return learningMinimized ? `[data-learning-target="capacity-${LEARNING_POOL_ID}"] input` : '[data-learning-team] input';
+    if (stage === 'run') return learningMinimized ? '[data-learning-target="run"]' : '.learning-coach [data-learning-action]';
+    if (stage === 'review') return '.learning-results';
+    if (stage === 'save') return '.learning-coach .template-save input';
     return null;
   }
   function focusLearningTarget(stage: LearningStage) {
@@ -884,8 +895,8 @@ export default function App() {
       if (original) { original.name = lm.originalPlan; patchLearning({ ran: false, reviewed: false }); await compute(original, true); }
       return;
     }
-    if (lessonStage === 'select') { setPanel(null); setBuildTrayOpen(false); setLibraryTab('steps'); openStepList(); focusLearningTarget('select'); return; }
-    if (lessonStage === 'edit') { setPanel(null); setBuildTrayOpen(false); setLibraryTab('steps'); editSceneNode(LEARNING_STEP_ID); focusLearningTarget('edit'); return; }
+    if (lessonStage === 'select') { editSceneNode(LEARNING_STEP_ID); return; }
+    if (lessonStage === 'edit') { focusLearningTarget('edit'); return; }
     if (lessonStage === 'run') {
       if (!pendingEditsRef.current && !sim.running) {
         const opener = document.activeElement instanceof HTMLElement ? document.activeElement : document.querySelector<HTMLElement>('[data-learning-target="run"]');
@@ -894,13 +905,11 @@ export default function App() {
       return;
     }
     if (lessonStage === 'review') {
-      if (currentPanel.current !== 'compare') { setPanel('compare'); return; }
       if (!learningComparison || pendingEditsRef.current) return;
-      patchLearning({ reviewed: true }); openTemplates('save'); return;
+      patchLearning({ reviewed: true }); setPanel(null); return;
     }
     if (lessonStage === 'save') {
-      if (currentPanel.current === 'worlds' && templateIntent === 'save') focusLearningTarget('save');
-      else openTemplates('save');
+      focusLearningTarget('save');
     }
   }
   function onLearningTemplateSaved(snapshot: Project, template: { id: string; name: string }) {
@@ -969,12 +978,17 @@ export default function App() {
     requestAnimationFrame(() => document.querySelector<HTMLElement>(target === 'download' ? '.studio-save' : '.studio-command-actions .studio-primary')?.focus());
   }
   const panelTitle = (surface: Exclude<Panel, null>) => ({ worlds: m.chooseYourLittleWorld, compare: m.aBetterPlanStartsHere, model: m.insideYourModel, data: m.keepYourWorkShareYourFindings, experiments: m.runExperiments, insights: m.yourRunInDetail, budget: m.beforeYouCalculate, history: m.yourRecentActions, help: m.helpHeading, scenario: sx.scenario, view: sx.view, rename: sx.renameProject, search: sx.search, guide: sx.guide, brief: stm.brief, learn: lm.title }[surface]);
-  const learningCoach = learning && lessonStage ? <LearningCoach session={learning} stage={lessonStage} minimized={learningMinimized} busy={sim.running || learningStarting} busyLabel={learningStarting ? lm.opening : undefined} pending={pendingEdits} comparisonOpen={panel === 'compare'} saveOpen={panel === 'worlds' && templateIntent === 'save'} baseline={learningComparison ? baseline : null} result={learningComparison ? shownResult : null} error={learningError ?? (attemptMatchesDraft ? latestAttempt?.reason ?? lm.calculationIncomplete : null)} onAction={() => void learningAction()} onMinimize={() => setLearningMinimized(value => !value)} onLeave={leaveLearning} onReturn={() => void returnFromLearning()} onFinishWithoutSave={finishLearningWithoutSave} /> : null;
+  const learningCoach = learning && lessonStage ? <LearningCoach session={learning} stage={lessonStage} minimized={learningMinimized} busy={sim.running || learningStarting} busyLabel={learningStarting ? lm.opening : undefined} pending={pendingEdits}
+    capacity={project.model.resources.find(pool => pool.id === LEARNING_POOL_ID)?.capacity ?? 2} installedCapacity={project.model.resources.find(pool => pool.id === LEARNING_POOL_ID)?.installedCapacity ?? 3}
+    onCapacityChange={capacity => { if (live.current.project.id !== project.id || learningRef.current?.projectId !== project.id) throw new Error(lm.noLongerOpen); edit(mutateProject(live.current.project, copy => { const pool = copy.model.resources.find(item => item.id === LEARNING_POOL_ID); if (pool) pool.capacity = capacity; }), lm.edit.title); }}
+    baseline={learningComparison ? baseline : null} result={learningComparison ? shownResult : null} error={learningError ?? (attemptMatchesDraft ? latestAttempt?.reason ?? lm.calculationIncomplete : null)} onAction={() => void learningAction()} onMinimize={toggleLearningGuide} onLeave={leaveLearning} onReturn={() => void returnFromLearning()} onFinishWithoutSave={finishLearningWithoutSave}>
+    {lessonStage === 'save' && <TemplatesPanel saveOnly project={project} intent="save" saveBlockedReason={pendingEdits ? tm.pending : undefined} onStarter={chooseStarter} onUse={useTemplateProject} onSaved={onLearningTemplateSaved} />}
+  </LearningCoach> : null;
   const draftSummary = layoutOnly ? tm.layoutMode : normalBudget ? sx.quickSummary(ease.duration(project.model.horizon), number(normalBudget.groups[0].arrivalsPerRun), normalBudget.groups[0].stochastic, project.model.resources.length) : sx.reviewInputs;
-  return <NumericDraftProvider onPendingChange={setPendingEdits}><div className={`app-shell studio-shell facility-studio${learningActive ? ' learning-workspace' : ''}${reducedMotion ? ' learning-reduced-motion' : ''}`} onPointerDownCapture={() => { if (!storageReady) earlyInteraction.current = true; }} onKeyDownCapture={() => { if (!storageReady) earlyInteraction.current = true; }}>
+  return <NumericDraftProvider onPendingChange={setPendingEdits}><div className={`app-shell studio-shell facility-studio${learningActive ? ' learning-workspace' : ''}${learningFocused ? ' learning-focused' : ''}${reducedMotion ? ' learning-reduced-motion' : ''}`} onPointerDownCapture={() => { if (!storageReady) earlyInteraction.current = true; }} onKeyDownCapture={() => { if (!storageReady) earlyInteraction.current = true; }}>
     <header className="studio-header" inert={Boolean(panel)}>
       <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>{m.queueLab}<span className="studio-brand-dot">.</span></span></a>
-      <div className="studio-project"><h1><button className="studio-project-name" data-panel-opener="rename" title={sx.renameProjectLabel(project.name)} aria-label={sx.renameProjectLabel(project.name)} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{sx.localProject}</span></div>
+      <div className="studio-project"><h1><button className="studio-project-name" tabIndex={learningFocused ? -1 : undefined} data-panel-opener="rename" title={sx.renameProjectLabel(project.name)} aria-label={sx.renameProjectLabel(project.name)} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{sx.localProject}</span></div>
       <label className="studio-world-picker"><span>{tm.title}</span><select aria-label={tm.title} value="" disabled={starterLoading} onChange={event => { const value = event.currentTarget.value; if (value === "browse" || value === "save") openTemplates(value === "save" ? "save" : "browse", event.currentTarget); else void chooseStarter(value as StarterTemplate); }}><option value="" disabled>{starterLoading ? stm.loading : tm.choose}</option><option value="blank">{tm.blank}</option>{starterTemplates.map(item => <option key={item.id} value={item.id}>{item.copy.title}</option>)}<option value="browse">{tm.browse}</option><option value="save">{tm.save}</option></select></label>
       <div className="studio-command-actions">
         <button data-panel-opener="data" className="studio-icon-button" title={m.openProject} aria-label={m.openProject} onClick={event => openFiles('projects', event.currentTarget)}><FileUp size={17} /></button>
@@ -985,10 +999,11 @@ export default function App() {
       </div>
     </header>
     <FacilityWorkflow tab={libraryTab} open={buildTrayOpen} objects={project.facility?.objects.length ?? 0} steps={project.model.nodes.length} inert={Boolean(panel)} onBuild={(element, tab) => { chooseLibraryTab(tab); showBuildTray(element); }} onResults={element => setPanel('insights', element)} onTools={openTools} onView={element => setPanel('view', element)} />
-    {!panel && learningActive && learningCoach}
+    {!panel && learningActive && learningMinimized && learningCoach}
     <div className="studio-body" inert={Boolean(panel)}>
       <aside className="studio-library-dock" hidden={!buildTrayOpen}><BuildTray activeTab={libraryTab} onTabChange={chooseLibraryTab} key={project.id} onExample={() => openTemplates()} onSaveTemplate={() => openTemplates('save')} onStartProcess={startProcess} selectedObject={Boolean(project.facility?.objects.some(object => object.id === facilitySelection))} onReplace={asset => facilityAction(() => { if (facilitySelection) { edit(replaceFacilityAsset(live.current.project, facilitySelection, asset.id), fm.assetChanged); setBuildTrayOpen(false); } })} onNew={() => void chooseStarter('blank')} project={project} onPlace={addLibraryAsset} onCell={addLibraryCell} selectedStep={Boolean(selectedStep)} onAppearance={asset => facilityAction(() => { if (selected) edit(setNodeAsset(live.current.project, selected, asset.id), fm.assetChanged); })} world={project.world} serviceCount={serviceNodes(project).length} insertionLabel={insertionAnchor(project)?.label} insertionId={insertionAnchor(project)?.id} followingLabel={project.model.nodes.find(node => node.id === insertionAnchor(project)?.next)?.label} insertionOptions={project.model.nodes.filter(node => 'next' in node).map(node => ({ id: node.id, label: node.label }))} onInsertionChange={id => setSelected(id)} disabled={hasErrors || revisionExhausted || sim.running} disabledReason={hasErrors ? m.repairYourModelFirst : revisionExhausted ? m.revisionLimitReached : sim.running ? m.addingWhileRunning : project.model.nodes.length >= 100 ? m.stepLimitReached : undefined} onAdd={addProcess} onClose={closeBuildTray} /></aside>
 
+      {!panel && learningFocused && <div className="learning-dock">{learningCoach}</div>}
       <main className="main-shell studio-main">
         <CalculationStatus announcement={calculationStatus.announcement} active={!panel && calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />
         {pendingEdits && <p className="ease-pending-banner" role="status">{sx.pendingEdits}</p>}
@@ -1002,7 +1017,7 @@ export default function App() {
           {selection.ids.length > 1 && <div className="studio-selection-summary"><span>{m.selectionSummary(selection.ids.length, selectedStep?.label ?? m.step)}</span><button onClick={event => setPanel('model', event.currentTarget)}>{m.moveOrEditSelection}</button><button onClick={() => setSelected(null)}>{m.clearSelection}</button></div>}
           {linkFrom && selectedStep && <div className="ease-connect-review"><ConnectionPicker project={project} node={project.model.nodes.find(node => node.id === linkFrom) ?? selectedStep} onChange={(next,label) => { edit(next,label); setLinkFrom(null); setConnectionPreview(null); }} onPreview={to => setConnectionPreview(previous => to ? { owner: 'tool', from: linkFrom, to } : previous?.owner === 'tool' ? null : previous)} /></div>}
           <div className="scene-area studio-canvas">
-            <div className="quality-world-brief"><div><small>{libraryTab === 'objects' ? fm.canvasTitle : fm.processTitle}</small><p title={project.name}>{project.name}</p></div><div className="world-brief-actions"><button type="button" data-panel-opener="brief" onClick={event => setPanel('brief', event.currentTarget)}><List size={14} />{stm.brief}</button><button type="button" data-panel-opener="learn" aria-label={lm.entry} onClick={event => { setLearningError(null); setPanel('learn', event.currentTarget); }}><CircleHelp size={14} /><span>{sx.firstSteps}</span></button></div></div>
+            <div className="learning-scene-heading"><span>{lm.practiceBadge}</span><h2>{lm.sceneTitle}</h2><p>{lm.sceneCaption}</p></div><div className="quality-world-brief"><div><small>{libraryTab === 'objects' ? fm.canvasTitle : fm.processTitle}</small><p title={project.name}>{project.name}</p></div><div className="world-brief-actions"><button type="button" data-panel-opener="brief" onClick={event => setPanel('brief', event.currentTarget)}><List size={14} />{stm.brief}</button><button type="button" data-panel-opener="learn" aria-label={lm.entry} onClick={event => { setLearningError(null); setPanel('learn', event.currentTarget); }}><CircleHelp size={14} /><span>{sx.firstSteps}</span></button></div></div>
             <div className="facility-canvas-tools" role="toolbar" aria-label={fm.canvasTools}>
               <button type="button" title={fm.libraryToggle} aria-label={fm.libraryToggle} aria-pressed={buildTrayOpen} onClick={event => buildTrayOpen ? closeBuildTray() : showBuildTray(event.currentTarget)}><Box size={17} /></button>
               <span />
@@ -1022,7 +1037,7 @@ export default function App() {
               <button type="button" className="facility-mobile-tools" data-panel-opener="view" aria-label={sx.view} onClick={event => setPanel('view', event.currentTarget)}><Layers3 size={17} /></button>
               <button type="button" title={m.fitWorld} aria-label={m.fitWorld} onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={17} /></button>
             </div>
-            <Suspense fallback={<div className="scene-fallback" role="status"><p>{m.buildingYourLittleWorld}</p></div>}><WorldScene playing={playing} playbackSpeed={speed} replayUntil={replayUntil} runKey={shownResult?.id} seekEpoch={visualSeekEpoch} result={shownResult} onMoveStart={() => setPlaying(false)} project={visualProject} selectedFacilityId={facilitySelection} onSelectFacility={selectFacility} onMoveFacility={moveFacility} onDropAsset={droppedLibraryAsset} quality={quality} frame={frame} selected={selected} selectedIds={selection.ids} reducedMotion={reducedMotion} moving={moving && !hasErrors && !revisionExhausted} editable={!hasErrors && !revisionExhausted} flow={sceneFlow} onSelect={selectFromWorld} onMove={moveSelected} onCapacityChange={changeCapacity} onEditNode={editSceneNode} /></Suspense>
+            <Suspense fallback={<div className="scene-fallback" role="status"><p>{m.buildingYourLittleWorld}</p></div>}><WorldScene playing={playing} playbackSpeed={speed} replayUntil={replayUntil} runKey={shownResult?.id} seekEpoch={visualSeekEpoch} result={shownResult} onMoveStart={() => setPlaying(false)} project={visualProject} selectedFacilityId={facilitySelection} onSelectFacility={selectFacility} onMoveFacility={moveFacility} onDropAsset={droppedLibraryAsset} quality={quality} frame={frame} selected={selected} selectedIds={selection.ids} reducedMotion={reducedMotion} moving={moving && !hasErrors && !revisionExhausted && !learningFocused} editable={!hasErrors && !revisionExhausted && !learningFocused} flow={sceneFlow} onSelect={selectFromWorld} onMove={moveSelected} onCapacityChange={changeCapacity} onEditNode={editSceneNode} /></Suspense>
           </div>
           <div className="quality-mobile-selection"><span>{selectedStep?.label ?? m.selectionEmpty}</span><button type="button" disabled={!selectedStep} onClick={() => { if (selectedStep) editSceneNode(selectedStep.id); }}>{m.editSelectedStep}<ArrowRight size={14} /></button></div>
           {layoutOnly ? <div className="workspace-layout-footer"><p>{tm.layoutHint}</p><button type="button" onClick={startProcess}>{tm.startProcess}</button></div> : <>
@@ -1042,7 +1057,7 @@ export default function App() {
       </main>
       {objectDetailsOpen && <aside id="object-properties" className="inspector studio-inspector" aria-label={inspectorTab === 'tools' ? m.studioTools : m.stationInspector}>
         <div className="studio-inspector-tabs"><button className={inspectorTab === 'steps' ? 'selected' : ''} onClick={() => setInspectorTab('steps')}>{sx.steps}</button><button className={inspectorTab === 'object' ? 'selected' : ''} onClick={() => setInspectorTab('object')}>{m.properties}</button><button className={inspectorTab === 'tools' ? 'selected' : ''} onClick={() => setInspectorTab('tools')}>{m.toolsTool}</button><button className={inspectorTab === 'objects' ? 'selected' : ''} onClick={() => setInspectorTab('objects')}>{fm.placedTab}</button><button className="studio-inspector-close" data-object-details-close="" aria-label={m.closeObjectDetails} onClick={closeObjectDetails}><X size={16} /></button></div>
-        {inspectorTab === 'objects' ? <FacilityInspector onFocus={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:focus'))} project={project} selectedId={facilitySelection} onSelect={selectFacility} onChange={edit} onDuplicate={copyFacility} onRemove={deleteFacility} disabled={revisionExhausted || hasErrors} /> : inspectorTab === 'tools' ? <div className="studio-tool-list"><h2>{m.processTools}</h2><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><button data-panel-opener="model" onClick={event => setPanel('model', event.currentTarget)}><List size={17} /><span>{m.processEditor}</span><ChevronRight size={14} /></button><button data-panel-opener="experiments" onClick={event => setPanel('experiments', event.currentTarget)}><FlaskConical size={17} /><span>{m.experiments}</span><ChevronRight size={14} /></button><button data-panel-opener="budget" onClick={event => setPanel('budget', event.currentTarget)}><ShieldCheck size={17} /><span>{m.runLimits}</span><ChevronRight size={14} /></button><button data-panel-opener="history" onClick={event => setPanel('history', event.currentTarget)}><History size={17} /><span>{m.actionHistory}</span><ChevronRight size={14} /></button><button data-panel-opener="worlds" onClick={event => openTemplates('browse', event.currentTarget)}><Globe2 size={17} /><span>{m.exploreWorlds}</span><ChevronRight size={14} /></button><button data-panel-opener="help" onClick={event => setPanel('help', event.currentTarget)}><CircleHelp size={17} /><span>{m.aLittleGuidance}</span><ChevronRight size={14} /></button><div className="studio-tool-note"><ShieldCheck size={15} />{m.yourWorldStaysOnYourDevice}</div></div> : inspectorTab === 'steps' ? <ProcessList project={project} selectedId={selected} selectedIds={selection.ids} onSelect={(id, intent) => { if (intent === 'toggle') setSelected(id, intent); else if (id) editSceneNode(id); }} /> : selectedStep ? <fieldset className="studio-properties" aria-label={m.properties} disabled={revisionExhausted}>{!('next' in selectedStep) && <p className="ease-help">{processEaseMessages.noOutgoing}</p>}<QuickProperties teamHint={learningActive && !learningMinimized && lessonStage === 'edit' ? { poolId: LEARNING_POOL_ID, text: lm.fieldHint } : undefined} key={`${project.id}:${selectedStep.id}`} project={project} node={selectedStep} result={shownResult} onChange={edit} onAdvanced={() => setPanel('model')} onPreviewConnection={to => { if (to) setBuildTrayOpen(false); setConnectionPreview(previous => to ? { owner: 'quick', from: selectedStep.id, to } : previous?.owner === 'quick' ? null : previous); }} /><EquipmentAppearance project={project} nodeId={selectedStep.id} onChange={edit} onLibrary={showBuildTray} /></fieldset> : <div className="studio-empty-properties"><MousePointer2 size={26} /><h2>{m.properties}</h2><p>{m.selectionEmpty}</p><button className="studio-button" onClick={event => showBuildTray(event.currentTarget)}><Plus size={15} />{m.processBlocks}</button></div>}
+        {inspectorTab === 'objects' ? <FacilityInspector onFocus={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:focus'))} project={project} selectedId={facilitySelection} onSelect={selectFacility} onChange={edit} onDuplicate={copyFacility} onRemove={deleteFacility} disabled={revisionExhausted || hasErrors} /> : inspectorTab === 'tools' ? <div className="studio-tool-list"><h2>{m.processTools}</h2><p>{m.everyWorldIsASmallEditableProcessSimulationJobs}</p><button data-panel-opener="model" onClick={event => setPanel('model', event.currentTarget)}><List size={17} /><span>{m.processEditor}</span><ChevronRight size={14} /></button><button data-panel-opener="experiments" onClick={event => setPanel('experiments', event.currentTarget)}><FlaskConical size={17} /><span>{m.experiments}</span><ChevronRight size={14} /></button><button data-panel-opener="budget" onClick={event => setPanel('budget', event.currentTarget)}><ShieldCheck size={17} /><span>{m.runLimits}</span><ChevronRight size={14} /></button><button data-panel-opener="history" onClick={event => setPanel('history', event.currentTarget)}><History size={17} /><span>{m.actionHistory}</span><ChevronRight size={14} /></button><button data-panel-opener="worlds" onClick={event => openTemplates('browse', event.currentTarget)}><Globe2 size={17} /><span>{m.exploreWorlds}</span><ChevronRight size={14} /></button><button data-panel-opener="help" onClick={event => setPanel('help', event.currentTarget)}><CircleHelp size={17} /><span>{m.aLittleGuidance}</span><ChevronRight size={14} /></button><div className="studio-tool-note"><ShieldCheck size={15} />{m.yourWorldStaysOnYourDevice}</div></div> : inspectorTab === 'steps' ? <ProcessList project={project} selectedId={selected} selectedIds={selection.ids} onSelect={(id, intent) => { if (intent === 'toggle') setSelected(id, intent); else if (id) editSceneNode(id); }} /> : selectedStep ? <fieldset className="studio-properties" aria-label={m.properties} disabled={revisionExhausted}>{!('next' in selectedStep) && <p className="ease-help">{processEaseMessages.noOutgoing}</p>}<QuickProperties key={`${project.id}:${selectedStep.id}`} project={project} node={selectedStep} result={shownResult} onChange={edit} onAdvanced={() => setPanel('model')} onPreviewConnection={to => { if (to) setBuildTrayOpen(false); setConnectionPreview(previous => to ? { owner: 'quick', from: selectedStep.id, to } : previous?.owner === 'quick' ? null : previous); }} /><EquipmentAppearance project={project} nodeId={selectedStep.id} onChange={edit} onLibrary={showBuildTray} /></fieldset> : <div className="studio-empty-properties"><MousePointer2 size={26} /><h2>{m.properties}</h2><p>{m.selectionEmpty}</p><button className="studio-button" onClick={event => showBuildTray(event.currentTarget)}><Plus size={15} />{m.processBlocks}</button></div>}
       </aside>}
     </div>
     {storageError && <button className="storage-warning" onClick={event => { setToast(storageError); setPanel('data', event.currentTarget); }}>{m.localSaveNeedsAttentionDownloadABackup}</button>}

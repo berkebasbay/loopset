@@ -17,8 +17,8 @@ const state = p => p.evaluate(() => JSON.parse(window.render_game_to_text()));
 const ready = p => p.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !s.running && s.result?.status === 'completed'; });
 const coach = p => p.locator('.learning-coach');
 const stage = (p, name) => p.locator(`[data-learning-stage="${name}"]`).waitFor();
-const cap = p => p.locator('[data-learning-target="capacity-specialists"] input');
-const saved = p => p.locator('.workspace-footer').getByText(/^Saved in this browser/).first().waitFor();
+const cap = p => p.locator('[data-learning-team] input:visible,[data-learning-target="capacity-specialists"] input:visible');
+const saved = p => p.locator('.workspace-footer').getByText(/^Saved in this browser/).first().waitFor({ state: 'attached' });
 async function fresh(width = 1440, skip = false) {
   const context = await browser.newContext({ viewport: { width, height: width > 740 ? 1000 : 844 }, reducedMotion: 'reduce', acceptDownloads: true });
   const p = await context.newPage(); p.on('pageerror', e => errors.push(String(e))); await p.goto(origin.href); await ready(p);
@@ -26,21 +26,29 @@ async function fresh(width = 1440, skip = false) {
 }
 async function start(p) {
   if (!await p.locator('[data-panel=learn]').count()) await p.getByRole('button', { name: 'Learn by doing', exact: true }).click();
-  await p.getByRole('button', { name: 'Start my first experiment', exact: true }).click(); await stage(p, 'select');
+  await p.getByRole('button', { name: 'Try it with me', exact: true }).click(); await stage(p, 'select');
 }
 async function change(p) {
-  await coach(p).getByRole('button', { name: 'Open the Steps list', exact: true }).click();
-  await p.locator('[data-learning-target="step-station-b"]').press('Enter'); await stage(p, 'edit');
-  await p.getByRole('button', { name: 'Show the team setting', exact: true }).click();
-  await cap(p).fill('3'); await cap(p).press('Enter'); await stage(p, 'run');
+  await coach(p).getByRole('button', { name: 'Choose Specialists', exact: true }).click(); await stage(p, 'edit');
+  await cap(p).fill('3'); await p.getByRole('button', { name: 'Apply change', exact: true }).click(); await stage(p, 'run');
 }
 async function compare(p) {
-  await coach(p).getByRole('button', { name: 'Run & compare', exact: true }).press('Enter');
-  await p.locator('[data-panel=compare] [data-learning-stage=review]').waitFor();
+  await coach(p).getByRole('button', { name: 'Try this change', exact: true }).press('Enter');
+  await stage(p, 'review'); await p.waitForFunction(() => document.activeElement?.matches('[data-learning-heading]')); assert.equal(await p.getByRole('dialog').count(), 0);
 }
-async function keep(p) { await p.getByRole('button', { name: 'Keep this version', exact: true }).click(); await stage(p, 'save'); }
+async function keep(p) { await p.getByRole('button', { name: 'Got it. Next', exact: true }).click(); await stage(p, 'save'); }
 async function download(p, name) {
-  const next = p.waitForEvent('download'); await p.locator('.studio-save').click(); const file = await next, target = path.join(out, `${name}.json`); await file.saveAs(target); return JSON.parse(await fs.readFile(target, 'utf8'));
+  const focused = await p.locator('.learning-focused').count();
+  if (focused) await p.getByRole('button', { name: 'Show the full workspace', exact: true }).click();
+  const next = p.waitForEvent('download'); await p.locator('.studio-save').click(); const file = await next, target = path.join(out, `${name}.json`); await file.saveAs(target);
+  if (focused) await p.locator('[data-learning-resume]').click();
+  return JSON.parse(await fs.readFile(target, 'utf8'));
+}
+async function templateCount(p) {
+  return p.evaluate(() => new Promise((resolve, reject) => {
+    const r = indexedDB.open('loopset-templates', 1); r.onerror = () => reject(r.error);
+    r.onsuccess = () => { const db = r.result, tx = db.transaction('templates'), count = tx.objectStore('templates').count(); tx.oncomplete = () => { db.close(); resolve(count.result); }; tx.onabort = () => { db.close(); reject(tx.error); }; };
+  }));
 }
 async function overflow(p) {
   assert(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -55,29 +63,39 @@ try {
     await page.screenshot({ path: path.join(out, `welcome-${width}.png`) }); await start(page);
     const initial = await download(page, `practice-${width}`); assert.equal(initial.world, 'service'); assert.equal(initial.name, 'My first experiment');
     assert.deepEqual(initial.model, JSON.parse(await fs.readFile('public/templates/service.json', 'utf8')).model);
-    await page.getByRole('button', { name: 'Minimize guide', exact: true }).click();
-    assert(await page.locator('[data-learning-resume]').evaluate(el => el === document.activeElement));
+    await page.getByRole('button', { name: 'Show the full workspace', exact: true }).click();
+    await page.waitForFunction(() => document.activeElement?.matches('[data-learning-resume]'));
     await page.locator('[data-learning-resume]').press('Enter'); await stage(page, 'select');
-    await coach(page).getByRole('button', { name: 'Open the Steps list', exact: true }).click();
-    await page.locator('[data-learning-target="step-station-b"]').press('Enter'); await stage(page, 'edit');
-    await page.getByRole('button', { name: 'Show the team setting', exact: true }).click();
+    // The visible scene label is a real keyboard selection alternative to the lesson button.
+    if (width === 1440) await page.locator('.world-scene [data-station-id="station-b"]').press('Enter');
+    else await page.getByRole('button', { name: 'Choose Specialists', exact: true }).click();
+    await stage(page, 'edit');
+    assert.equal((await state(page)).selected, 'station-b');
+    assert.equal(await page.locator('.studio-inspector').isVisible(), false);
     assert.match(await cap(page).getAttribute('aria-describedby'), /-help learning-instruction$/);
-    assert(await page.locator('.learning-field-hint').isVisible()); await overflow(page);
-    await page.screenshot({ path: path.join(out, `edit-${width}.png`) });
-    await cap(page).fill('invalid'); assert.equal(await coach(page).getAttribute('data-learning-stage'), 'edit');
-    assert(await page.locator('[data-learning-target=run]').isDisabled()); await cap(page).press('Escape');
-    await cap(page).fill('3'); await cap(page).press('Enter'); await stage(page, 'run');
+    await overflow(page); await page.screenshot({ path: path.join(out, `edit-${width}.png`) });
+    const revision = (await state(page)).revision;
+    await cap(page).fill('invalid'); await page.getByRole('button', { name: 'Apply change', exact: true }).click();
+    assert.equal(await coach(page).getAttribute('data-learning-stage'), 'edit');
+    assert.equal((await state(page)).revision, revision);
+    assert(await page.locator('.learning-team .ease-field-error').isVisible());
+    assert(await page.getByRole('button', { name: 'Show the full workspace', exact: true }).isDisabled());
+    await cap(page).press('Escape'); await cap(page).fill('4');
+    await page.getByRole('button', { name: 'Apply change', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('[data-learning-team] input')?.value === '4');
+    await stage(page, 'edit'); assert.equal(await page.locator('[data-learning-stage=off-track]').count(), 0);
+    await cap(page).fill('3'); await page.getByRole('button', { name: 'Apply change', exact: true }).click(); await stage(page, 'run');
     const changed = await download(page, `changed-${width}`);
     const expected = structuredClone(initial.model); expected.resources.find(pool => pool.id === 'specialists').capacity = 3;
     assert.deepEqual(changed.model, expected); assert.equal(changed.id, initial.id);
     await compare(page); assert.equal((await state(page)).result.stale, false); await overflow(page);
     await page.screenshot({ path: path.join(out, `review-${width}.png`) }); await keep(page);
-    await page.locator('.template-save input').fill('My trained team'); await page.locator('.template-save button[type=submit]').press('Enter'); await stage(page, 'complete');
-    assert.match(await page.locator('.learning-saved').innerText(), /Template saved: My trained team/);
-    await page.locator('[data-template-id]').first().waitFor(); assert.equal(await page.locator('[data-template-id]').count(), 1); await overflow(page);
+    await page.locator('.template-save input').fill('My trained team'); await page.waitForFunction(() => !document.querySelector('.template-save button[type=submit]')?.disabled); await page.locator('.template-save button[type=submit]').press('Enter'); await stage(page, 'complete');
+    assert.match(await page.locator('.learning-saved').innerText(), /Saved in My templates: My trained team/);
+    assert.equal(await templateCount(page), 1); await overflow(page);
     await coach(page).scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(out, `complete-${width}.png`) });
     assert.equal(await coach(page).evaluate(el => getComputedStyle(el).animationName), 'none');
-    await page.getByRole('button', { name: 'Explore this project', exact: true }).click(); await saved(page);
+    await page.getByRole('button', { name: 'Open the full workspace', exact: true }).click(); await saved(page);
     await page.reload(); await ready(page); assert.equal(await page.locator('[data-panel=learn],.learning-coach').count(), 0);
     assert.deepEqual((await download(page, `reopened-${width}`)).model, changed.model);
     await openPanel(page, 'worlds'); await page.getByRole('button', { name: /^My templates/ }).click(); await page.locator('[data-template-id]').first().waitFor(); assert.equal(await page.locator('[data-template-id]').count(), 1);
@@ -101,18 +119,18 @@ try {
     const before = await download(page, 'original-custom'), beforeState = await state(page);
     const undoLabel = await page.getByRole('button', { name: /^Undo / }).getAttribute('aria-label');
     await page.evaluate(() => { const transaction = IDBDatabase.prototype.transaction; window.restoreProjectWrites = () => { IDBDatabase.prototype.transaction = transaction; }; IDBDatabase.prototype.transaction = function (...args) { if (this.name === 'queuelab-projects' && args[1] === 'readwrite') throw new DOMException('Synthetic storage failure', 'QuotaExceededError'); return transaction.apply(this, args); }; });
-    await page.getByRole('button', { name: 'Learn by doing', exact: true }).click(); await page.getByRole('button', { name: 'Start my first experiment', exact: true }).click();
+    await page.getByRole('button', { name: 'Learn by doing', exact: true }).click(); await page.getByRole('button', { name: 'Try it with me', exact: true }).click();
     await page.locator('.learning-intro [role=alert]').filter({ hasText: 'Your current work could not be saved' }).waitFor();
     assert.equal(await coach(page).count(), 0); assert.deepEqual((await state(page)).model, beforeState.model);
     await page.evaluate(() => window.restoreProjectWrites());
-    await start(page); await page.getByRole('button', { name: 'Back to my previous project', exact: true }).click(); await ready(page);
+    await start(page); await page.getByRole('button', { name: 'Back to my previous project', exact: true }).click(); await coach(page).waitFor({ state: 'detached' }); await ready(page);
     const returned = await download(page, 'returned-custom'); assert.equal(returned.id, before.id); assert.deepEqual(returned.model, before.model);
     assert.deepEqual((await state(page)).result, beforeState.result); assert.equal(await page.getByRole('button', { name: /^Undo / }).getAttribute('aria-label'), undoLabel);
     await page.getByRole('button', { name: /^Undo / }).click(); assert.equal((await download(page, 'original-undone')).model.resources.find(pool => pool.id === 'specialists').capacity, 2);
     await saved(page); await start(page);
     // Simulate a newer valid save from another tab while practice is open.
     await page.evaluate(id => new Promise((resolve, reject) => { const r = indexedDB.open('queuelab-projects', 2); r.onerror = () => reject(r.error); r.onsuccess = () => { const db = r.result, tx = db.transaction('projects', 'readwrite'), get = tx.objectStore('projects').get(id); get.onsuccess = () => { const record = get.result, p = JSON.parse(record.payload); p.name = 'Newer synthetic project'; p.revision++; tx.objectStore('projects').put({ ...record, revision: p.revision, payload: JSON.stringify(p) }); }; tx.oncomplete = () => { db.close(); resolve(); }; tx.onabort = () => { db.close(); reject(tx.error); }; }; }), before.id);
-    await page.getByRole('button', { name: 'Back to my previous project', exact: true }).click(); await ready(page);
+    await page.getByRole('button', { name: 'Back to my previous project', exact: true }).click(); await coach(page).waitFor({ state: 'detached' }); await ready(page);
     assert.equal((await download(page, 'newer-return')).name, 'Newer synthetic project');
     assert.equal(await page.getByRole('button', { name: /^Undo / }).count(), 0);
     await c.context.close(); checks.push('A failed preservation write blocks practice; original project, result and Undo survive practice; a newer externally saved original is reopened without stale history');
@@ -122,18 +140,18 @@ try {
     await page.locator('.template-save button[type=submit]').waitFor();
     await page.evaluate(() => { const transaction = IDBDatabase.prototype.transaction; window.restoreTemplateWrites = () => { IDBDatabase.prototype.transaction = transaction; }; IDBDatabase.prototype.transaction = function (...args) { if (this.name === 'loopset-templates' && args[1] === 'readwrite') throw new DOMException('Synthetic quota', 'QuotaExceededError'); return transaction.apply(this, args); }; });
     await page.locator('.template-save button[type=submit]').click(); await page.locator('.templates-panel [role=alert]').waitFor();
-    await stage(page, 'save'); assert.equal(await page.locator('.learning-saved').count(), 0); assert.equal(await page.locator('[data-template-id]').count(), 0);
+    await stage(page, 'save'); assert.equal(await page.locator('.learning-saved').count(), 0); assert.equal(await templateCount(page), 0);
     await page.evaluate(() => window.restoreTemplateWrites()); await page.locator('.template-save button[type=submit]').click(); await stage(page, 'complete');
     await c.context.close(); checks.push('A failed IndexedDB template write cannot complete the lesson or claim a save; native retry succeeds');
   }
   phase = 'cancelled and failed practice loading'; {
     const c = await fresh(1440, true); page = c.page; const before = await download(page, 'before-load-failure');
     await page.route('**/templates/service.json?*', route => route.fulfill({ status: 503, body: 'Unavailable' }));
-    await page.getByRole('button', { name: 'Learn by doing', exact: true }).click(); await page.getByRole('button', { name: 'Start my first experiment', exact: true }).click();
+    await page.getByRole('button', { name: 'Learn by doing', exact: true }).click(); await page.getByRole('button', { name: 'Try it with me', exact: true }).click();
     await page.locator('.learning-intro [role=alert]').waitFor(); await page.unroute('**/templates/service.json?*');
     let release, seen; const gate = new Promise(resolve => { release = resolve; }), requested = new Promise(resolve => { seen = resolve; });
     await page.route('**/templates/service.json?*', async route => { seen(); await gate; await route.fulfill({ contentType: 'application/json', body: await fs.readFile('public/templates/service.json', 'utf8') }).catch(() => {}); });
-    await page.getByRole('button', { name: 'Start my first experiment', exact: true }).click(); await requested;
+    await page.getByRole('button', { name: 'Try it with me', exact: true }).click(); await requested;
     await page.keyboard.press('Escape'); await page.getByRole('dialog').waitFor({ state: 'detached' }); release();
     await page.locator('.studio-world-picker select').selectOption('blank'); await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).workspaceMode === 'layout');
     const blank = await download(page, 'after-cancelled-load'); assert.deepEqual(blank.model.nodes, []); assert.notEqual(blank.id, before.id);
@@ -142,13 +160,22 @@ try {
   }
   phase = 'independent exploration'; {
     const c = await fresh(); page = c.page; await start(page); await change(page);
-    await page.getByRole('button', { name: /^Undo / }).click(); await stage(page, 'edit');
-    const stations = page.getByRole('spinbutton', { name: 'Parallel stations', exact: true }); await stations.fill('4'); await stations.press('Enter'); await stage(page, 'off-track');
+    await page.getByRole('button', { name: 'Show the full workspace', exact: true }).click();
+    await cap(page).fill('invalid');
+    await page.waitForFunction(() => document.querySelector('[data-learning-resume]')?.disabled);
+    await cap(page).press('Escape');
+    await openPanel(page, 'worlds'); await page.locator('[data-learning-resume]').click();
+    await page.getByRole('dialog').waitFor({ state: 'detached' }); await stage(page, 'run');
+    await page.getByRole('button', { name: 'Show the full workspace', exact: true }).click();
+    await page.getByRole('button', { name: /^Undo / }).click();
+    await page.locator('.facility-canvas-tools').getByRole('button', { name: 'Steps', exact: true }).click();
+    await page.getByRole('button', { name: 'Inspect Specialists', exact: true }).click();
+    const stations = page.getByRole('spinbutton', { name: 'Parallel stations', exact: true }); await stations.fill('4'); await stations.press('Enter'); await page.locator('[data-learning-resume]').click(); await stage(page, 'off-track');
     const different = await download(page, 'independent-idea');
     await page.getByRole('button', { name: 'Leave guide', exact: true }).click();
     assert.deepEqual((await download(page, 'after-leave')).model, different.model);
     await saved(page); await page.reload(); await ready(page); assert.equal(await page.locator('[data-panel=learn],.learning-coach').count(), 0);
-    await c.context.close(); checks.push('Undo returns to the relevant task; unrelated model edits are preserved and leaving the guide never resets them');
+    await c.context.close(); checks.push('Native drafts block resume until applied/cancelled; resume closes advanced dialogs; Undo returns to the relevant task; unrelated model edits are preserved and leaving the guide never resets them');
   }
   }
   assert.deepEqual(errors, []); const receipt = { passed: true, at: new Date().toISOString(), origin: origin.href, browser: browser.version(), scope, checks, errors };
