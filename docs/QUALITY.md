@@ -7,6 +7,7 @@ npm ci
 npm run typecheck
 npm run check:assets
 npm run check:templates
+npm run check:docs
 npm test -- --maxWorkers=1
 npm run test:publication
 npm run build
@@ -16,6 +17,20 @@ npm run test:headless
 The unit suite covers numerical references, conservation/capacity invariants, event ordering, keyed randomness, validation, cancellation, history, storage conflicts/recovery and report identity. Headless contracts check the three examples, repeatability, import bounds, diagnostics and the standalone engine.
 
 ## Browser smoke checks
+
+The required PR check and Pages build run `npm run test:browser` against the built app. This starts its own loopback preview, checks first use, no-3D/module failures, safe guided entry, templates and the original worlds, then stops only its own processes. Linux CI uses software graphics in isolated Chromium contexts; these are correctness checks, not GPU performance measurements.
+
+Install the browser matching the pinned Playwright dependency once with `npx playwright install chromium` (CI uses `npx playwright install --with-deps chromium`, as in the [Playwright CI guide](https://playwright.dev/docs/ci-intro)). Then run:
+
+```sh
+npm run build
+npm run test:browser
+```
+
+The runner fails if its preview port is occupied. Set `QUEUELAB_BROWSER_PORT` to a free port; it never stops an existing server. `QUEUELAB_BROWSER_DIST` selects an alternative build folder. `QUEUELAB_PUBLIC_URL` supplies the built deployment subpath, so the Pages build is checked under the same `/loopset/` base. Generated evidence remains ignored; no browser profiles or customer files are used.
+
+Documentation checks validate local file/image links and common Markdown heading anchors, excluding fenced code examples. They do not make external website availability a build requirement.
+
 
 Serve a production build on loopback and run:
 

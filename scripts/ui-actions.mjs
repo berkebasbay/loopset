@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 
+// Linux CI has no GPU; use deterministic software graphics in isolated test browsers.
+export const browserArgs = process.env.CI && process.platform === 'linux' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : [];
+
 // Shared current-studio navigation for isolated browser regressions. These are
 // explicit product paths: missing controls fail instead of trying older UIs.
 const toolPanels = new Set(['model', 'experiments', 'budget', 'history', 'worlds', 'help']);

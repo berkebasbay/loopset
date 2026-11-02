@@ -37,6 +37,11 @@ function socialMetadata(value: string | undefined): HtmlTagDescriptor[] {
 
 export default defineConfig({
   base: publicSiteURL(process.env.QUEUELAB_PUBLIC_URL)?.pathname ?? '/',
+  server: {
+    watch: { ignored: ['**/.private/**', '**/.cache/**', '**/dist-engine/**'] },
+    // Preserve Vite's secret defaults while excluding local-only material.
+    fs: { deny: ['.env', '.env.*', '*.{crt,pem,key,p12,pfx,cer,der}', '.npmrc', '.yarnrc.yml', '**/.git/**', '**/.private/**', '**/.cache/**', '**/*.override.md'] },
+  },
   plugins: [react(), {
     name: 'queuelab-distribution-notices',
     generateBundle() {

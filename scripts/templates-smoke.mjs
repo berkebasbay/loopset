@@ -3,14 +3,14 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { dismissLearningWelcome, openPanel, runPlan, headerProjectInput, canvasDropPoint } from './ui-actions.mjs';
+import { browserArgs, dismissLearningWelcome, openPanel, runPlan, headerProjectInput, canvasDropPoint } from './ui-actions.mjs';
 
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use a separate loopback QA origin.');
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || '.private/evidence/templates/smoke');
 await fs.mkdir(out, { recursive: true }); await fs.mkdir('.cache/tmp', { recursive: true }); process.env.TMPDIR = path.resolve('.cache/tmp');
 let installed = true; try { await fs.access(chromium.executablePath()); } catch { installed = false; }
-const browser = await chromium.launch({ headless: true, ...(installed ? { executablePath: chromium.executablePath() } : { channel: 'chrome' }) });
+const browser = await chromium.launch({ headless: true, args: browserArgs, ...(installed ? { executablePath: chromium.executablePath() } : { channel: 'chrome' }) });
 const checks = [], errors = []; let page, stage = 'startup';
 const state = p => p.evaluate(() => JSON.parse(window.render_game_to_text()));
 const ready = p => p.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !document.querySelector('.studio-world-picker select')?.disabled && !s.running && (s.workspaceMode === 'layout' || s.result?.status === 'completed' && !s.result.stale); });

@@ -1,6 +1,7 @@
 /** English product messages for App. Keep model data and canonical identifiers at the call site. */
 import { BRAND } from '../../brand';
 export const appMessages = {
+  skipToWorkspace: 'Skip to workspace',
   revisionLimitReached: 'Revision limit reached. Duplicate this project to continue editing.',
   duplicateToEdit: 'Duplicate to edit',
   build: 'Asset library',
@@ -140,11 +141,11 @@ export const appMessages = {
   watchDemos: "Watch the video demos",
   watchDemosNewTab: "Watch the video demos (opens in a new tab)",
   freeOpenSource: "FREE & OPEN SOURCE ",
-  earlyBuild: "RC16",
+  earlyBuild: "RC17",
   syntheticExample: "SYNTHETIC EXAMPLE",
   openProject: "Open project",
   saveProject: "Download project JSON",
-  buildBadge: "V1 / RC16",
+  buildBadge: "V1 / RC17",
   aPlaygroundForBetterDecisions: "A PLAYGROUND FOR BETTER DECISIONS",
   calculationWorkLimits: "Calculation work & limits",
   calculationProgress: (percent: number) => `${percent}% calculating`,

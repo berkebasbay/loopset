@@ -47,6 +47,7 @@ jobs:
       - run: npm run check:assets
       - run: npm run check:templates
       - run: npm run check:demos
+      - run: npm run check:docs
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:headless
@@ -56,6 +57,12 @@ jobs:
         run: |
           npm run build
           node --input-type=module -e "import fs from 'node:fs'; const pkg=JSON.parse(fs.readFileSync('package.json')); fs.writeFileSync('dist/build-info.json', JSON.stringify({source:process.env.GITHUB_SHA,version:pkg.version})+'\n');"
+      - name: Install test browser
+        run: npx playwright install --with-deps chromium
+      - name: Check built demo in the browser
+        env:
+          QUEUELAB_PUBLIC_URL: ${{ steps.pages.outputs.base_url }}/
+        run: npm run test:browser
       - name: Upload static application
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:

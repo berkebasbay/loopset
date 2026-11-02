@@ -18,6 +18,8 @@
 
 Loopset is free and runs in your browser. Your projects stay on your device, with no account or installation required.
 
+**New to simulation? [Try the guided example →](https://berkebasbay.github.io/loopset/?learn=1)** Select a help desk, add one person, and see how waiting and cost change. Your current project is kept.
+
 ## See it in action
 
 From a working template to a real comparison: explore the world, change the shared team and run the next plan.
@@ -104,6 +106,8 @@ Open the local address printed by Vite. No API keys or backend setup are require
 </details>
 
 ## Help build Loopset
+
+Try a [first-use task](docs/FEEDBACK.md), tell us where you got stuck, or make a [small first contribution](CONTRIBUTING.md#your-first-pull-request).
 
 New templates, clearer guides, accessible interactions and focused bug fixes are welcome. [Open an issue](https://github.com/berkebasbay/loopset/issues/new/choose) or [send a pull request](CONTRIBUTING.md). For a larger change, discuss the problem and scope first.
 

@@ -20,6 +20,7 @@ import { operatorTargets } from './operatorLayout';
 import { WorldSurroundings } from './WorldSurroundings';
 import { placeLabel, type LabelRect } from './labelLayout';
 import { stepKindLabels } from '../ui/messages/labels';
+import { SceneFallback } from './SceneFallback';
 import { worldSceneMessages as m } from '../ui/messages/WorldScene';
 import { facilityMessages as fm } from '../ui/messages/facility';
 import { findLibraryAsset } from '../catalog/registry';
@@ -81,7 +82,7 @@ export function WorldScene(props: Props) {
       renderer.domElement.dataset.testid = 'world-canvas'; renderer.domElement.tabIndex = 0;
       renderer.domElement.setAttribute('role', 'img');
       renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12;
-      renderer.setClearColor('#dedacf'); renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.setClearColor('#dedacf'); renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.shadowMap.autoUpdate = false;
       const store = new CatalogStore(); let disposed = false;
       const instance: Lifetime = { renderer, store, dispose() {
@@ -92,7 +93,7 @@ export function WorldScene(props: Props) {
       lifetime.current = instance; host.prepend(renderer.domElement);
       setContextFailed(false);
       return () => instance.dispose();
-    } catch { setContextFailed(true); setFailed(true); }
+    } catch { host.dataset.status = 'unavailable'; setContextFailed(true); setFailed(true); }
   }, [attempt]);
 
   useEffect(() => {
@@ -740,7 +741,7 @@ export function WorldScene(props: Props) {
     canvas.addEventListener('pointerdown', pointerDown); canvas.addEventListener('pointermove', pointerMove); canvas.addEventListener('pointerup', pointerUp); canvas.addEventListener('pointercancel', cancel);
     host.addEventListener('dragover', dragOver); host.addEventListener('dragleave', dragLeave); host.addEventListener('drop', drop);
     const lostCapture = () => { if (down || facilityDown) cancel(); };
-    const contextLost = () => { setContextFailed(true); setFailed(true); requestRender(); };
+    const contextLost = () => { host.dataset.status = 'unavailable'; setContextFailed(true); setFailed(true); requestRender(); };
     const contextRestored = () => { setContextFailed(false); status(); requestRender(); };
     const pointerLeave = () => { if (hoveredId) { hoveredId = null; requestRender(); } };
     canvas.addEventListener('lostpointercapture', lostCapture); canvas.addEventListener('pointerleave', pointerLeave);
@@ -1045,8 +1046,9 @@ export function WorldScene(props: Props) {
   useEffect(() => { fitProject.current(props.project.id); }, [props.project.id]);
   useEffect(() => { invalidate.current(); }, [props.project, props.frame, props.selected, props.selectedIds, props.selectedFacilityId, props.moving, props.flow, props.reducedMotion, props.playing, props.seekEpoch, props.runKey]);
   useEffect(() => { cancelGesture.current(); }, [props.project.id, props.project.revision, props.moving]);
-  return <div ref={mount} className={`world-scene catalog-world ${props.moving ? 'is-moving' : ''}`} data-testid="world-scene">
+  return <div ref={mount} className={`world-scene catalog-world ${props.moving ? 'is-moving' : ''}${contextFailed ? ' is-context-unavailable' : ''}`} data-context={contextFailed ? 'unavailable' : undefined} data-testid="world-scene">
     <div className="scene-camera-tools" role="group" aria-label={m.worldCamera}><button aria-label={m.zoomIn} onClick={() => mount.current?.dispatchEvent(new CustomEvent('queuelab:zoom', { detail: 1.25 }))}><Plus size={17} /></button><button aria-label={m.zoomOut} onClick={() => mount.current?.dispatchEvent(new CustomEvent('queuelab:zoom', { detail: .8 }))}><Minus size={17} /></button><button aria-label={m.showWholeWorld} onClick={() => mount.current?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={17} /></button></div>
+    {contextFailed && <SceneFallback project={props.project} selected={props.selected} onSelect={props.onSelect} />}
     {failed && <div className="scene-asset-warning" role="status">{contextFailed ? m.contextUnavailable : m.assetsUnavailable}<button onClick={() => retryAssets.current()}><RotateCcw size={14} />{m.retryWorld}</button></div>}
   </div>;
 }

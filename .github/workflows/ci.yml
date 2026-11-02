@@ -52,6 +52,7 @@ jobs:
       - run: npm run check:assets
       - run: npm run check:templates
       - run: npm run check:demos
+      - run: npm run check:docs
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
@@ -59,3 +60,7 @@ jobs:
       - run: node scripts/simulate.mjs --example factory --seed 4207
       - run: node scripts/simulate.mjs examples/service.json --seed 4207
       - run: node examples/verify.mjs
+      - name: Install test browser
+        run: npx playwright install --with-deps chromium
+      - name: Check browser journeys
+        run: npm run test:browser

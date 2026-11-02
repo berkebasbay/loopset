@@ -31,3 +31,5 @@
 .scene-asset-warning button{display:flex;align-items:center;gap:7px;margin-top:11px;min-height:34px;padding:6px 10px;border:1px solid #ccaf7b;border-radius:6px;background:#fffaf0;color:#775322;font-size:12px}
 @media(max-width:740px){.catalog-world .station-label{min-height:36px;max-width:min(205px,calc(100% - 20px));font-size:11px;padding:7px 9px}.catalog-world .station-label.scene-node-queue{font-size:10px}.catalog-world .station-count{font-size:10px}.catalog-world .scene-camera-tools{right:10px;bottom:10px}.catalog-world .scene-camera-tools button{width:40px;height:40px}.scene-move-readout{font-size:11px;max-width:calc(100% - 24px)}}
 @media(prefers-reduced-motion:reduce){.catalog-world .station-label{transition:none}}
+
+.is-context-unavailable :is(canvas,.scene-labels,.scene-camera-tools){display:none}

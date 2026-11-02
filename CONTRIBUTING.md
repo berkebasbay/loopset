@@ -23,7 +23,20 @@ npm run setup:hooks
 npm run dev
 ```
 
+The dev watcher ignores generated private previews, caches and the standalone engine output, so building or collecting local evidence does not reload a working app. The dev server also blocks local private folders and override documents; Git ignore rules alone do not control HTTP delivery.
+
 No backend, account or API key is required. Use invented data in issues, tests, screenshots and examples. Keep customer files, personal information, credentials, browser profiles and raw local logs out of contributions.
+
+## Your first pull request
+
+Start with one small, reproducible problem. You can improve a confusing instruction, add a synthetic regression example, or make a control easier to use with a keyboard.
+
+1. Fork the repository, create a branch and run the app with the commands above.
+2. Make the smallest complete change. Product wording lives in `src/ui/messages`; guides live in `docs`; tests belong beside the relevant contract under `tests`.
+3. Check your change: `npm run check:docs` for guide/link edits, `npm run typecheck` and a focused unit test for code, and `npm run test:browser` for affected main workflows. The full required checks are below.
+4. Open a PR explaining the problem, result and actual validation. A screenshot or tiny synthetic model can help; customer files and local machine details do not belong in the PR.
+
+For a starter, follow the [template contribution path](docs/TEMPLATES.md) before editing generated files. For numerical behavior, use an independently reasoned expectation. If you prefer not to code, [first-use feedback](docs/FEEDBACK.md) is also useful.
 
 ## Change a starter template
 
@@ -96,6 +109,7 @@ Match verification to the change. For prose-only changes, check the referenced c
 ```sh
 npm run typecheck
 npm run check:assets
+npm run check:docs
 npm test -- --maxWorkers=1
 npm run build
 npm run test:headless

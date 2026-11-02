@@ -3,13 +3,13 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { dismissLearningWelcome, openPanel, runPlan } from './ui-actions.mjs';
+import { browserArgs, dismissLearningWelcome, openPanel, runPlan } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use a separate loopback QA origin.');
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || '.private/evidence/learning');
 await fs.mkdir(out, { recursive: true }); await fs.mkdir('.cache/tmp', { recursive: true }); process.env.TMPDIR = path.resolve('.cache/tmp');
 let installed = true; try { await fs.access(chromium.executablePath()); } catch { installed = false; }
-const browser = await chromium.launch({ headless: true, ...(process.env.QUEUELAB_SYSTEM_CHROME || !installed ? { channel: 'chrome' } : { executablePath: chromium.executablePath() }) });
+const browser = await chromium.launch({ headless: true, args: browserArgs, ...(process.env.QUEUELAB_SYSTEM_CHROME || !installed ? { channel: 'chrome' } : { executablePath: chromium.executablePath() }) });
 const scope = process.env.QUEUELAB_LEARNING_SCOPE || 'all';
 assert(['all', 'flows', 'edges'].includes(scope));
 const checks = [], errors = []; let page, phase = 'first visit';

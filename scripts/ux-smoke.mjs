@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { dismissLearningWelcome, openPanel, primaryRunButton, headerProjectInput } from './ui-actions.mjs';
+import { browserArgs, dismissLearningWelcome, openPanel, primaryRunButton, headerProjectInput } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['localhost', '127.0.0.1'].includes(origin.hostname), 'Use a loopback QA server.');
 const kind = process.env.QUEUELAB_BROWSER || 'chromium', phase = process.env.QUEUELAB_UX_PHASE || 'core';
@@ -16,7 +16,7 @@ const worlds = (process.env.QUEUELAB_UX_WORLDS || 'factory,festival,service').sp
 assert(worlds.length > 0 && worlds.every(world => ['factory', 'festival', 'service'].includes(world)));
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || `.private/evidence/ux-smoke-${kind}-${phase}`);
 await fs.mkdir(out, { recursive: true }); await fs.mkdir('.cache/tmp', { recursive: true }); process.env.TMPDIR = path.resolve('.cache/tmp');
-const browser = await { chromium, firefox, webkit }[kind].launch({ headless: true, ...(kind === 'chromium' && process.env.QUEUELAB_SYSTEM_CHROME ? { channel: 'chrome' } : {}) });
+const browser = await { chromium, firefox, webkit }[kind].launch({ headless: true, ...(kind === 'chromium' ? { args: browserArgs } : {}), ...(kind === 'chromium' && process.env.QUEUELAB_SYSTEM_CHROME ? { channel: 'chrome' } : {}) });
 const receipt = { origin: origin.href, browser: browser.version(), engine: kind, phase, viewport: { width: viewportWidth, height: viewportHeight }, worlds, checks: [], files: [], errors: [] };
 const state = page => page.evaluate(() => JSON.parse(window.render_game_to_text()));
 const ready = page => page.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !document.querySelector('.studio-world-picker select')?.disabled && !s.running && s.result?.status === 'completed' && !s.result.stale; });
