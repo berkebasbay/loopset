@@ -66,6 +66,7 @@ try {
     await page.getByRole('button', { name: 'Show the full workspace', exact: true }).click();
     await page.waitForFunction(() => document.activeElement?.matches('[data-learning-resume]'));
     await page.locator('[data-learning-resume]').press('Enter'); await stage(page, 'select');
+    if (width <= 740) { const bounds = await coach(page).getByRole('button', { name: 'Choose Specialists', exact: true }).boundingBox(); assert(bounds && bounds.y >= 0 && bounds.y + bounds.height <= page.viewportSize().height + 1, 'The first lesson action must fit the mobile viewport.'); }
     // The visible scene label is a real keyboard selection alternative to the lesson button.
     if (width === 1440) await page.locator('.world-scene [data-station-id="station-b"]').press('Enter');
     else await page.getByRole('button', { name: 'Choose Specialists', exact: true }).click();
