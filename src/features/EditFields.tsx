@@ -34,7 +34,11 @@ export function NumberField({ label, value, onChange, contextKey, min, max, step
   // field uses the shorter reading format; focusing never creates a model edit.
   const [draft, setDraft] = useState(() => String(value)); const [error, setError] = useState('');
   const currentContext = useRef(contextKey); currentContext.current = contextKey;
-  useEffect(() => { setDraft(String(value)); setError(''); }, [value, contextKey]);
+  const previous = useRef({ value, contextKey });
+  useEffect(() => {
+    if (Object.is(previous.current.value, value) && previous.current.contextKey === contextKey) return;
+    previous.current = { value, contextKey }; setDraft(String(value)); setError('');
+  }, [value, contextKey]);
   const parsed = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(draft.trim()) ? Number(draft) : NaN;
   const dirty = draft !== String(value);
   const compactReading = !dirty && format(value) !== draft;

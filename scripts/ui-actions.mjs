@@ -1,5 +1,26 @@
 import assert from 'node:assert/strict';
 
+// Linux CI has no GPU; use deterministic software graphics in isolated test browsers.
+export const browserArgs = process.env.CI && process.platform === 'linux' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : [];
+
+/** Keep software-rendered CI about interaction correctness, with real UI preferences. */
+export async function prepareCIView(page) {
+  if (!process.env.CI) return;
+  const welcome = await page.locator('[data-panel="learn"]').count() > 0;
+  if (welcome) await page.getByRole('button', { name: 'Explore on my own', exact: true }).click();
+  const expanded = await page.locator('.learning-focused').count() > 0;
+  if (expanded) await page.getByRole('button', { name: 'Show the full workspace', exact: true }).click();
+  const snapshot = () => page.evaluate(() => { const s = JSON.parse(window.render_game_to_text()); return { world: s.world, revision: s.revision, hash: s.result?.hash }; });
+  const before = await snapshot();
+  await page.locator('[data-panel-opener="view"]:visible').click();
+  await page.getByRole('combobox', { name: 'World detail', exact: true }).selectOption('low');
+  await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  assert.deepEqual(await snapshot(), before, 'Display detail must not change numerical identity.');
+  if (welcome) await page.getByRole('button', { name: 'Learn by doing', exact: true }).click();
+  else if (expanded) await page.locator('[data-learning-resume]').click();
+  console.log(`CI view: Low power at ${page.viewportSize().width}px; numerical identity unchanged.`);
+}
+
 // Shared current-studio navigation for isolated browser regressions. These are
 // explicit product paths: missing controls fail instead of trying older UIs.
 const toolPanels = new Set(['model', 'experiments', 'budget', 'history', 'worlds', 'help']);

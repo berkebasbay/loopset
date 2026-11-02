@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.0.0-rc.17
+
+- Add keyboard links that bypass navigation and reach the workspace or current lesson.
+- Defer the initial 3D world until the first-use welcome is dismissed and the current project is known.
+- Add a direct guided-example entry that opens the welcome without replacing saved work.
+- Keep process selection, calculations and template saves available when WebGL or the graphics module cannot load.
+- Encode static PNG result cards on a CPU-backed offscreen canvas when supported, with the original bounded HTML fallback.
+- Preserve the first digit typed immediately after opening a numeric field.
+- Keep the scene size stable while a numeric field is unfinished.
+- Keep private previews and generated engine files out of development reloads; block local private folders and override documents from dev-server delivery.
+- Run isolated browser journeys before accepting PRs and publishing the demo, alongside documentation link checks.
+- Add a first-use feedback guide and a focused first-contribution path.
+
+## Preview updates: rc.10–rc.16
+
+- Prepare an on-demand catalogue of 1,141 browser-ready models with source attribution and validation.
+- Introduce the facility/process/results workspace, empty sites, placed-object controls, process cells and reusable personal templates.
+- Expand to twelve curated starters, each with two alternatives and deterministic numerical references.
+- Publish English short/full walkthroughs and a visual README with a task-based documentation hub.
+- Add and simplify the first-use lesson into one real task at a time: select, change a team, calculate, compare and save.
+- Preserve original projects, results, history and local data through practice, failures, cancellation and refresh.
+
 ## 1.0.0-rc.9
 
 - Publish a browser demo with deployment-subpath-aware models, world previews, fonts and sharing metadata.

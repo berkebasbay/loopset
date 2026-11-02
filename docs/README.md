@@ -57,4 +57,6 @@ The supplied examples are learning models. Real decisions need appropriate input
 
 ## Get help
 
+New to the product? Try a [first-use task](FEEDBACK.md) and tell us where you got stuck. No code or private project is needed.
+
 [Open an issue](https://github.com/berkebasbay/loopset/issues/new/choose) with a small synthetic example, the actions you took and the result you expected. Keep personal or customer data out of public examples.

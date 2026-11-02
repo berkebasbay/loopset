@@ -1,4 +1,5 @@
 export const learningMessages = {
+  skipToLesson: 'Skip to lesson',
   title: 'Your first example', section: 'LEARN BY DOING', entry: 'Learn by doing',
   welcome: 'Can one extra person reduce the wait?',
   introduction: 'Loopset lets you try a change and see what happens. Let’s try it with a small help desk.',

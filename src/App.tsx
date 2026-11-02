@@ -2,6 +2,8 @@ import { appMessages as m } from './ui/messages/App';
 import { learningMessages as lm } from './ui/messages/learning';
 import { LearningIntro, LearningCoach } from './features/LearningGuide';
 import { createLearningSession, learningReturnMatches, learningModelMatches, learningRunMatches, learningStage, originalLearningProject, readLearningSession, rememberLearningSession, hasSeenLearningWelcome, rememberLearningWelcome, LEARNING_STEP_ID, LEARNING_POOL_ID, type LearningSession, type LearningStage } from './features/learning';
+import { SceneBoundary, SceneFallback } from './scene/SceneFallback';
+import { worldSceneMessages } from './ui/messages/WorldScene';
 import { assetURL } from './assetUrl';
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownToLine, ArrowRight, Box, Check, ChevronRight, CircleHelp, Copy, FileUp, FlaskConical, Focus, GitCompareArrows, Globe2, History, Layers3, Link2, List, LoaderCircle, MousePointer2, Move, Pause, Play, Plus, Redo2, Search, ShieldCheck, SkipBack, Undo2, X } from 'lucide-react';
@@ -142,6 +144,9 @@ export default function App() {
   const [flowState, setFlowState] = useState({ key: '', open: false, cursor: 0 });
   const [toast, setToast] = useState<string | null>(null); const [backupRequestedRevision, setBackupRequestedRevision] = useState<number | null>(null);
   const [storageReady, setStorageReady] = useState(false);
+  const [sceneStarted, setSceneStarted] = useState(false);
+  // Do not fetch a temporary 3D world behind the first-use welcome.
+  useEffect(() => { if (storageReady && panel !== 'learn') setSceneStarted(true); }, [storageReady, panel]);
   const [localRevision, setLocalRevision] = useState<number | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [retainedDrafts, setRetainedDrafts] = useState<RetainedDraft[]>([]);
@@ -238,12 +243,13 @@ export default function App() {
     rememberLearningWelcome();
   }
   function toggleLearningGuide() {
-    const next = !learningMinimized, origin = document.activeElement, id = live.current.project.id;
+    const next = !learningMinimized, origin = document.activeElement, id = live.current.project.id, task = lessonStage;
     if (!next) setPanel(null);
     const surface = panelGeneration.current;
     setLearningMinimized(next);
     requestAnimationFrame(() => {
       if (live.current.project.id !== id || surface !== panelGeneration.current || focusChangedSince(origin)) return;
+      if (!next && document.querySelector<HTMLElement>('.learning-coach')?.dataset.learningStage !== task) return;
       document.querySelector<HTMLButtonElement>(next ? '[data-learning-resume]' : '[data-learning-toggle]')?.focus();
     });
   }
@@ -335,7 +341,11 @@ export default function App() {
         } else {
           rememberLearningSession(null);
           if (!isLayoutOnly(initial) && !validateProject(initial).some(issue => issue.severity === 'error')) void compute(initial, true);
-          if (!saved && untouched && !earlyInteraction.current && !currentPanel.current && !hasSeenLearningWelcome()) setPanel('learn');
+        }
+        const entry = new URL(window.location.href), requestedLesson = entry.searchParams.get('learn') === '1';
+        if (untouched && !earlyInteraction.current && !currentPanel.current && (requestedLesson || (!saved && (!resume || resume.projectId !== initial.id) && !hasSeenLearningWelcome()))) {
+          setPanel('learn');
+          if (requestedLesson) { entry.searchParams.delete('learn'); window.history.replaceState(null, '', entry); }
         }
       }).catch(error => {
         if (!alive) return;
@@ -492,11 +502,11 @@ export default function App() {
     const fromGuide = active === document.body || (active instanceof HTMLElement && Boolean(active.closest('.learning-coach,.learning-intro,.station-label,[data-learning-target],[inert]') || active.matches('[data-panel-opener="learn"]')));
     const focus = ['review', 'complete'].includes(lessonStage) ? document.querySelector<HTMLElement>('[data-learning-heading]') : target;
     if (fromGuide && focus?.matches('input,button,select,[data-learning-heading]') && !focus.matches(':disabled') && !['preparing', 'off-track'].includes(lessonStage) && focusedLearningStep.current !== key) {
-      focusedLearningStep.current = key;
       const origin = document.activeElement, surface = panelGeneration.current;
       handle = requestAnimationFrame(() => {
-        if (learningRef.current?.projectId !== project.id || surface !== panelGeneration.current || focusChangedSince(origin) || !focus.isConnected || focus.closest('[inert],[hidden]')) return;
+        if (learningRef.current?.projectId !== project.id || surface !== panelGeneration.current || focusChangedSince(origin) || !focus.isConnected || focus.closest('[inert],[hidden]') || focus.matches(':disabled') || !focus.checkVisibility({ visibilityProperty: true })) return;
         focus.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' }); focus.focus({ preventScroll: true });
+        if (document.activeElement === focus) focusedLearningStep.current = key;
       });
     }
     return () => {
@@ -986,6 +996,7 @@ export default function App() {
   </LearningCoach> : null;
   const draftSummary = layoutOnly ? tm.layoutMode : normalBudget ? sx.quickSummary(ease.duration(project.model.horizon), number(normalBudget.groups[0].arrivalsPerRun), normalBudget.groups[0].stochastic, project.model.resources.length) : sx.reviewInputs;
   return <NumericDraftProvider onPendingChange={setPendingEdits}><div className={`app-shell studio-shell facility-studio${learningActive ? ' learning-workspace' : ''}${learningFocused ? ' learning-focused' : ''}${reducedMotion ? ' learning-reduced-motion' : ''}`} onPointerDownCapture={() => { if (!storageReady) earlyInteraction.current = true; }} onKeyDownCapture={() => { if (!storageReady) earlyInteraction.current = true; }}>
+    <a className="workspace-skip-link" inert={Boolean(panel)} href={learningFocused ? '#lesson-step' : '#workspace'} onClick={event => { event.preventDefault(); document.querySelector<HTMLElement>(learningFocused ? '[data-learning-heading]' : '#workspace')?.focus(); }}>{learningFocused ? lm.skipToLesson : m.skipToWorkspace}</a>
     <header className="studio-header" inert={Boolean(panel)}>
       <a className="studio-brand" href="#" aria-label={m.queueLabPlayground} onClick={event => { event.preventDefault(); setPanel(null); }}><Box size={23} /><span>{m.queueLab}<span className="studio-brand-dot">.</span></span></a>
       <div className="studio-project"><h1><button className="studio-project-name" tabIndex={learningFocused ? -1 : undefined} data-panel-opener="rename" title={sx.renameProjectLabel(project.name)} aria-label={sx.renameProjectLabel(project.name)} onClick={event => setPanel('rename', event.currentTarget)}>{project.name}</button></h1><span><span className="status-dot" />{sx.localProject}</span></div>
@@ -1004,7 +1015,7 @@ export default function App() {
       <aside className="studio-library-dock" hidden={!buildTrayOpen}><BuildTray activeTab={libraryTab} onTabChange={chooseLibraryTab} key={project.id} onExample={() => openTemplates()} onSaveTemplate={() => openTemplates('save')} onStartProcess={startProcess} selectedObject={Boolean(project.facility?.objects.some(object => object.id === facilitySelection))} onReplace={asset => facilityAction(() => { if (facilitySelection) { edit(replaceFacilityAsset(live.current.project, facilitySelection, asset.id), fm.assetChanged); setBuildTrayOpen(false); } })} onNew={() => void chooseStarter('blank')} project={project} onPlace={addLibraryAsset} onCell={addLibraryCell} selectedStep={Boolean(selectedStep)} onAppearance={asset => facilityAction(() => { if (selected) edit(setNodeAsset(live.current.project, selected, asset.id), fm.assetChanged); })} world={project.world} serviceCount={serviceNodes(project).length} insertionLabel={insertionAnchor(project)?.label} insertionId={insertionAnchor(project)?.id} followingLabel={project.model.nodes.find(node => node.id === insertionAnchor(project)?.next)?.label} insertionOptions={project.model.nodes.filter(node => 'next' in node).map(node => ({ id: node.id, label: node.label }))} onInsertionChange={id => setSelected(id)} disabled={hasErrors || revisionExhausted || sim.running} disabledReason={hasErrors ? m.repairYourModelFirst : revisionExhausted ? m.revisionLimitReached : sim.running ? m.addingWhileRunning : project.model.nodes.length >= 100 ? m.stepLimitReached : undefined} onAdd={addProcess} onClose={closeBuildTray} /></aside>
 
       {!panel && learningFocused && <div className="learning-dock">{learningCoach}</div>}
-      <main className="main-shell studio-main">
+      <main id="workspace" tabIndex={-1} className="main-shell studio-main">
         <CalculationStatus announcement={calculationStatus.announcement} active={!panel && calculationStatus.announcement.surface === panelGeneration.current} label={m.calculationStatus} />
         {pendingEdits && <p className="ease-pending-banner" role="status">{sx.pendingEdits}</p>}
         {revisionExhausted && <div className="studio-selection-summary" role="status"><span>{m.revisionLimitReached}</span><button onClick={() => acceptProject(duplicateProject(live.current.project))}>{m.duplicateToEdit}</button></div>}
@@ -1037,7 +1048,7 @@ export default function App() {
               <button type="button" className="facility-mobile-tools" data-panel-opener="view" aria-label={sx.view} onClick={event => setPanel('view', event.currentTarget)}><Layers3 size={17} /></button>
               <button type="button" title={m.fitWorld} aria-label={m.fitWorld} onClick={() => document.querySelector('.world-scene')?.dispatchEvent(new Event('queuelab:fit'))}><Focus size={17} /></button>
             </div>
-            <Suspense fallback={<div className="scene-fallback" role="status"><p>{m.buildingYourLittleWorld}</p></div>}><WorldScene playing={playing} playbackSpeed={speed} replayUntil={replayUntil} runKey={shownResult?.id} seekEpoch={visualSeekEpoch} result={shownResult} onMoveStart={() => setPlaying(false)} project={visualProject} selectedFacilityId={facilitySelection} onSelectFacility={selectFacility} onMoveFacility={moveFacility} onDropAsset={droppedLibraryAsset} quality={quality} frame={frame} selected={selected} selectedIds={selection.ids} reducedMotion={reducedMotion} moving={moving && !hasErrors && !revisionExhausted && !learningFocused} editable={!hasErrors && !revisionExhausted && !learningFocused} flow={sceneFlow} onSelect={selectFromWorld} onMove={moveSelected} onCapacityChange={changeCapacity} onEditNode={editSceneNode} /></Suspense>
+            {sceneStarted ? <SceneBoundary fallback={<div className="world-scene scene-unavailable" data-testid="world-scene" data-status="unavailable"><SceneFallback project={visualProject} selected={selected} onSelect={selectFromWorld} /><p className="scene-asset-warning" role="status">{worldSceneMessages.previewUnavailable}</p></div>}><Suspense fallback={<div className="scene-fallback" role="status"><p>{m.buildingYourLittleWorld}</p></div>}><WorldScene playing={playing} playbackSpeed={speed} replayUntil={replayUntil} runKey={shownResult?.id} seekEpoch={visualSeekEpoch} result={shownResult} onMoveStart={() => setPlaying(false)} project={visualProject} selectedFacilityId={facilitySelection} onSelectFacility={selectFacility} onMoveFacility={moveFacility} onDropAsset={droppedLibraryAsset} quality={quality} frame={frame} selected={selected} selectedIds={selection.ids} reducedMotion={reducedMotion} moving={moving && !hasErrors && !revisionExhausted && !learningFocused} editable={!hasErrors && !revisionExhausted && !learningFocused} flow={sceneFlow} onSelect={selectFromWorld} onMove={moveSelected} onCapacityChange={changeCapacity} onEditNode={editSceneNode} /></Suspense></SceneBoundary> : <div className="scene-fallback" role="status"><p>{m.buildingYourLittleWorld}</p></div>}
           </div>
           <div className="quality-mobile-selection"><span>{selectedStep?.label ?? m.selectionEmpty}</span><button type="button" disabled={!selectedStep} onClick={() => { if (selectedStep) editSceneNode(selectedStep.id); }}>{m.editSelectedStep}<ArrowRight size={14} /></button></div>
           {layoutOnly ? <div className="workspace-layout-footer"><p>{tm.layoutHint}</p><button type="button" onClick={startProcess}>{tm.startProcess}</button></div> : <>

@@ -1,7 +1,12 @@
 /** English product messages for WorldScene. Keep model data and canonical identifiers at the call site. */
 import { BRAND } from '../../brand';
 export const worldSceneMessages = {
-  contextUnavailable: '3D graphics could not start. Retry the world, or use Tools to edit the model.',
+  contextUnavailable: 'The 3D view is unavailable. Your project and calculations are kept.',
+  previewUnavailable: 'The 3D preview could not load. Your model still works. Save your work before reloading to try the preview again.',
+  fallbackTitle: 'Your process',
+  fallbackHelp: 'Choose a step below to inspect or change it. You can still run your model and save your work.',
+  fallbackSteps: 'Process steps without the 3D view',
+  fallbackLayout: 'Your layout is kept. Use Placed to inspect its objects, or retry the 3D view.',
   assetsUnavailable: 'Some equipment could not load. Model editing remains available.',
   retryWorld: 'Retry 3D world',
   actionsFor: (label: string) => `Actions for ${label}`,

@@ -3,16 +3,17 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { dismissLearningWelcome, openPanel, runPlan } from './ui-actions.mjs';
+import { prepareCIView, browserArgs, dismissLearningWelcome, openPanel, runPlan } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use a separate loopback QA origin.');
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || '.private/evidence/learning');
 await fs.mkdir(out, { recursive: true }); await fs.mkdir('.cache/tmp', { recursive: true }); process.env.TMPDIR = path.resolve('.cache/tmp');
 let installed = true; try { await fs.access(chromium.executablePath()); } catch { installed = false; }
-const browser = await chromium.launch({ headless: true, ...(process.env.QUEUELAB_SYSTEM_CHROME || !installed ? { channel: 'chrome' } : { executablePath: chromium.executablePath() }) });
+const browser = await chromium.launch({ headless: true, args: browserArgs, ...(process.env.QUEUELAB_SYSTEM_CHROME || !installed ? { channel: 'chrome' } : { executablePath: chromium.executablePath() }) });
 const scope = process.env.QUEUELAB_LEARNING_SCOPE || 'all';
 assert(['all', 'flows', 'edges'].includes(scope));
 const checks = [], errors = []; let page, phase = 'first visit';
+function recordCheck(message) { checks.push(message); console.log(`PASS: ${message}`); }
 const state = p => p.evaluate(() => JSON.parse(window.render_game_to_text()));
 const ready = p => p.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !s.running && s.result?.status === 'completed'; });
 const coach = p => p.locator('.learning-coach');
@@ -21,7 +22,7 @@ const cap = p => p.locator('[data-learning-team] input:visible,[data-learning-ta
 const saved = p => p.locator('.workspace-footer').getByText(/^Saved in this browser/).first().waitFor({ state: 'attached' });
 async function fresh(width = 1440, skip = false) {
   const context = await browser.newContext({ viewport: { width, height: width > 740 ? 1000 : 844 }, reducedMotion: 'reduce', acceptDownloads: true });
-  const p = await context.newPage(); p.on('pageerror', e => errors.push(String(e))); await p.goto(origin.href); await ready(p);
+  const p = await context.newPage(); p.on('pageerror', e => errors.push(String(e))); await p.goto(origin.href); await ready(p); await prepareCIView(p);
   if (skip) await dismissLearningWelcome(p); return { context, page: p };
 }
 async function start(p) {
@@ -66,6 +67,7 @@ try {
     await page.getByRole('button', { name: 'Show the full workspace', exact: true }).click();
     await page.waitForFunction(() => document.activeElement?.matches('[data-learning-resume]'));
     await page.locator('[data-learning-resume]').press('Enter'); await stage(page, 'select');
+    if (width <= 740) { const bounds = await coach(page).getByRole('button', { name: 'Choose Specialists', exact: true }).boundingBox(); assert(bounds && bounds.y >= 0 && bounds.y + bounds.height <= page.viewportSize().height + 1, 'The first lesson action must fit the mobile viewport.'); }
     // The visible scene label is a real keyboard selection alternative to the lesson button.
     if (width === 1440) await page.locator('.world-scene [data-station-id="station-b"]').press('Enter');
     else await page.getByRole('button', { name: 'Choose Specialists', exact: true }).click();
@@ -96,19 +98,19 @@ try {
     await coach(page).scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(out, `complete-${width}.png`) });
     assert.equal(await coach(page).evaluate(el => getComputedStyle(el).animationName), 'none');
     await page.getByRole('button', { name: 'Open the full workspace', exact: true }).click(); await saved(page);
-    await page.reload(); await ready(page); assert.equal(await page.locator('[data-panel=learn],.learning-coach').count(), 0);
+    await page.reload(); await ready(page); await prepareCIView(page); assert.equal(await page.locator('[data-panel=learn],.learning-coach').count(), 0);
     assert.deepEqual((await download(page, `reopened-${width}`)).model, changed.model);
     await openPanel(page, 'worlds'); await page.getByRole('button', { name: /^My templates/ }).click(); await page.locator('[data-template-id]').first().waitFor(); assert.equal(await page.locator('[data-template-id]').count(), 1);
-    await c.context.close(); checks.push(`${width}px: five real steps, pending-field guard, keyboard/focus, native persisted template, reload and reduced motion`);
+    await c.context.close(); recordCheck(`${width}px: five real steps, pending-field guard, keyboard/focus, native persisted template, reload and reduced motion`);
   }
   if (scope !== 'flows') {
   phase = 'resume and optional completion'; {
     const c = await fresh(); page = c.page; await start(page); await change(page); await saved(page); const before = await download(page, 'before-refresh');
-    await page.reload(); await stage(page, 'run'); assert.deepEqual((await download(page, 'after-refresh')).model, before.model);
+    await page.reload(); await stage(page, 'run'); await prepareCIView(page); assert.deepEqual((await download(page, 'after-refresh')).model, before.model);
     assert.equal((await state(page)).result.stale, true); await compare(page); await keep(page);
     await page.getByRole('button', { name: 'Finish without saving a template', exact: true }).click(); await stage(page, 'complete');
     assert.match(await page.locator('.learning-saved').innerText(), /No template was saved/); await c.context.close();
-    checks.push('Refresh resumes the preserved changed model and requires a real rerun; optional finish makes no saved-template claim');
+    recordCheck('Refresh resumes the preserved changed model and requires a real rerun; optional finish makes no saved-template claim');
   }
   phase = 'original project and history'; {
     const c = await fresh(1440, true); page = c.page;
@@ -133,7 +135,7 @@ try {
     await page.getByRole('button', { name: 'Back to my previous project', exact: true }).click(); await coach(page).waitFor({ state: 'detached' }); await ready(page);
     assert.equal((await download(page, 'newer-return')).name, 'Newer synthetic project');
     assert.equal(await page.getByRole('button', { name: /^Undo / }).count(), 0);
-    await c.context.close(); checks.push('A failed preservation write blocks practice; original project, result and Undo survive practice; a newer externally saved original is reopened without stale history');
+    await c.context.close(); recordCheck('A failed preservation write blocks practice; original project, result and Undo survive practice; a newer externally saved original is reopened without stale history');
   }
   phase = 'save failure'; {
     const c = await fresh(); page = c.page; await start(page); await change(page); await compare(page); await keep(page);
@@ -142,7 +144,7 @@ try {
     await page.locator('.template-save button[type=submit]').click(); await page.locator('.templates-panel [role=alert]').waitFor();
     await stage(page, 'save'); assert.equal(await page.locator('.learning-saved').count(), 0); assert.equal(await templateCount(page), 0);
     await page.evaluate(() => window.restoreTemplateWrites()); await page.locator('.template-save button[type=submit]').click(); await stage(page, 'complete');
-    await c.context.close(); checks.push('A failed IndexedDB template write cannot complete the lesson or claim a save; native retry succeeds');
+    await c.context.close(); recordCheck('A failed IndexedDB template write cannot complete the lesson or claim a save; native retry succeeds');
   }
   phase = 'cancelled and failed practice loading'; {
     const c = await fresh(1440, true); page = c.page; const before = await download(page, 'before-load-failure');
@@ -156,7 +158,7 @@ try {
     await page.locator('.studio-world-picker select').selectOption('blank'); await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).workspaceMode === 'layout');
     const blank = await download(page, 'after-cancelled-load'); assert.deepEqual(blank.model.nodes, []); assert.notEqual(blank.id, before.id);
     assert.equal(await coach(page).count(), 0); await page.unroute('**/templates/service.json?*'); await c.context.close();
-    checks.push('HTTP errors stay actionable; Escape cancels practice loading and a late response cannot replace the newer blank project');
+    recordCheck('HTTP errors stay actionable; Escape cancels practice loading and a late response cannot replace the newer blank project');
   }
   phase = 'independent exploration'; {
     const c = await fresh(); page = c.page; await start(page); await change(page);
@@ -174,13 +176,14 @@ try {
     const different = await download(page, 'independent-idea');
     await page.getByRole('button', { name: 'Leave guide', exact: true }).click();
     assert.deepEqual((await download(page, 'after-leave')).model, different.model);
-    await saved(page); await page.reload(); await ready(page); assert.equal(await page.locator('[data-panel=learn],.learning-coach').count(), 0);
-    await c.context.close(); checks.push('Native drafts block resume until applied/cancelled; resume closes advanced dialogs; Undo returns to the relevant task; unrelated model edits are preserved and leaving the guide never resets them');
+    await saved(page); await page.reload(); await ready(page); await prepareCIView(page); assert.equal(await page.locator('[data-panel=learn],.learning-coach').count(), 0);
+    await c.context.close(); recordCheck('Native drafts block resume until applied/cancelled; resume closes advanced dialogs; Undo returns to the relevant task; unrelated model edits are preserved and leaving the guide never resets them');
   }
   }
   assert.deepEqual(errors, []); const receipt = { passed: true, at: new Date().toISOString(), origin: origin.href, browser: browser.version(), scope, checks, errors };
   await fs.writeFile(path.join(out, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n'); console.log(JSON.stringify(receipt));
 } catch (error) {
   if (page && !page.isClosed()) { await page.screenshot({ path: path.join(out, 'failure.png'), fullPage: true }).catch(() => {}); await fs.writeFile(path.join(out, 'failure.txt'), `${phase}\n${error}\n${await page.locator('body').innerText()}`); }
+  if (page && !page.isClosed()) console.error('Focus state:', await page.evaluate(() => ({ stage: document.querySelector('.learning-coach')?.getAttribute('data-learning-stage'), active: document.activeElement?.outerHTML.slice(0, 500), running: JSON.parse(window.render_game_to_text?.() || '{}').running })).catch(() => null));
   console.error(phase, error); process.exitCode = 1;
 } finally { await browser.close(); }

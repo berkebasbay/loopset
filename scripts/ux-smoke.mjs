@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { dismissLearningWelcome, openPanel, primaryRunButton, headerProjectInput } from './ui-actions.mjs';
+import { prepareCIView, browserArgs, dismissLearningWelcome, openPanel, primaryRunButton, headerProjectInput } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['localhost', '127.0.0.1'].includes(origin.hostname), 'Use a loopback QA server.');
 const kind = process.env.QUEUELAB_BROWSER || 'chromium', phase = process.env.QUEUELAB_UX_PHASE || 'core';
@@ -16,7 +16,7 @@ const worlds = (process.env.QUEUELAB_UX_WORLDS || 'factory,festival,service').sp
 assert(worlds.length > 0 && worlds.every(world => ['factory', 'festival', 'service'].includes(world)));
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || `.private/evidence/ux-smoke-${kind}-${phase}`);
 await fs.mkdir(out, { recursive: true }); await fs.mkdir('.cache/tmp', { recursive: true }); process.env.TMPDIR = path.resolve('.cache/tmp');
-const browser = await { chromium, firefox, webkit }[kind].launch({ headless: true, ...(kind === 'chromium' && process.env.QUEUELAB_SYSTEM_CHROME ? { channel: 'chrome' } : {}) });
+const browser = await { chromium, firefox, webkit }[kind].launch({ headless: true, ...(kind === 'chromium' ? { args: browserArgs } : {}), ...(kind === 'chromium' && process.env.QUEUELAB_SYSTEM_CHROME ? { channel: 'chrome' } : {}) });
 const receipt = { origin: origin.href, browser: browser.version(), engine: kind, phase, viewport: { width: viewportWidth, height: viewportHeight }, worlds, checks: [], files: [], errors: [] };
 const state = page => page.evaluate(() => JSON.parse(window.render_game_to_text()));
 const ready = page => page.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !document.querySelector('.studio-world-picker select')?.disabled && !s.running && s.result?.status === 'completed' && !s.result.stale; });
@@ -24,8 +24,15 @@ const close = page => page.getByRole('button', { name: 'Close dialog', exact: tr
 const check = (ids, name, evidence) => receipt.checks.push({ ids, name, evidence });
 async function screenshot(page, name) { await page.screenshot({ path: path.join(out, name) }); return name; }
 async function saveDownload(page, button, name) {
-  const pending = page.waitForEvent('download'); await button.click(); const download = await pending; const file = path.join(out, name); await download.saveAs(file);
-  const bytes = await fs.readFile(file); receipt.files.push({ name, suggested: download.suggestedFilename(), bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }); return bytes;
+  try {
+    await button.click({ trial: true });
+    const [download] = await Promise.all([page.waitForEvent('download'), button.click()]);
+    const file = path.join(out, name); await download.saveAs(file);
+    const bytes = await fs.readFile(file); receipt.files.push({ name, suggested: download.suggestedFilename(), bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }); return bytes;
+  } catch (error) {
+    console.error('Export state:', { file: name, alerts: await page.locator('[role=alert]').allTextContents().catch(() => []), status: await page.locator('.ql-result-exports,[data-panel=data] .ql-status').allTextContents().catch(() => []) });
+    throw error;
+  }
 }
 const projectJSON = async (page, name) => JSON.parse((await saveDownload(page, page.locator('.studio-save'), name)).toString());
 async function inspect(page, label, intent = 'single') {
@@ -36,7 +43,7 @@ async function inspect(page, label, intent = 'single') {
 async function field(page, name, value, scope = page) { const input = scope.getByRole('spinbutton', { name, exact: true }); await input.fill(String(value)); await input.press('Enter'); return input; }
 async function fresh(world = 'factory', width = viewportWidth, height = viewportHeight) {
   const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', acceptDownloads: true }); const page = await context.newPage();
-  page.on('pageerror', error => receipt.errors.push(String(error))); await page.goto(origin.href); await dismissLearningWelcome(page); await ready(page);
+  page.on('pageerror', error => receipt.errors.push(String(error))); await page.goto(origin.href); await dismissLearningWelcome(page); await ready(page); await prepareCIView(page);
   if (world !== 'factory') { await page.locator('.studio-world-picker select').selectOption(world); await ready(page); }
   const pause = page.getByRole('button', { name: 'Pause replay', exact: true }); if (await pause.count()) await pause.click(); return { context, page };
 }
