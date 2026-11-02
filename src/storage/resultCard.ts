@@ -70,7 +70,9 @@ const INK = '#293b33'; const PAPER = '#f6f5f0'; const MUTED = '#5c6a60'; const A
 const FONT = '"DM Sans", system-ui, sans-serif';
 
 /** Fit literal Unicode text; truncate only at grapheme boundaries, never by HTML or SVG markup. */
-function text(context: CanvasRenderingContext2D, value: string, x: number, y: number, width: number, size: number, color = INK, weight = 400, minimum = size): void {
+type CardContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+
+function text(context: CardContext, value: string, x: number, y: number, width: number, size: number, color = INK, weight = 400, minimum = size): void {
   const literal = value.replace(/[\r\n\t]/g, ' ');
   context.fillStyle = color;
   let fontSize = size;
@@ -90,7 +92,7 @@ function text(context: CanvasRenderingContext2D, value: string, x: number, y: nu
   context.fillText(fitted, x, y);
 }
 
-function paintResultCard(context: CanvasRenderingContext2D, content: ResultCardContent): void {
+function paintResultCard(context: CardContext, content: ResultCardContent): void {
   context.fillStyle = PAPER; context.fillRect(0, 0, WIDTH, HEIGHT);
   context.fillStyle = ACCENT; context.fillRect(56, 30, 7, 27);
   text(context, BRAND.name, 78, 53, 340, 28, INK, 700);
@@ -132,19 +134,27 @@ export async function resultCardPNG(result: RunResult): Promise<{ blob: Blob; fi
     ]);
   } catch { /* Canvas uses its local system fallback. */ }
   finally { clearTimeout(fontDeadline); }
-  const canvas = document.createElement('canvas'); canvas.width = WIDTH; canvas.height = HEIGHT;
-  const context = canvas.getContext('2d');
+  const fallback = document.createElement('canvas'); fallback.width = WIDTH; fallback.height = HEIGHT;
+  let canvas: HTMLCanvasElement | OffscreenCanvas = fallback;
+  let context: CardContext | null = null;
+  const settings = { alpha: false, willReadFrequently: true };
+  // Static cards need no GPU readback or idle-task-dependent HTML canvas encoding.
+  try {
+    if (typeof OffscreenCanvas === 'function' && typeof OffscreenCanvas.prototype.convertToBlob === 'function') {
+      const candidate = new OffscreenCanvas(WIDTH, HEIGHT), candidateContext = candidate.getContext('2d', settings);
+      if (candidateContext) { canvas = candidate; context = candidateContext; }
+    }
+  } catch { /* Older or restricted browsers keep the HTML canvas path. */ }
+  if (!context) context = fallback.getContext('2d');
   if (!context) throw new Error(messages.imageContextUnavailable);
   paintResultCard(context, content);
+  const target = canvas;
   let encodingDeadline: ReturnType<typeof setTimeout> | undefined;
   try {
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      encodingDeadline = setTimeout(() => reject(new Error(messages.pngEncodingTimedOut)), 5000);
-      canvas.toBlob(value => {
-        if (!value || !value.size || value.type !== 'image/png') reject(new Error(messages.pngEncodingFailed));
-        else resolve(value);
-      }, 'image/png');
-    });
+    const deadline = new Promise<never>((_resolve, reject) => { encodingDeadline = setTimeout(() => reject(new Error(messages.pngEncodingTimedOut)), 5000); });
+    const encoding = 'convertToBlob' in target ? target.convertToBlob({ type: 'image/png' }) : new Promise<Blob | null>(resolve => target.toBlob(resolve, 'image/png'));
+    const blob = await Promise.race([encoding, deadline]);
+    if (!blob || !blob.size || blob.type !== 'image/png') throw new Error(messages.pngEncodingFailed);
     return { blob, filename: content.filename };
   } finally { clearTimeout(encodingDeadline); }
 }

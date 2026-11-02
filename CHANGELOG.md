@@ -6,6 +6,7 @@
 - Defer the initial 3D world until the first-use welcome is dismissed and the current project is known.
 - Add a direct guided-example entry that opens the welcome without replacing saved work.
 - Keep process selection, calculations and template saves available when WebGL or the graphics module cannot load.
+- Encode static PNG result cards on a CPU-backed offscreen canvas when supported, with the original bounded HTML fallback.
 - Preserve the first digit typed immediately after opening a numeric field.
 - Keep the scene size stable while a numeric field is unfinished.
 - Keep private previews and generated engine files out of development reloads; block local private folders and override documents from dev-server delivery.
