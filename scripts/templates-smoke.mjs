@@ -3,7 +3,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { browserArgs, dismissLearningWelcome, openPanel, runPlan, headerProjectInput, canvasDropPoint } from './ui-actions.mjs';
+import { prepareCIView, browserArgs, dismissLearningWelcome, openPanel, runPlan, headerProjectInput, canvasDropPoint } from './ui-actions.mjs';
 
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use a separate loopback QA origin.');
@@ -19,7 +19,7 @@ const close = p => p.getByRole('button', { name: 'Close dialog', exact: true }).
 async function fresh(width = 1440) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
   const p = await context.newPage(); p.on('pageerror', e => errors.push(String(e)));
-  await p.goto(origin.href); await dismissLearningWelcome(p); await ready(p); return { context, page: p };
+  await p.goto(origin.href); await dismissLearningWelcome(p); await ready(p); await prepareCIView(p); return { context, page: p };
 }
 async function download(p, name) {
   const next = p.waitForEvent('download'); await p.locator('.studio-save').click();
@@ -68,7 +68,7 @@ try {
   await page.screenshot({ path: path.join(out, 'saved-template.png') });
   const saved = await records(page); assert.equal(saved.templates.length, 1); assert.equal(saved.summaries.length, 1);
   await close(page); const unchanged = await download(page, 'after-template-save.json'); assert.equal(unchanged.id, placed.id); assert.equal(unchanged.revision, placed.revision);
-  await page.locator('.workspace-footer').getByText(/^Saved in this browser/).first().waitFor(); await page.reload(); await ready(page);
+  await page.locator('.workspace-footer').getByText(/^Saved in this browser/).first().waitFor(); await page.reload(); await ready(page); await prepareCIView(page);
   const restored = await download(page, 'layout-reloaded.json'); assert.equal(restored.id, placed.id); assert.deepEqual(restored.facility, placed.facility); assert.deepEqual(restored.model.nodes, []);
   await myTemplates(page); await page.locator('.templates-panel').getByRole('button', { name: 'Save as template', exact: true }).click(); await page.locator('.template-cancel-save').click(); assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Save as template'); await row(page, 'Synthetic workshop').getByRole('button', { name: 'Use template', exact: true }).click(); await ready(page);
   const first = await download(page, 'template-instance.json'); assert.notEqual(first.id, placed.id); assert.deepEqual(first.facility, placed.facility); assert.deepEqual(first.model, placed.model);
@@ -122,7 +122,7 @@ try {
       tx.oncomplete = () => { db.close(); resolve(); }; tx.onabort = () => { db.close(); reject(String(tx.error)); };
     };
   }), saved.templates[0]);
-  const other = await desktop.context.newPage(); other.on('pageerror', e => errors.push(String(e))); await other.goto(origin.href); await dismissLearningWelcome(other); await ready(other);
+  const other = await desktop.context.newPage(); other.on('pageerror', e => errors.push(String(e))); await other.goto(origin.href); await dismissLearningWelcome(other); await ready(other); await prepareCIView(other);
   await myTemplates(page); await page.locator('.templates-panel').getByRole('button', { name: 'Save as template', exact: true }).click(); await myTemplates(other); await other.locator('.templates-panel').getByRole('button', { name: 'Save as template', exact: true }).click();
   for (const [p, name] of [[page, 'Concurrent A'], [other, 'Concurrent B']]) { await p.bringToFront(); await p.getByRole('textbox', { name: 'Template name', exact: true }).fill(name); }
   // Activate the two real form handlers together; background-tab frame throttling must not serialize this transaction race.

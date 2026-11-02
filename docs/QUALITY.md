@@ -18,7 +18,7 @@ The unit suite covers numerical references, conservation/capacity invariants, ev
 
 ## Browser smoke checks
 
-The required PR check and Pages build run `npm run test:browser` against the built app. This starts its own loopback preview, checks first use, no-3D/module failures, safe guided entry, templates and the original worlds, then stops only its own processes. Linux CI uses software graphics in isolated Chromium contexts; these are correctness checks, not GPU performance measurements.
+The required PR check and Pages build run `npm run test:browser` against the built app. This starts its own loopback preview, checks first use, no-3D/module failures, safe guided entry, templates and the original worlds, then stops only its own processes. Linux CI uses software graphics and chooses the existing Low power view through the real UI in isolated Chromium contexts. The setup asserts that changing display detail leaves numerical identity unchanged. All interaction, result and persistence assertions remain active; these are correctness checks, not GPU performance measurements. Local detailed-renderer checks are separate.
 
 Install the browser matching the pinned Playwright dependency once with `npx playwright install chromium` (CI uses `npx playwright install --with-deps chromium`, as in the [Playwright CI guide](https://playwright.dev/docs/ci-intro)). Then run:
 

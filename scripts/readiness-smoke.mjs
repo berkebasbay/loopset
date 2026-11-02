@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { browserArgs, dismissLearningWelcome, openPanel } from './ui-actions.mjs';
+import { prepareCIView, browserArgs, dismissLearningWelcome, openPanel } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use an isolated loopback origin.');
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || '.private/evidence/readiness');
@@ -21,7 +21,7 @@ try {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', acceptDownloads: true });
     await context.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext; window.restoreTestContext = () => { HTMLCanvasElement.prototype.getContext = get; }; HTMLCanvasElement.prototype.getContext = function (kind, ...args) { return kind.startsWith('webgl') || kind === 'experimental-webgl' ? null : get.call(this, kind, ...args); }; });
     page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
-    await page.goto(new URL('?learn=1', origin).href); await page.getByRole('button', { name: 'Try it with me', exact: true }).click();
+    await page.goto(new URL('?learn=1', origin).href); await ready(page); await prepareCIView(page); await page.getByRole('button', { name: 'Try it with me', exact: true }).click();
     await page.locator('[data-learning-stage=select]').waitFor(); await page.locator('.scene-text-fallback').waitFor();
     await page.screenshot({ path: path.join(out, 'no-webgl-lesson.png') });
     await page.getByRole('link', { name: 'Skip to lesson', exact: true }).focus(); await page.keyboard.press('Enter');
@@ -46,7 +46,7 @@ try {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
     await page.route(url => /\/scene\/WorldScene\.tsx$|\/assets\/WorldScene-[^/]+\.js$/.test(url.pathname), route => route.abort('failed'));
-    await page.goto(new URL('?learn=1', origin).href);
+    await page.goto(new URL('?learn=1', origin).href); await ready(page); await prepareCIView(page);
     await page.getByRole('button', { name: 'Try it with me', exact: true }).click();
     await page.locator('[data-learning-stage=select]').waitFor();
     await page.locator('.scene-unavailable .scene-text-fallback').waitFor();
@@ -65,22 +65,22 @@ try {
   }
   stage = 'guided entry preserves saved work'; {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
-    page = await context.newPage(); page.on('pageerror', error => errors.push(String(error))); await page.goto(origin.href); await dismissLearningWelcome(page); await saved(page);
+    page = await context.newPage(); page.on('pageerror', error => errors.push(String(error))); await page.goto(origin.href); await dismissLearningWelcome(page); await prepareCIView(page); await saved(page);
     await page.getByRole('link', { name: 'Skip to workspace', exact: true }).focus(); await page.keyboard.press('Enter');
     assert(await page.locator('#workspace').evaluate(e => e === document.activeElement));
     const original = await download(page, 'before-guided-entry');
-    await page.goto(new URL('?learn=1&keep=example', origin).href); await page.locator('[data-panel=learn]').waitFor();
+    await page.goto(new URL('?learn=1&keep=example', origin).href); await ready(page); await prepareCIView(page); await page.locator('[data-panel=learn]').waitFor();
     assert.equal(new URL(page.url()).searchParams.get('learn'), null); assert.equal(new URL(page.url()).searchParams.get('keep'), 'example');
     await page.getByRole('button', { name: 'Explore on my own', exact: true }).click();
     const after = await download(page, 'after-guided-entry');
     for (const key of Object.keys(original).filter(key => key !== 'savedAt')) assert.deepEqual(after[key], original[key]);
-    await page.reload(); await ready(page); assert.equal(await page.locator('[data-panel=learn]').count(), 0);
+    await page.reload(); await ready(page); await prepareCIView(page); assert.equal(await page.locator('[data-panel=learn]').count(), 0);
     await context.close(); checks.push('Explicit ?learn=1 opens the welcome once, preserves the saved project and other query parameters, and does not reopen on reload');
   }
   for (const width of [1440, 390]) {
     stage = `pending edit ${width}`;
     const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
-    page = await context.newPage(); page.on('pageerror', error => errors.push(String(error))); await page.goto(origin.href); await dismissLearningWelcome(page);
+    page = await context.newPage(); page.on('pageerror', error => errors.push(String(error))); await page.goto(origin.href); await dismissLearningWelcome(page); await prepareCIView(page);
     await page.locator('.facility-canvas-tools').getByRole('button', { name: 'Steps', exact: true }).click();
     await page.getByRole('button', { name: 'Inspect Packing', exact: true }).click();
     const field = page.getByRole('spinbutton', { name: 'Mean processing time', exact: true });
