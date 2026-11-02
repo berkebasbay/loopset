@@ -240,12 +240,13 @@ export default function App() {
     rememberLearningWelcome();
   }
   function toggleLearningGuide() {
-    const next = !learningMinimized, origin = document.activeElement, id = live.current.project.id;
+    const next = !learningMinimized, origin = document.activeElement, id = live.current.project.id, task = lessonStage;
     if (!next) setPanel(null);
     const surface = panelGeneration.current;
     setLearningMinimized(next);
     requestAnimationFrame(() => {
       if (live.current.project.id !== id || surface !== panelGeneration.current || focusChangedSince(origin)) return;
+      if (!next && document.querySelector<HTMLElement>('.learning-coach')?.dataset.learningStage !== task) return;
       document.querySelector<HTMLButtonElement>(next ? '[data-learning-resume]' : '[data-learning-toggle]')?.focus();
     });
   }
@@ -498,11 +499,11 @@ export default function App() {
     const fromGuide = active === document.body || (active instanceof HTMLElement && Boolean(active.closest('.learning-coach,.learning-intro,.station-label,[data-learning-target],[inert]') || active.matches('[data-panel-opener="learn"]')));
     const focus = ['review', 'complete'].includes(lessonStage) ? document.querySelector<HTMLElement>('[data-learning-heading]') : target;
     if (fromGuide && focus?.matches('input,button,select,[data-learning-heading]') && !focus.matches(':disabled') && !['preparing', 'off-track'].includes(lessonStage) && focusedLearningStep.current !== key) {
-      focusedLearningStep.current = key;
       const origin = document.activeElement, surface = panelGeneration.current;
       handle = requestAnimationFrame(() => {
-        if (learningRef.current?.projectId !== project.id || surface !== panelGeneration.current || focusChangedSince(origin) || !focus.isConnected || focus.closest('[inert],[hidden]')) return;
+        if (learningRef.current?.projectId !== project.id || surface !== panelGeneration.current || focusChangedSince(origin) || !focus.isConnected || focus.closest('[inert],[hidden]') || focus.matches(':disabled') || !focus.checkVisibility({ visibilityProperty: true })) return;
         focus.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' }); focus.focus({ preventScroll: true });
+        if (document.activeElement === focus) focusedLearningStep.current = key;
       });
     }
     return () => {

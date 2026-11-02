@@ -18,14 +18,15 @@ async function download(p, name) {
 }
 try {
   stage = 'without WebGL'; {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', acceptDownloads: true });
     await context.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext; window.restoreTestContext = () => { HTMLCanvasElement.prototype.getContext = get; }; HTMLCanvasElement.prototype.getContext = function (kind, ...args) { return kind.startsWith('webgl') || kind === 'experimental-webgl' ? null : get.call(this, kind, ...args); }; });
     page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
     await page.goto(new URL('?learn=1', origin).href); await page.getByRole('button', { name: 'Try it with me', exact: true }).click();
     await page.locator('[data-learning-stage=select]').waitFor(); await page.locator('.scene-text-fallback').waitFor();
+    await page.screenshot({ path: path.join(out, 'no-webgl-lesson.png') });
     await page.getByRole('link', { name: 'Skip to lesson', exact: true }).focus(); await page.keyboard.press('Enter');
     assert(await page.locator('[data-learning-heading]').evaluate(e => e === document.activeElement));
-    await page.locator('.scene-text-fallback [data-station-id=station-b]').press('Enter');
+    await page.locator('.scene-text-fallback [data-station-id=station-b]').click();
     await page.getByRole('spinbutton', { name: 'People on this team', exact: true }).fill('3');
     await page.getByRole('button', { name: 'Apply change', exact: true }).click();
     await page.getByRole('button', { name: 'Try this change', exact: true }).click(); await page.locator('[data-learning-stage=review]').waitFor();
@@ -49,6 +50,7 @@ try {
     await page.getByRole('button', { name: 'Try it with me', exact: true }).click();
     await page.locator('[data-learning-stage=select]').waitFor();
     await page.locator('.scene-unavailable .scene-text-fallback').waitFor();
+    await page.screenshot({ path: path.join(out, 'no-graphics-lesson.png') });
     await page.locator('.scene-unavailable [data-station-id=station-b]').press('Enter');
     await page.getByRole('spinbutton', { name: 'People on this team', exact: true }).fill('3');
     await page.getByRole('button', { name: 'Apply change', exact: true }).click();

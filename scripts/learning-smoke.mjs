@@ -182,5 +182,6 @@ try {
   await fs.writeFile(path.join(out, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n'); console.log(JSON.stringify(receipt));
 } catch (error) {
   if (page && !page.isClosed()) { await page.screenshot({ path: path.join(out, 'failure.png'), fullPage: true }).catch(() => {}); await fs.writeFile(path.join(out, 'failure.txt'), `${phase}\n${error}\n${await page.locator('body').innerText()}`); }
+  if (page && !page.isClosed()) console.error('Focus state:', await page.evaluate(() => ({ stage: document.querySelector('.learning-coach')?.getAttribute('data-learning-stage'), active: document.activeElement?.outerHTML.slice(0, 500), running: JSON.parse(window.render_game_to_text?.() || '{}').running })).catch(() => null));
   console.error(phase, error); process.exitCode = 1;
 } finally { await browser.close(); }
