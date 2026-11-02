@@ -24,8 +24,15 @@ const close = page => page.getByRole('button', { name: 'Close dialog', exact: tr
 const check = (ids, name, evidence) => receipt.checks.push({ ids, name, evidence });
 async function screenshot(page, name) { await page.screenshot({ path: path.join(out, name) }); return name; }
 async function saveDownload(page, button, name) {
-  const pending = page.waitForEvent('download'); await button.click(); const download = await pending; const file = path.join(out, name); await download.saveAs(file);
-  const bytes = await fs.readFile(file); receipt.files.push({ name, suggested: download.suggestedFilename(), bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }); return bytes;
+  try {
+    await button.click({ trial: true });
+    const [download] = await Promise.all([page.waitForEvent('download'), button.click()]);
+    const file = path.join(out, name); await download.saveAs(file);
+    const bytes = await fs.readFile(file); receipt.files.push({ name, suggested: download.suggestedFilename(), bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }); return bytes;
+  } catch (error) {
+    console.error('Export state:', { file: name, alerts: await page.locator('[role=alert]').allTextContents().catch(() => []), status: await page.locator('.ql-result-exports,[data-panel=data] .ql-status').allTextContents().catch(() => []) });
+    throw error;
+  }
 }
 const projectJSON = async (page, name) => JSON.parse((await saveDownload(page, page.locator('.studio-save'), name)).toString());
 async function inspect(page, label, intent = 'single') {
