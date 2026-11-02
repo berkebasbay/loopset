@@ -3,6 +3,7 @@
 ## 1.0.0-rc.17
 
 - Add keyboard links that bypass navigation and reach the workspace or current lesson.
+- Defer the initial 3D world until the first-use welcome is dismissed and the current project is known.
 - Add a direct guided-example entry that opens the welcome without replacing saved work.
 - Keep process selection, calculations and template saves available when WebGL or the graphics module cannot load.
 - Preserve the first digit typed immediately after opening a numeric field.

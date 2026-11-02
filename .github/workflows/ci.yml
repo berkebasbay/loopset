@@ -1,6 +1,5 @@
 name: Verify changes
 
-# Check every PR revision, including drafts; keep manual dispatch available.
 on:
   pull_request:
     branches: [main]
@@ -15,11 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  checks:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      # Official release refs resolved through api.github.com on 2026-10-20.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -60,7 +58,39 @@ jobs:
       - run: node scripts/simulate.mjs --example factory --seed 4207
       - run: node scripts/simulate.mjs examples/service.json --seed 4207
       - run: node examples/verify.mjs
-      - name: Install test browser
-        run: npx playwright install --with-deps chromium
-      - name: Check browser journeys
+  browser:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [first-use, recovery-and-entry, templates, original-worlds]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Check browser journey
+        env:
+          QUEUELAB_BROWSER_SUITE: ${{ matrix.suite }}
         run: npm run test:browser
+  verify:
+    if: ${{ always() }}
+    needs: [checks, browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require source checks and every browser journey
+        env:
+          QUALITY_RESULT: ${{ needs.checks.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: |
+          test "$QUALITY_RESULT" = success
+          test "$BROWSER_RESULT" = success

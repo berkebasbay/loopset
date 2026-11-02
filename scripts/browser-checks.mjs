@@ -6,6 +6,14 @@ import { stripVTControlCharacters } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+const checks = [
+  ['first-use', 'scripts/learning-smoke.mjs', {}],
+  ['recovery-and-entry', 'scripts/readiness-smoke.mjs', {}],
+  ['templates', 'scripts/templates-smoke.mjs', {}],
+  ['original-worlds', 'scripts/ux-smoke.mjs', { QUEUELAB_UX_PHASE: 'core' }],
+];
+const selectedChecks = process.env.QUEUELAB_BROWSER_SUITE ? checks.filter(([name]) => name === process.env.QUEUELAB_BROWSER_SUITE) : checks;
+assert(selectedChecks.length > 0, 'Unknown browser suite.');
 const root = fileURLToPath(new URL('..', import.meta.url));
 const port = Number(process.env.QUEUELAB_BROWSER_PORT || 4173);
 assert(Number.isInteger(port) && port >= 1024 && port <= 65535, 'Choose a loopback test port between 1024 and 65535.');
@@ -37,20 +45,14 @@ try {
   const response = await fetch(origin, { signal: AbortSignal.timeout(10000) });
   assert.equal(response.status, 200, 'The owned preview must serve the built application.');
   assert.match(await response.text(), /id=["']root["']/);
-  const checks = [
-    ['first-use', 'scripts/learning-smoke.mjs', {}],
-    ['recovery-and-entry', 'scripts/readiness-smoke.mjs', {}],
-    ['templates', 'scripts/templates-smoke.mjs', {}],
-    ['original-worlds', 'scripts/ux-smoke.mjs', { QUEUELAB_UX_PHASE: 'core' }],
-  ];
-  for (const [name, script, extra] of checks) {
+  for (const [name, script, extra] of selectedChecks) {
     assert(!interrupted, 'Browser checks interrupted.');
     console.log(`Browser check: ${name}`);
     current = spawn(process.execPath, [script], { cwd: root, env: { ...process.env, ...extra, QUEUELAB_URL: origin, QUEUELAB_EVIDENCE_DIR: path.join(out, name) }, stdio: 'inherit' });
     const [code, signal] = await once(current, 'exit'); current = null;
     assert.equal(code, 0, `${name} failed${signal ? ` (${signal})` : ''}.`);
   }
-  console.log('Browser checks passed: first use, recovery, templates and original worlds.');
+  console.log(`Browser checks passed: ${selectedChecks.map(([name]) => name).join(', ')}.`);
 } finally {
   await close(current); await close(server);
   process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop);

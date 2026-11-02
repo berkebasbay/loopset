@@ -17,6 +17,18 @@ async function download(p, name) {
   const next = p.waitForEvent('download'); await p.locator('.studio-save').click(); const file = await next, target = path.join(out, `${name}.json`); await file.saveAs(target); return JSON.parse(await fs.readFile(target, 'utf8'));
 }
 try {
+  stage = 'graphics begin only after entry'; {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
+    const graphics = url => /\/scene\/WorldScene\.tsx$|\/assets\/WorldScene-[^/]+\.js$/.test(new URL(url).pathname);
+    const requests = []; page.on('request', request => { if (graphics(request.url())) requests.push(request.url()); });
+    await page.goto(new URL('?learn=1', origin).href); await ready(page);
+    await page.locator('[data-panel=learn]').waitFor(); await page.locator('.learning-intro img').evaluate(img => img.decode());
+    assert.equal(requests.length, 0, 'The welcome must not fetch a temporary graphics module.');
+    await Promise.all([page.waitForRequest(request => graphics(request.url())), page.getByRole('button', { name: 'Try it with me', exact: true }).click()]);
+    assert.equal((await state(page)).world, 'service'); assert.equal(requests.length, 1);
+    await context.close(); checks.push('The welcome loads no temporary graphics module; choosing the example starts its real 3D module on demand');
+  }
   stage = 'without WebGL'; {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', acceptDownloads: true });
     await context.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext; window.restoreTestContext = () => { HTMLCanvasElement.prototype.getContext = get; }; HTMLCanvasElement.prototype.getContext = function (kind, ...args) { return kind.startsWith('webgl') || kind === 'experimental-webgl' ? null : get.call(this, kind, ...args); }; });

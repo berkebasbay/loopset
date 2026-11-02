@@ -17,3 +17,7 @@ test('browser runner refuses an occupied port and leaves the existing server ali
     assert.equal(await fetch(`http://127.0.0.1:${port}/`).then(r => r.text()), 'existing-server');
   } finally { await new Promise(resolve => server.close(resolve)); await fs.rm(root, { recursive: true, force: true }); }
 });
+
+test('unknown matrix suites fail before starting a preview instead of skipping checks', async () => {
+  await assert.rejects(promisify(execFile)(process.execPath, ['scripts/browser-checks.mjs'], { env: { ...process.env, QUEUELAB_BROWSER_SUITE: 'not-a-suite' }, timeout: 5000 }), error => error.code === 1 && /Unknown browser suite/.test(error.stderr));
+});

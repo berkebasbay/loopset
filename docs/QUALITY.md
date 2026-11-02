@@ -18,7 +18,7 @@ The unit suite covers numerical references, conservation/capacity invariants, ev
 
 ## Browser smoke checks
 
-The required PR check and Pages build run `npm run test:browser` against the built app. This starts its own loopback preview, checks first use, no-3D/module failures, safe guided entry, templates and the original worlds, then stops only its own processes. Linux CI uses software graphics and chooses the existing Low power view through the real UI in isolated Chromium contexts. The setup asserts that changing display detail leaves numerical identity unchanged. All interaction, result and persistence assertions remain active; these are correctness checks, not GPU performance measurements. Local detailed-renderer checks are separate.
+The required PR check and Pages workflow run `npm run test:browser` against the built app. Four isolated browser jobs run in parallel; the final required `verify` check needs the source checks and every browser job to succeed. Deployment also waits for all four jobs. Each browser job builds the same checked-out source with the same deployment base; no additional build-artifact storage is introduced. This starts its own loopback preview, checks first use, no-3D/module failures, safe guided entry, templates and the original worlds, then stops only its own processes. Linux CI uses software graphics and chooses the existing Low power view through the real UI in isolated Chromium contexts. The setup asserts that changing display detail leaves numerical identity unchanged. All interaction, result and persistence assertions remain active; these are correctness checks, not GPU performance measurements. Local detailed-renderer checks are separate.
 
 Install the browser matching the pinned Playwright dependency once with `npx playwright install chromium` (CI uses `npx playwright install --with-deps chromium`, as in the [Playwright CI guide](https://playwright.dev/docs/ci-intro)). Then run:
 
@@ -27,7 +27,7 @@ npm run build
 npm run test:browser
 ```
 
-The runner fails if its preview port is occupied. Set `QUEUELAB_BROWSER_PORT` to a free port; it never stops an existing server. `QUEUELAB_BROWSER_DIST` selects an alternative build folder. `QUEUELAB_PUBLIC_URL` supplies the built deployment subpath, so the Pages build is checked under the same `/loopset/` base. Generated evidence remains ignored; no browser profiles or customer files are used.
+The runner fails if its preview port is occupied. Set `QUEUELAB_BROWSER_PORT` to a free port; it never stops an existing server. `QUEUELAB_BROWSER_DIST` selects an alternative build folder. `QUEUELAB_BROWSER_SUITE` can select `first-use`, `recovery-and-entry`, `templates` or `original-worlds` for a focused run; unknown names fail. Without it, every suite runs. `QUEUELAB_PUBLIC_URL` supplies the built deployment subpath, so the Pages build is checked under the same `/loopset/` base. Generated evidence remains ignored; no browser profiles or customer files are used.
 
 Documentation checks validate local file/image links and common Markdown heading anchors, excluding fenced code examples. They do not make external website availability a build requirement.
 
