@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { stripVTControlCharacters } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs/promises';
@@ -26,11 +27,11 @@ async function close(child) {
 try {
   await new Promise((resolve, reject) => {
     let output = '';
-    const timer = setTimeout(() => reject(new Error('Preview did not start within 30 seconds.')), 30000);
+    const timer = setTimeout(() => reject(new Error(`Preview did not start within 30 seconds: ${stripVTControlCharacters(output)}`)), 30000);
     const fail = error => { clearTimeout(timer); reject(error); };
     server.once('error', fail);
     server.once('exit', code => fail(new Error(`Preview exited (${code}): ${output}`)));
-    server.stdout.on('data', data => { output = (output + data).slice(-4096); if (output.includes('Local:')) { clearTimeout(timer); resolve(); } });
+    server.stdout.on('data', data => { output = (output + data).slice(-4096); if (stripVTControlCharacters(output).includes('Local:')) { clearTimeout(timer); resolve(); } });
     server.stderr.on('data', data => { output = (output + data).slice(-4096); });
   });
   const response = await fetch(origin, { signal: AbortSignal.timeout(10000) });
