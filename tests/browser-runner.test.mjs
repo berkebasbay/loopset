@@ -1,4 +1,6 @@
 import { test } from 'node:test';
+import { errors } from 'playwright';
+import { requiredScreenshot } from '../scripts/ui-actions.mjs';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
@@ -20,4 +22,22 @@ test('browser runner refuses an occupied port and leaves the existing server ali
 
 test('unknown matrix suites fail before starting a preview instead of skipping checks', async () => {
   await assert.rejects(promisify(execFile)(process.execPath, ['scripts/browser-checks.mjs'], { env: { ...process.env, QUEUELAB_BROWSER_SUITE: 'not-a-suite' }, timeout: 5000 }), error => error.code === 1 && /Unknown browser suite/.test(error.stderr));
+});
+
+test('required screenshots retry only a Playwright timeout, once, with the original options', async () => {
+  const timeout = new errors.TimeoutError('capture timed out'), failure = new Error('page closed');
+  const options = { path: 'synthetic.png' };
+  for (const outcomes of [[timeout, 'png'], [timeout, timeout], [failure]]) {
+    let calls = 0;
+    const capture = requiredScreenshot({ screenshot: async actual => {
+      assert.equal(actual, options);
+      const result = outcomes[calls++];
+      if (result instanceof Error) throw result;
+      return result;
+    } }, options);
+    const last = outcomes.at(-1);
+    if (last instanceof Error) await assert.rejects(capture, error => error === last);
+    else assert.equal(await capture, last);
+    assert.equal(calls, outcomes.length);
+  }
 });

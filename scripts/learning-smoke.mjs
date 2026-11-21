@@ -3,7 +3,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { prepareCIView, browserArgs, dismissLearningWelcome, openPanel, runPlan } from './ui-actions.mjs';
+import { requiredScreenshot, prepareCIView, browserArgs, dismissLearningWelcome, openPanel, runPlan } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use a separate loopback QA origin.');
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || '.private/evidence/learning');
@@ -61,7 +61,7 @@ try {
     await page.locator('[data-panel=learn]').waitFor(); await page.locator('.learning-intro img').evaluate(img => img.decode()); await overflow(page);
     // Native modal keyboard containment before starting the lesson.
     for (let i = 0; i < 7; i++) { await page.keyboard.press('Tab'); assert(await page.evaluate(() => Boolean(document.activeElement?.closest('[role=dialog]')))); }
-    await page.screenshot({ path: path.join(out, `welcome-${width}.png`) }); await start(page);
+    await requiredScreenshot(page, { path: path.join(out, `welcome-${width}.png`) }); await start(page);
     const initial = await download(page, `practice-${width}`); assert.equal(initial.world, 'service'); assert.equal(initial.name, 'My first experiment');
     assert.deepEqual(initial.model, JSON.parse(await fs.readFile('public/templates/service.json', 'utf8')).model);
     await page.getByRole('button', { name: 'Show the full workspace', exact: true }).click();
@@ -75,7 +75,7 @@ try {
     assert.equal((await state(page)).selected, 'station-b');
     assert.equal(await page.locator('.studio-inspector').isVisible(), false);
     assert.match(await cap(page).getAttribute('aria-describedby'), /-help learning-instruction$/);
-    await overflow(page); await page.screenshot({ path: path.join(out, `edit-${width}.png`) });
+    await overflow(page); await requiredScreenshot(page, { path: path.join(out, `edit-${width}.png`) });
     const revision = (await state(page)).revision;
     await cap(page).fill('invalid'); await page.getByRole('button', { name: 'Apply change', exact: true }).click();
     assert.equal(await coach(page).getAttribute('data-learning-stage'), 'edit');
@@ -91,11 +91,11 @@ try {
     const expected = structuredClone(initial.model); expected.resources.find(pool => pool.id === 'specialists').capacity = 3;
     assert.deepEqual(changed.model, expected); assert.equal(changed.id, initial.id);
     await compare(page); assert.equal((await state(page)).result.stale, false); await overflow(page);
-    await page.screenshot({ path: path.join(out, `review-${width}.png`) }); await keep(page);
+    await requiredScreenshot(page, { path: path.join(out, `review-${width}.png`) }); await keep(page);
     await page.locator('.template-save input').fill('My trained team'); await page.waitForFunction(() => !document.querySelector('.template-save button[type=submit]')?.disabled); await page.locator('.template-save button[type=submit]').press('Enter'); await stage(page, 'complete');
     assert.match(await page.locator('.learning-saved').innerText(), /Saved in My templates: My trained team/);
     assert.equal(await templateCount(page), 1); await overflow(page);
-    await coach(page).scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(out, `complete-${width}.png`) });
+    await coach(page).scrollIntoViewIfNeeded(); await requiredScreenshot(page, { path: path.join(out, `complete-${width}.png`) });
     assert.equal(await coach(page).evaluate(el => getComputedStyle(el).animationName), 'none');
     await page.getByRole('button', { name: 'Open the full workspace', exact: true }).click(); await saved(page);
     await page.reload(); await ready(page); await prepareCIView(page); assert.equal(await page.locator('[data-panel=learn],.learning-coach').count(), 0);
@@ -183,7 +183,7 @@ try {
   assert.deepEqual(errors, []); const receipt = { passed: true, at: new Date().toISOString(), origin: origin.href, browser: browser.version(), scope, checks, errors };
   await fs.writeFile(path.join(out, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n'); console.log(JSON.stringify(receipt));
 } catch (error) {
-  if (page && !page.isClosed()) { await page.screenshot({ path: path.join(out, 'failure.png'), fullPage: true }).catch(() => {}); await fs.writeFile(path.join(out, 'failure.txt'), `${phase}\n${error}\n${await page.locator('body').innerText()}`); }
+  if (page && !page.isClosed()) { await page.screenshot({ path: path.join(out, 'failure.png'), fullPage: true }).catch(() => {}); await fs.writeFile(path.join(out, 'failure.txt'), `${phase}\n${error}\n${await page.locator('body').innerText().catch(() => '')}`).catch(e => console.warn('Failure text unavailable:', e)); }
   if (page && !page.isClosed()) console.error('Focus state:', await page.evaluate(() => ({ stage: document.querySelector('.learning-coach')?.getAttribute('data-learning-stage'), active: document.activeElement?.outerHTML.slice(0, 500), running: JSON.parse(window.render_game_to_text?.() || '{}').running })).catch(() => null));
   console.error(phase, error); process.exitCode = 1;
 } finally { await browser.close(); }

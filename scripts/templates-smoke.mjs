@@ -3,7 +3,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { prepareCIView, browserArgs, dismissLearningWelcome, openPanel, runPlan, headerProjectInput, canvasDropPoint } from './ui-actions.mjs';
+import { requiredScreenshot, prepareCIView, browserArgs, dismissLearningWelcome, openPanel, runPlan, headerProjectInput, canvasDropPoint } from './ui-actions.mjs';
 
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use a separate loopback QA origin.');
@@ -49,7 +49,7 @@ try {
   stage = 'blank'; await page.locator('.studio-world-picker select').selectOption('blank'); await ready(page); await art(page);
   const blank = await download(page, 'blank.json'); assert.equal(blank.workspaceMode, 'layout'); assert.deepEqual(blank.model.nodes, []); assert.deepEqual(blank.model.resources, []); assert.deepEqual(blank.facility.objects, []); assert.equal((await state(page)).result, null);
   assert(await page.locator('.studio-command-actions .studio-primary').isDisabled());
-  await page.screenshot({ path: path.join(out, 'blank.png') });
+  await requiredScreenshot(page, { path: path.join(out, 'blank.png') });
   const tray = await library(page); await tray.getByRole('searchbox').fill('Dispensing system');
   const tile = tray.getByRole('button', { name: 'Dispensing system · C01', exact: true }); await tile.click();
   const canvas = page.locator('.world-scene canvas');
@@ -65,7 +65,7 @@ try {
   checks.push('Blank starts with no objects or process; native equipment drag changes only its layout');
 
   stage = 'save and reload'; await saveTemplate(page, 'Synthetic workshop'); await overflow(page);
-  await page.screenshot({ path: path.join(out, 'saved-template.png') });
+  await requiredScreenshot(page, { path: path.join(out, 'saved-template.png') });
   const saved = await records(page); assert.equal(saved.templates.length, 1); assert.equal(saved.summaries.length, 1);
   await close(page); const unchanged = await download(page, 'after-template-save.json'); assert.equal(unchanged.id, placed.id); assert.equal(unchanged.revision, placed.revision);
   await page.locator('.workspace-footer').getByText(/^Saved in this browser/).first().waitFor(); await page.reload(); await ready(page); await prepareCIView(page);
@@ -140,7 +140,7 @@ try {
     const mobileTray = await library(page); await mobileTray.getByRole('button', { name: 'Save as template', exact: true }).click();
     await page.getByRole('textbox', { name: 'Template name', exact: true }).fill('Mobile room'); await page.getByRole('button', { name: 'Save template', exact: true }).click();
     await page.getByText('“Mobile room” was saved in your template library.', { exact: true }).waitFor(); await overflow(page);
-    await page.screenshot({ path: path.join(out, `mobile-${width}.png`) }); await row(page, 'Mobile room').getByRole('button', { name: 'Use template', exact: true }).click(); await ready(page);
+    await requiredScreenshot(page, { path: path.join(out, `mobile-${width}.png`) }); await row(page, 'Mobile room').getByRole('button', { name: 'Use template', exact: true }).click(); await ready(page);
     await mobile.context.close();
   }
   checks.push('320/390px Templates, blank start and save/reuse are reachable without horizontal overflow');
@@ -148,6 +148,6 @@ try {
   const receipt = { passed: true, at: new Date().toISOString(), origin: origin.href, browser: browser.version(), checks, errors };
   await fs.writeFile(path.join(out, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n'); console.log(JSON.stringify(receipt));
 } catch (error) {
-  if (page && !page.isClosed()) { await page.screenshot({ path: path.join(out, 'failure.png'), fullPage: true }).catch(() => {}); await fs.writeFile(path.join(out, 'failure.txt'), `${stage}\n${error}\n${await page.locator('body').innerText()}`); }
+  if (page && !page.isClosed()) { await page.screenshot({ path: path.join(out, 'failure.png'), fullPage: true }).catch(() => {}); await fs.writeFile(path.join(out, 'failure.txt'), `${stage}\n${error}\n${await page.locator('body').innerText().catch(() => '')}`).catch(e => console.warn('Failure text unavailable:', e)); }
   console.error(stage, String(error)); process.exitCode = 1;
 } finally { await browser.close(); }

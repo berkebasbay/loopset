@@ -3,7 +3,7 @@ import { facilityMessages as m } from '../ui/messages/facility';
 
 export const FACILITY_OBJECT_LIMIT = 500;
 const object = (v: unknown): v is Record<string, unknown> => Boolean(v && typeof v === 'object' && !Array.isArray(v));
-const identity = (v: unknown) => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v) && !['constructor', 'prototype', '__proto__'].includes(v);
+const identity = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v) && !['constructor', 'prototype', '__proto__'].includes(v);
 const finite = (v: unknown, min: number, max: number) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
 
 export function validateFacility(value: unknown, nodeIds: ReadonlySet<string>, path = 'facility'): ValidationIssue[] {
@@ -28,8 +28,8 @@ export function validateFacility(value: unknown, nodeIds: ReadonlySet<string>, p
   value.objects.forEach((item, i) => {
     const at = `${path}.objects.${i}`;
     if (!object(item)) { error(at, m.invalidFacility); return; }
-    if (!identity(item.id) || seen.has(String(item.id))) error(at, m.invalidFacility);
-    seen.add(String(item.id));
+    if (!identity(item.id) || seen.has(item.id)) error(at, m.invalidFacility);
+    else seen.add(item.id);
     if (typeof item.name !== 'string' || !item.name.trim() || item.name.length > 160) error(at, m.invalidName);
     if (!finite(item.x, -100, 100) || !finite(item.z, -100, 100)) error(at, m.invalidTransform);
     if (item.y !== undefined && !finite(item.y, 0, 50)) error(at, m.invalidTransform);

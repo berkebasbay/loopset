@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { capacitySearch, comparePaired, estimate, runExperiment, runExperimentAsync } from '../src/experiments';
+import { capacitySearch, capacitySearchPlan, comparePaired, estimate, runExperiment, runExperimentAsync } from '../src/experiments';
+import { uniform } from '../src/engine/random';
 import type { RunOptions, SimulationModel } from '../src/model/types';
 
 function model(): SimulationModel {
@@ -24,6 +25,17 @@ describe('replications and uncertainty', () => {
     expect(r.runs.every(r => r.entities.length === 0 && r.events.length === 0)).toBe(true);
     expect((await runExperimentAsync(model(), [11, 22, 33])).wait).toEqual(r.wait);
     expect(() => runExperiment(model(), [1, 1])).toThrow('distinct');
+  });
+  it('rejects distinct integers that generate the same keyed draws before estimating or searching', async () => {
+    const seeds = [3271580352, 1282299135];
+    for (const seed of seeds) expect(uniform(seed, 'src', 1, 'class')).toBe(0.9961233990034088);
+    expect(() => runExperiment(model(), seeds)).toThrow('distinct');
+    await expect(runExperimentAsync(model(), seeds)).rejects.toThrow('distinct');
+    expect(() => comparePaired(model(), model(), seeds)).toThrow('distinct');
+    const search = { poolId: 'team', capacities: [1], trainingSeeds: [seeds[0]], verificationSeeds: [seeds[1]] };
+    expect(() => capacitySearchPlan(model(), search)).toThrow('disjoint');
+    expect(() => capacitySearch(model(), search)).toThrow('disjoint');
+    expect(() => capacitySearchPlan(model(), { ...search, trainingSeeds: [1], verificationSeeds: seeds })).toThrow('distinct');
   });
   it('shares a frozen snapshot across runs and isolates it from later input edits', async () => {
     const input = model(); const r = runExperiment(input, [1, 2, 3]);

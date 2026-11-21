@@ -4,7 +4,7 @@ import { ENGINE_VERSION } from '../model/types';
 import { assertModel } from '../model/validate';
 import { demandHash, fingerprint, modelHash } from '../model/identity';
 import { buildCouplingManifest, normalizeRunLimits } from '../engine/provenance';
-import { RNG_VERSION } from '../engine/random';
+import { RNG_VERSION, replicationSeedStates } from '../engine/random';
 
 /** Bump when either endpoint changes the transport or accepted result contract. */
 export const WORKER_PROTOCOL_VERSION = 1 as const;
@@ -99,10 +99,7 @@ function options(v: unknown): asserts v is WireRunOptions {
   normalizeRunLimits(data as WireRunOptions);
 }
 function seeds(v: unknown): asserts v is number[] {
-  const values = list(v, 100, 'replication seeds');
-  if (!values.length) fail('replication seeds');
-  values.forEach(seed => integer(seed, 'replication seed', Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER));
-  if (new Set(values).size !== values.length) fail('distinct replication seeds');
+  replicationSeedStates(list(v, 100, 'replication seeds'));
 }
 export function readSimulationRequest(v: unknown): SimulationRequest {
   const data = envelope(v, 'simulation');
@@ -187,7 +184,8 @@ function runResult(v: unknown, expected: SimulationModel, seed: number, limits: 
   const entities = list(run.entities, limits.maxTraceEntities, 'trace entities'); const entityIds = new Set<string>();
   for (const value of entities) {
     const entity = object(value, 'trace entity'); text(entity.id, 'entity ID', 160); if (entityIds.has(entity.id)) fail('duplicate entity'); entityIds.add(entity.id);
-    const source = sources.get(String(entity.sourceId)) ?? fail('entity source'); text(entity.classId, 'entity class', 64);
+    text(entity.sourceId, 'entity source', 64);
+    const source = sources.get(entity.sourceId) ?? fail('entity source'); text(entity.classId, 'entity class', 64);
     integer(entity.ordinal, 'arrival ordinal'); integer(entity.priority, 'entity priority', 1000, -1000);
     const entityClass = source.classes.find(cls => cls.id === entity.classId);
     if (!entityClass || entityClass.priority !== entity.priority || entity.id !== `${source.samplingId}:${entity.ordinal}`) fail('entity identity or class');
@@ -196,7 +194,7 @@ function runResult(v: unknown, expected: SimulationModel, seed: number, limits: 
     const visits = list(entity.visits, limits.maxEvents, 'entity visits'); context.visits += visits.length;
     if (context.visits > 10_000_000) fail('retained visit budget');
     for (const value of visits) {
-      const visit = object(value, 'visit'); if (!nodeIds.has(String(visit.nodeId))) fail('visit node');
+      const visit = object(value, 'visit'); if (typeof visit.nodeId !== 'string' || !nodeIds.has(visit.nodeId)) fail('visit node');
       number(visit.arrival, 'visit arrival', Number(entity.arrivedAt), Number(run.simulatedUntil));
       if (visit.start !== undefined) number(visit.start, 'visit start', Number(visit.arrival), Number(run.simulatedUntil));
       if (visit.end !== undefined) number(visit.end, 'visit end', Number(visit.start ?? visit.arrival), Number(run.simulatedUntil));
@@ -207,18 +205,18 @@ function runResult(v: unknown, expected: SimulationModel, seed: number, limits: 
   for (const value of list(run.events, limits.maxTraceEvents, 'trace events')) {
     const event = object(value, 'trace event'); number(event.time, 'event time', previousEventTime, Number(run.simulatedUntil)); previousEventTime = Number(event.time);
     oneOf(event.kind, ['arrival', 'queue', 'start', 'finish', 'complete', 'balk', 'renege', 'transfer'], 'event kind');
-    if (!nodeIds.has(String(event.nodeId)) || !entityIds.has(String(event.entityId))) fail('event reference');
+    if (typeof event.nodeId !== 'string' || !nodeIds.has(event.nodeId) || typeof event.entityId !== 'string' || !entityIds.has(event.entityId)) fail('event reference');
   }
   const stations = list(run.stations, serviceIds.size, 'stations'); const seenStations = new Set();
   for (const value of stations) {
-    const station = object(value, 'station'); if (!serviceIds.has(String(station.nodeId)) || seenStations.has(station.nodeId)) fail('station reference'); seenStations.add(station.nodeId);
+    const station = object(value, 'station'); if (typeof station.nodeId !== 'string' || !serviceIds.has(station.nodeId) || seenStations.has(station.nodeId)) fail('station reference'); seenStations.add(station.nodeId);
     counts(station, ['arrived', 'started', 'finished', 'balked', 'reneged', 'queueAtEnd', 'busyAtEnd'], 'station');
     fields(station, ['averageQueue', 'averageWait', 'p95Wait', 'busySeconds'], 'station'); if (station.utilization !== null) number(station.utilization, 'station utilization');
   }
   if (stations.length !== serviceIds.size) fail('missing station');
   const pools = list(run.pools, poolIds.size, 'pools'); const seenPools = new Set();
   for (const value of pools) {
-    const pool = object(value, 'pool'); if (!poolIds.has(String(pool.poolId)) || seenPools.has(pool.poolId)) fail('pool reference'); seenPools.add(pool.poolId);
+    const pool = object(value, 'pool'); if (typeof pool.poolId !== 'string' || !poolIds.has(pool.poolId) || seenPools.has(pool.poolId)) fail('pool reference'); seenPools.add(pool.poolId);
     fields(pool, ['scheduledUnitSeconds', 'busyUnitSeconds', 'overtimeUnitSeconds', 'cost'], 'pool'); if (pool.utilization !== null) number(pool.utilization, 'pool utilization');
   }
   if (pools.length !== poolIds.size) fail('missing pool');

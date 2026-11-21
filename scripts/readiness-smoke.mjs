@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { prepareCIView, browserArgs, dismissLearningWelcome, openPanel } from './ui-actions.mjs';
+import { requiredScreenshot, prepareCIView, browserArgs, dismissLearningWelcome, openPanel } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['127.0.0.1', 'localhost'].includes(origin.hostname), 'Use an isolated loopback origin.');
 const out = path.resolve(process.env.QUEUELAB_EVIDENCE_DIR || '.private/evidence/readiness');
@@ -35,7 +35,7 @@ try {
     page = await context.newPage(); page.on('pageerror', error => errors.push(String(error)));
     await page.goto(new URL('?learn=1', origin).href); await ready(page); await prepareCIView(page); await page.getByRole('button', { name: 'Try it with me', exact: true }).click();
     await page.locator('[data-learning-stage=select]').waitFor(); await page.locator('.scene-text-fallback').waitFor();
-    await page.screenshot({ path: path.join(out, 'no-webgl-lesson.png') });
+    await requiredScreenshot(page, { path: path.join(out, 'no-webgl-lesson.png') });
     await page.getByRole('link', { name: 'Skip to lesson', exact: true }).focus(); await page.keyboard.press('Enter');
     assert(await page.locator('[data-learning-heading]').evaluate(e => e === document.activeElement));
     await page.locator('.scene-text-fallback [data-station-id=station-b]').click();
@@ -51,7 +51,7 @@ try {
     await page.evaluate(() => window.restoreTestContext()); await page.getByRole('button', { name: 'Retry 3D world', exact: true }).click();
     await page.locator('.world-scene[data-status=ready]').waitFor(); assert.equal(await page.locator('.scene-text-fallback').count(), 0);
     assert.deepEqual((await state(page)).result, before); assert.deepEqual((await download(page, 'after-webgl-retry')).model, retained.model);
-    await page.screenshot({ path: path.join(out, 'recovered-3d.png') }); await context.close();
+    await requiredScreenshot(page, { path: path.join(out, 'recovered-3d.png') }); await context.close();
     checks.push('No WebGL: real DOM selection, edit, calculation, template ACK and download work; Retry restores 3D without changing the model or result');
   }
   stage = 'graphics module fails to load'; {
@@ -62,7 +62,7 @@ try {
     await page.getByRole('button', { name: 'Try it with me', exact: true }).click();
     await page.locator('[data-learning-stage=select]').waitFor();
     await page.locator('.scene-unavailable .scene-text-fallback').waitFor();
-    await page.screenshot({ path: path.join(out, 'no-graphics-lesson.png') });
+    await requiredScreenshot(page, { path: path.join(out, 'no-graphics-lesson.png') });
     await page.locator('.scene-unavailable [data-station-id=station-b]').press('Enter');
     await page.getByRole('spinbutton', { name: 'People on this team', exact: true }).fill('3');
     await page.getByRole('button', { name: 'Apply change', exact: true }).click();
@@ -72,7 +72,7 @@ try {
     await page.getByRole('textbox', { name: 'Name your example', exact: true }).fill('Without graphics module');
     await page.getByRole('button', { name: 'Save my example', exact: true }).click();
     await page.locator('[data-learning-stage=complete]').waitFor();
-    await page.screenshot({ path: path.join(out, 'without-graphics-module.png') }); await context.close();
+    await requiredScreenshot(page, { path: path.join(out, 'without-graphics-module.png') }); await context.close();
     checks.push('A failed lazy graphics module leaves the lesson, actual calculations and template save usable');
   }
   stage = 'guided entry preserves saved work'; {
@@ -97,17 +97,52 @@ try {
     await page.getByRole('button', { name: 'Inspect Packing', exact: true }).click();
     const field = page.getByRole('spinbutton', { name: 'Mean processing time', exact: true });
     const size = () => page.locator('.world-scene').evaluate(e => ({ width: e.getBoundingClientRect().width, height: e.getBoundingClientRect().height }));
-    const before = await size(), numerical = (await state(page)).result;
+    const stations = page.getByRole('spinbutton', { name: 'Parallel stations', exact: true });
+    const originalStations = await stations.inputValue();
+    await stations.fill(String(Number(originalStations) + 1)); await stations.press('Enter');
+    await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).result?.stale);
+    const before = await size(), { revision, result: numerical } = await state(page);
     await field.fill(''); await page.locator('.ease-pending-banner').waitFor();
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     assert.deepEqual(await size(), before); assert.deepEqual((await state(page)).result, numerical);
-    await page.screenshot({ path: path.join(out, `pending-${width}.png`) }); await field.press('Escape');
-    await page.locator('.ease-pending-banner').waitFor({ state: 'detached' }); await context.close();
-    checks.push(`${width}px: an unfinished number keeps scene dimensions and numerical results unchanged; Escape repairs the draft`);
+    await requiredScreenshot(page, { path: path.join(out, `pending-${width}.png`) });
+    const tabs = page.locator('.studio-inspector-tabs');
+    const properties = tabs.getByRole('button', { name: 'Properties', exact: true });
+    const undo = page.locator('.studio-edit-history').getByRole('button', { name: /^Undo / });
+    assert(await undo.isDisabled());
+    await properties.press('Control+z');
+    assert.equal(await field.inputValue(), ''); assert.equal((await state(page)).revision, revision);
+    assert.equal(await properties.getAttribute('aria-pressed'), 'true');
+    assert.equal(await tabs.locator('button[aria-pressed=false]').count(), 3);
+    for (const button of [tabs.getByRole('button', { name: 'Steps', exact: true }), page.locator('.facility-canvas-tools').getByRole('button', { name: 'Steps', exact: true }), tabs.locator('[data-object-details-close]')]) {
+      await button.click();
+      assert.equal(await field.inputValue(), '');
+      assert.equal(await properties.getAttribute('aria-pressed'), 'true');
+    }
+    await openPanel(page, 'compare');
+    const compare = page.locator('[data-panel=compare]');
+    assert(await compare.getByRole('button', { name: 'Run & compare', exact: true }).isDisabled());
+    assert.match(await compare.locator('#comparison-pending').innerText(), /apply or cancel/i);
+    assert.deepEqual((await state(page)).result, numerical);
+    await compare.getByRole('button', { name: 'Close dialog', exact: true }).click();
+    await field.press('Escape'); await page.locator('.ease-pending-banner').waitFor({ state: 'detached' });
+    await undo.click();
+    await stations.and(page.locator(`[aria-valuenow="${originalStations}"]`)).waitFor();
+    assert.equal(await stations.inputValue(), originalStations);
+    assert.equal((await state(page)).revision, revision + 1);
+    await tabs.getByRole('button', { name: 'Steps', exact: true }).click();
+    assert.equal(await tabs.getByRole('button', { name: 'Steps', exact: true }).getAttribute('aria-pressed'), 'true');
+    await page.getByRole('button', { name: 'Scenario settings', exact: true }).click();
+    const length = page.getByRole('spinbutton', { name: 'Run length', exact: true });
+    const initialLength = await length.inputValue();
+    await length.fill(''); await length.press('Escape'); assert.equal(await length.inputValue(), initialLength);
+    await length.press('Escape'); await page.locator('[data-panel=scenario]').waitFor({ state: 'detached' });
+    await context.close();
+    checks.push(`${width}px: unfinished inspector edits survive navigation and block Undo and comparison. Escape restores a dirty value and closes a clean dialog.`);
   }
   assert.deepEqual(errors, []); const receipt = { passed: true, at: new Date().toISOString(), browser: browser.version(), checks, errors };
   await fs.writeFile(path.join(out, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n'); console.log(JSON.stringify(receipt));
 } catch (error) {
-  if (page && !page.isClosed()) { await page.screenshot({ path: path.join(out, 'failure.png'), fullPage: true }).catch(() => {}); await fs.writeFile(path.join(out, 'failure.txt'), `${stage}\n${error}\n${await page.locator('body').innerText()}`); }
+  if (page && !page.isClosed()) { await page.screenshot({ path: path.join(out, 'failure.png'), fullPage: true }).catch(() => {}); await fs.writeFile(path.join(out, 'failure.txt'), `${stage}\n${error}\n${await page.locator('body').innerText().catch(() => '')}`).catch(e => console.warn('Failure text unavailable:', e)); }
   console.error(stage, error); process.exitCode = 1;
 } finally { await browser.close(); }

@@ -1,4 +1,14 @@
 import assert from 'node:assert/strict';
+import { errors } from 'playwright';
+
+export async function requiredScreenshot(page, options) {
+  try { return await page.screenshot(options); }
+  catch (error) {
+    if (!(error instanceof errors.TimeoutError)) throw error;
+    console.warn('Screenshot timed out. Retrying once:', options.path);
+    return page.screenshot(options);
+  }
+}
 
 // Linux CI has no GPU; use deterministic software graphics in isolated test browsers.
 export const browserArgs = process.env.CI && process.platform === 'linux' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : [];

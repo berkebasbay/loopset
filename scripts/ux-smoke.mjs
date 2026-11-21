@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { prepareCIView, browserArgs, dismissLearningWelcome, openPanel, primaryRunButton, headerProjectInput } from './ui-actions.mjs';
+import { requiredScreenshot, prepareCIView, browserArgs, dismissLearningWelcome, openPanel, primaryRunButton, headerProjectInput } from './ui-actions.mjs';
 const origin = new URL(process.env.QUEUELAB_URL || 'http://127.0.0.1:4173/');
 assert(['localhost', '127.0.0.1'].includes(origin.hostname), 'Use a loopback QA server.');
 const kind = process.env.QUEUELAB_BROWSER || 'chromium', phase = process.env.QUEUELAB_UX_PHASE || 'core';
@@ -22,7 +22,7 @@ const state = page => page.evaluate(() => JSON.parse(window.render_game_to_text(
 const ready = page => page.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text?.() || '{}'); return !document.querySelector('.studio-world-picker select')?.disabled && !s.running && s.result?.status === 'completed' && !s.result.stale; });
 const close = page => page.getByRole('button', { name: 'Close dialog', exact: true }).click();
 const check = (ids, name, evidence) => receipt.checks.push({ ids, name, evidence });
-async function screenshot(page, name) { await page.screenshot({ path: path.join(out, name) }); return name; }
+async function screenshot(page, name) { await requiredScreenshot(page, { path: path.join(out, name) }); return name; }
 async function saveDownload(page, button, name) {
   try {
     await button.click({ trial: true });
@@ -115,7 +115,16 @@ async function core() {
    check([28, 30, 46, 48], `${world}: observed bottleneck, reachable metric scope and real identity-bound report files`, `${world}-run.json`);
    const reopening = await fresh(); try { const freshState = await state(reopening.page); await headerProjectInput(reopening.page).setInputFiles({ name: 'portable.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(portable)) }); await ready(reopening.page); const reopened = await projectJSON(reopening.page, `${world}-reopened.json`); assert.equal(reopened.id, portable.id); assert.deepEqual(reopened.model, portable.model); assert.deepEqual(reopened.scenarios, portable.scenarios); assert.notEqual((await state(reopening.page)).result.hash, freshState.result.hash); } finally { await reopening.context.close(); }
    check([41, 42], `${world}: actual project JSON opens through reviewed Files flow in a fresh context`, `${world}-reopened.json`);
-  } catch (error) { await screenshot(page, `${world}-failure.png`); await fs.writeFile(path.join(out, `${world}-failure.txt`), `${error}\n${await page.locator('body').innerText()}`); await fs.writeFile(path.join(out, `${world}-failure-state.json`), JSON.stringify({ error: String(error), state: await state(page), focus: await page.evaluate(() => document.activeElement?.outerHTML) }, null, 2)); throw error; }
+  } catch (error) {
+   const captures = await Promise.allSettled([
+    page.screenshot({ path: path.join(out, `${world}-failure.png`) }),
+    page.locator('body').innerText().then(body => fs.writeFile(path.join(out, `${world}-failure.txt`), `${error}\n${body}`)),
+    page.evaluate(() => ({ state: JSON.parse(window.render_game_to_text()), focus: document.activeElement?.outerHTML }))
+      .then(details => fs.writeFile(path.join(out, `${world}-failure-state.json`), JSON.stringify({ error: String(error), ...details }, null, 2))),
+   ]);
+   for (const capture of captures) if (capture.status === 'rejected') console.warn('Failure diagnostic unavailable:', capture.reason);
+   throw error;
+  }
   finally { await context.close(); }
  }
 }

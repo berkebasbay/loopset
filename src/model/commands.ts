@@ -46,11 +46,20 @@ export function setCapacity(project: Project, stationId: string, capacity: numbe
 
 export function serviceNodes(project: Project): ServiceNode[] { return project.model.nodes.filter((n): n is ServiceNode => n.kind === 'service'); }
 
+export function namePrefix(name: string, limit: number): string {
+  let prefix = '';
+  for (const character of name) {
+    if (prefix.length + character.length > limit) break;
+    prefix += character;
+  }
+  return prefix;
+}
+
 /** New document identity, same modeled process and sampling identities. */
 export function duplicateProject(project: Project): Project {
   const next = structuredClone(project);
   next.id = `${project.world}-${crypto.randomUUID().slice(0, 8)}`;
-  next.name = `${project.name.slice(0, 150)} copy`;
+  next.name = `${namePrefix(project.name, 150)} copy`;
   next.revision = 0; delete next.savedAt;
   return next;
 }

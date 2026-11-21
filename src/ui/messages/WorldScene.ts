@@ -45,6 +45,7 @@ export const worldSceneMessages = {
   q: "Q",
   t: "T",
   select: (label: string, kind: string) => `Select ${label}, ${kind}`,
+  completed: (count: number) => `${count} completed`,
   waiting: (queue: number) => `${queue} waiting`,
   yourBrowserCouldNotOpenThe3dView: "Your browser could not open the 3D view.",
   useTheModelEditorToViewAndEditEvery: "Use the model editor to view and edit every node. Try a browser with WebGL support for the world.",

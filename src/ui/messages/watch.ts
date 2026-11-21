@@ -37,9 +37,9 @@ export const watchMessages = {
   "stepEdit": "The actual Service Studio interface changes shared specialist availability from two units to three, then runs the model with Run & compare.",
   "stepResults": "In this synthetic one-hour example with 106 arrivals and seed 4207, completed requests rise from 66 to 86, average wait changes from 9.5 to 5.2 minutes, and modeled resource cost rises from $85 to $115. Station counts and the break calendar are unchanged. These are rounded outcomes from one example, not a business forecast.",
   "stepReuse": "The full film illustrates saving and reusing a personal template. Loopset is free and open source, with no installation or account required. The films use music and interface effects, with no spoken narration.",
-  "closingTitle": "Try your own “what if”.",
-  "closingSummary": "Open a template or start with a blank site.",
-  "startExploring": "Start exploring",
+  "closingTitle": "What if you added one specialist?",
+  "closingSummary": "Try the help-desk experiment from the film. Add one person and compare waiting time and team cost.",
+  "tryGuidedExample": "Try the guided example",
   "license": "Original Loopset code is MIT licensed. Films, fonts and artwork retain their separate terms.",
   "credits": "Media credits & recording notes",
   "music": "Music: Cat Walk by Arulo / Mixkit"

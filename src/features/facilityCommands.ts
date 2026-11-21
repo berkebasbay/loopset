@@ -1,5 +1,5 @@
 import { findLibraryAsset } from '../catalog/registry';
-import { mutateProject } from '../model/commands';
+import { mutateProject, namePrefix } from '../model/commands';
 import { FACILITY_OBJECT_LIMIT } from '../model/facilityValidation';
 import { validateProject } from '../model/validate';
 import type { AssetReference, FacilityLayout, FacilityObject, Point, Project } from '../model/types';
@@ -67,7 +67,7 @@ export function duplicateFacilityObject(project: Project, id: string): { project
   const object = project.facility?.objects.find(object => object.id === id);
   if (!object) throw new Error(m.missingObject);
   const newId = uniqueIdentity('object', project.facility!.objects.map(object => object.id));
-  let prefix = ''; for (const character of object.name) { if (prefix.length + character.length > 149) break; prefix += character; }
+  const prefix = namePrefix(object.name, 149);
   const names = new Set(project.facility!.objects.map(object => object.name)); let count = 1;
   while (names.has(m.copyName(prefix, count))) count++;
   const next = mutateProject(project, copy => {

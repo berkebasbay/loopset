@@ -11,6 +11,7 @@
 <p align="center">
   <strong><a href="https://berkebasbay.github.io/loopset/">Try Loopset →</a></strong> ·
   <a href="docs/README.md">Documentation</a> ·
+  <a href="https://github.com/berkebasbay/loopset/releases">Releases</a> ·
   <a href="CONTRIBUTING.md">Contribute</a>
 </p>
 

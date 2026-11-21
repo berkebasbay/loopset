@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { ArrowRight, Check, Compass, ChevronDown, Clock3, LoaderCircle, Users, CircleCheck, X } from 'lucide-react';
+import { ArrowRight, Box, Check, Compass, ChevronDown, Clock3, LoaderCircle, Users, CircleCheck, X } from 'lucide-react';
 import { assetURL } from '../assetUrl';
 import { learningMessages as m } from '../ui/messages/learning';
 import { learningStages, type LearningSession, type LearningStage } from './learning';
@@ -15,12 +15,16 @@ export function LearningIntro({ busy, blocked, error, onStart, onExplore, onRefe
   onStart: () => void; onExplore: () => void; onReference: () => void;
 }) {
   return <section className="learning-intro">
-    <div className="learning-intro-visual"><img src={assetURL('/previews/templates/service.png')} alt="" /></div>
-    <div className="learning-intro-copy"><h3>{m.welcome}</h3><p>{m.introduction}</p><ExampleFlow />
-      <p className="learning-scope">{m.practiceScope}</p>
+    <figure className="learning-intro-visual">
+      <figcaption><Box size={19} aria-hidden="true" />{m.sceneTitle}</figcaption>
+      <img src={assetURL('/previews/templates/service.png')} alt="" />
+      <ExampleFlow />
+    </figure>
+    <div className="learning-intro-copy"><h3>{m.welcome}</h3><p>{m.introduction}</p>
       {blocked && <p role="status" className="learning-feedback">{blocked}</p>}
       {error && <p role="alert" className="learning-error">{error}</p>}
       <div className="learning-intro-actions"><button type="button" className="learning-primary" disabled={busy || Boolean(blocked)} onClick={onStart}>{busy ? <LoaderCircle size={18} className="spin" /> : <Compass size={18} />}{busy ? m.starting : m.start}<ArrowRight size={17} /></button><button type="button" className="learning-secondary" onClick={onExplore}>{m.explore}</button></div>
+      <p className="learning-scope">{m.practiceScope}</p>
       <button type="button" className="learning-text-button" onClick={onReference}>{m.reference}</button>
     </div>
   </section>;
