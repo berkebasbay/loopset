@@ -357,7 +357,7 @@ export function WorldScene(props: Props) {
       const ring = new THREE.Mesh(own(new THREE.RingGeometry(node.kind === 'service' ? 1.7 : 1.1, node.kind === 'service' ? 1.83 : 1.23, 48)), own(new THREE.MeshBasicMaterial({ color: '#658f42', transparent: true, opacity: .85, side: THREE.DoubleSide, depthWrite: false })));
       ring.rotation.x = -Math.PI / 2; ring.position.y = .04; group.add(ring);
       const label = document.createElement('button'); label.type = 'button'; label.className = `station-label scene-node-${node.kind}`; label.dataset.stationId = node.id;
-      const name = document.createElement('span'), badge = document.createElement('span'); name.className = 'station-name'; badge.className = 'station-count'; badge.hidden = true; label.append(name, badge);
+      const name = document.createElement('span'), badge = document.createElement('span'); name.className = 'station-name'; badge.className = 'station-count'; badge.hidden = true; label.append(name, ' ', badge);
       const connector = document.createElementNS(svgNS, 'line'), pin = document.createElementNS(svgNS, 'circle'); pin.setAttribute('r', '2.5'); connectorLayer.append(connector, pin);
       label.addEventListener('click', event => latest.current.onSelect(node.id, event.shiftKey || event.ctrlKey || event.metaKey ? 'toggle' : latest.current.selectedIds?.includes(node.id) ? 'inspect' : 'single'));
       label.addEventListener('pointerenter', () => { hoveredId = node.id; requestRender(); });
@@ -813,13 +813,13 @@ export function WorldScene(props: Props) {
         triangleBudget -= realCount * visual.triangles;
         syncCapacity(id, visual, count, realCount);
         if (visual.loaded) capacityDrawn.push({ id, count: visual.count, full3D: visual.triangles ? visual.copies.length : 0, sourceImpostors: visual.impostor?.mesh.count ?? 0, laneMarkers: visual.triangles ? 0 : (visual.footprint?.geometry.attributes.position.count ?? 0) / 8 });
-        const accessibleLabel = m.select(node.label, stepKindLabels[node.kind]);
-        if (visual.label.getAttribute('aria-label') !== accessibleLabel) visual.label.setAttribute('aria-label', accessibleLabel);
         if (visual.label.getAttribute('aria-pressed') !== String(selected.has(id))) { visual.label.setAttribute('aria-pressed', String(selected.has(id))); measureLabels = true; }
         visual.label.classList.toggle('is-selected', selected.has(id));
         const queue = current.frame.queues[id] ?? 0;
         if (visual.name.textContent !== node.label) { visual.name.textContent = node.label; visual.label.title = node.label; measureLabels = true; }
-        const countLabel = queue ? m.waiting(queue) : node.kind === 'sink' && current.project.model.nodes.filter(item => item.kind === 'sink').length === 1 ? `${current.frame.completed} completed` : '';
+        const countLabel = queue ? m.waiting(queue) : node.kind === 'sink' && current.project.model.nodes.filter(item => item.kind === 'sink').length === 1 ? m.completed(current.frame.completed) : '';
+        const accessibleLabel = m.select(countLabel ? `${node.label} ${countLabel}` : node.label, stepKindLabels[node.kind]);
+        if (visual.label.getAttribute('aria-label') !== accessibleLabel) visual.label.setAttribute('aria-label', accessibleLabel);
         if (visual.badge.textContent !== countLabel) { visual.badge.textContent = countLabel; measureLabels = true; }
         if (visual.badge.hidden !== !countLabel) { visual.badge.hidden = !countLabel; measureLabels = true; }
       }

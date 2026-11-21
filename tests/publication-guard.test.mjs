@@ -38,8 +38,8 @@ test('checks a catalogue larger than the subprocess buffer and still scans trail
 });
 
 test('blocks force-staged private data even when ignored', t => {
-  const f = fixture(t); f.write('.gitignore', '.private/'); f.write('.private/project.json', '{}'); f.write('AGENTS.override.md', 'Synthetic local instructions'); f.git('add', '-f', '.');
-  const result = f.run(['--staged']); assert.equal(result.status, 1); assert.match(result.stderr, /private\/project.json/); assert.match(result.stderr, /AGENTS\.override\.md/);
+  const f = fixture(t); f.write('.gitignore', '.private/'); f.write('.private/project.json', '{}'); f.write('.codex/agents/example.toml', 'name = "example"'); f.write('AGENTS.override.md', 'Synthetic local instructions'); f.git('add', '-f', '.');
+  const result = f.run(['--staged']); assert.equal(result.status, 1); assert.match(result.stderr, /private\/project.json/); assert.match(result.stderr, /\.codex\/agents\/example\.toml/); assert.match(result.stderr, /AGENTS\.override\.md/);
 });
 
 test('blocks a private file committed then deleted before an outgoing push', t => {

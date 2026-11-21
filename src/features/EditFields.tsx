@@ -58,7 +58,7 @@ export function NumberField({ label, value, onChange, contextKey, min, max, step
     <label htmlFor={id}>{label}</label>
     <div className="ease-number-input"><input id={id} type="text" inputMode="decimal" role="spinbutton" aria-valuemin={min} aria-valuemax={max} aria-valuenow={Number.isFinite(accessibleValue) ? accessibleValue : undefined} aria-invalid={Boolean(error)} data-reading={compactReading || undefined} data-pending={dirty || undefined} aria-describedby={help || error || dirty ? `${id}-help` : undefined} value={draft} disabled={disabled} onChange={event => { setDraft(event.currentTarget.value); setError(''); }} onBlur={commit} onKeyDown={event => {
       if (event.key === 'Enter') { event.preventDefault(); commit(); }
-      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); reset(); }
+      if (event.key === 'Escape' && (dirty || error)) { event.preventDefault(); event.stopPropagation(); reset(); }
       if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && !event.altKey && !event.metaKey && !event.ctrlKey) {
         event.preventDefault(); const increment = step === 'any' ? 1 : step;
         const startingValue = dirty ? parsed : value;

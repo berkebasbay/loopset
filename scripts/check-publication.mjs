@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 const git = (args, input) => execFileSync('git', args, { input, maxBuffer: 256 * 1024 * 1024 });
 const text = (args, input) => git(args, input).toString('utf8');
 const split = value => value.split('\0').filter(Boolean);
-const deniedComponents = new Set(['.private', '.omx', '.cache', '.git', 'node_modules', '.venv', 'playwright-report', 'test-results', 'coverage']);
+const deniedComponents = new Set(['.private', '.codex', '.omx', '.cache', '.git', 'node_modules', '.venv', 'playwright-report', 'test-results', 'coverage']);
 const privateRoots = new Set(['notes', 'context', 'memories', 'evidence', 'artifacts', 'output', 'dist', 'dist-engine']);
 const contentRules = [
   ['machine-specific path', /\/(?:Users|home)\/[^/\s"'<>]+(?:\/|$)|\/Volumes\/[^/\s"'<>]+/],

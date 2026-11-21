@@ -1,5 +1,6 @@
 import type { ExperimentResult, MetricEstimate, PairedComparison, RunOptions, RunResult, SimulationModel } from '../model/types';
 import { modelHash } from '../model/identity';
+import { replicationSeedStates } from '../engine/random';
 import { assertModel } from '../model/validate';
 import { buildCouplingManifest, simulate, simulateAsync } from '../engine';
 
@@ -20,10 +21,6 @@ export function estimate(values: readonly number[]): MetricEstimate {
   const variance = values.reduce((sum, x) => sum + (x - mean) ** 2, 0) / (samples - 1);
   const standardError = Math.sqrt(variance / samples); const margin = critical(samples - 1) * standardError;
   return { mean, standardError, lower95: mean - margin, upper95: mean + margin, samples };
-}
-
-function validateSeeds(seeds: readonly number[]) {
-  if (!seeds.length || seeds.length > 100 || Array.from(seeds).some(s => !Number.isSafeInteger(s)) || new Set(seeds).size !== seeds.length) throw new Error('Use 1–100 distinct safe-integer replication seeds.');
 }
 
 function completedRun(run: RunResult) {
@@ -66,7 +63,7 @@ class RetentionBudget {
 }
 
 function replications(model: SimulationModel, seeds: readonly number[], options: RunOptions, budget: RetentionBudget): ExperimentResult {
-  validateSeeds(seeds);
+  replicationSeedStates(seeds);
   const replicationSeeds = [...seeds]; const runOptions = { ...options };
   assertModel(model); const snapshot = budget.snapshot(model); const runs: RunResult[] = [];
   for (const seed of replicationSeeds) runs.push(budget.run(simulate(snapshot, experimentOptions(runOptions, seed)), snapshot));
@@ -79,7 +76,7 @@ export function runExperiment(model: SimulationModel, seeds: readonly number[], 
 }
 
 export async function runExperimentAsync(model: SimulationModel, seeds: readonly number[], options: RunOptions = {}): Promise<ExperimentResult> {
-  validateSeeds(seeds);
+  replicationSeedStates(seeds);
   const replicationSeeds = [...seeds]; const runOptions = { ...options };
   assertModel(model); const runs: RunResult[] = []; const budget = new RetentionBudget(); const snapshot = budget.snapshot(model);
   for (const seed of replicationSeeds) {
@@ -89,7 +86,7 @@ export async function runExperimentAsync(model: SimulationModel, seeds: readonly
 }
 
 export function comparePaired(baselineModel: SimulationModel, candidateModel: SimulationModel, seeds: readonly number[], options: RunOptions = {}): PairedComparison {
-  validateSeeds(seeds);
+  replicationSeedStates(seeds);
   const replicationSeeds = [...seeds]; const runOptions = { ...options };
   assertModel(baselineModel); assertModel(candidateModel);
   const budget = new RetentionBudget();
@@ -120,11 +117,13 @@ export interface CapacitySearchPlan { minimumRuns: number; maximumRuns: number; 
 
 /** Validate/count the same finite plan used by execution, without running it. */
 export function capacitySearchPlan(model: SimulationModel, spec: CapacitySearchSpec): CapacitySearchPlan {
-  assertModel(model); validateSeeds(spec.trainingSeeds); validateSeeds(spec.verificationSeeds);
+  assertModel(model);
+  const trainingStates = replicationSeedStates(spec.trainingSeeds);
+  const verificationStates = replicationSeedStates(spec.verificationSeeds);
   const pool = model.resources.find(p => p.id === spec.poolId);
   if (!pool) throw new Error('Capacity search requires an existing resource pool.');
   if (!spec.capacities.length || spec.capacities.length > 32 || new Set(spec.capacities).size !== spec.capacities.length || Array.from(spec.capacities).some(c => !Number.isSafeInteger(c) || c < 0 || c > pool.installedCapacity)) throw new Error('Use 1–32 distinct capacities within installed capacity.');
-  if (spec.trainingSeeds.some(s => spec.verificationSeeds.includes(s))) throw new Error('Held-out verification seeds must be disjoint from training seeds.');
+  for (const state of verificationStates) if (trainingStates.has(state)) throw new Error('Held-out verification random streams must be disjoint from training streams.');
   if ([spec.targetCompleted, spec.maxMeanWait].some(v => v !== undefined && (!Number.isFinite(v) || v < 0))) throw new Error('Search constraints must be finite and non-negative.');
   const runBudget = spec.maxRuns ?? 256;
   const plannedRuns = spec.capacities.length * spec.trainingSeeds.length + spec.verificationSeeds.length;

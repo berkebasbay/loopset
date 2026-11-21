@@ -56,7 +56,7 @@ describe('versioned requests and narrow boundary values', () => {
   it('versions cancellation and bounds replication/search inputs without dispatching work', () => {
     const cancel = { ...simulationEnvelope('run-1'), type: 'cancel' }; expect(readSimulationRequest(cancel)).toBe(cancel);
     expect(() => readSimulationRequest({ ...cancel, protocolVersion: 999 })).toThrow('version');
-    for (const seeds of [[], [1, 1], [NaN], Array(1), Array(101).fill(1), '1']) expect(() => readExperimentRequest({ ...replications(), seeds })).toThrow();
+    for (const seeds of [[], [1, 1], [3271580352, 1282299135], [NaN], Array(1), Array(101).fill(1), '1']) expect(() => readExperimentRequest({ ...replications(), seeds })).toThrow();
     const request = { ...experimentEnvelope('search', 'search'), type: 'run', kind: 'search', model: model(), spec: { poolId: 'team', capacities: [1], trainingSeeds: [1], verificationSeeds: [2], maxRuns: 2 } };
     expect(readExperimentRequest(request)).toBe(request);
     expect(() => readExperimentRequest({ ...request, spec: { ...request.spec, capacities: new Array(33) } })).toThrow();
@@ -132,6 +132,11 @@ describe('response validation with actual engine and experiment output', () => {
     const mutate: ((value: typeof actual.result) => void)[] = [
       value => { value.provenance = { ...value.provenance, rngVersion: 'old' }; }, value => { value.provenance = { ...value.provenance, limits: { ...value.provenance.limits, maxEvents: 1 } }; },
       value => { value.summary.completed = NaN; }, value => { value.summary.slaRate = 2; }, value => { value.modelHash = 'forged'; },
+      value => { Object.assign(value.entities[0], { sourceId: [value.entities[0].sourceId] }); },
+      value => { Object.assign(value.entities[0].visits[0], { nodeId: [value.entities[0].visits[0].nodeId] }); },
+      value => { Object.assign(value.events[0], { entityId: [value.events[0].entityId] }); },
+      value => { Object.assign(value.stations[0], { nodeId: [value.stations[0].nodeId] }); },
+      value => { Object.assign(value.pools[0], { poolId: [value.pools[0].poolId] }); },
       value => { value.events = new Array(100_001); }, value => { value.stations[0].averageWait = Infinity; },
       value => { value.entities[0].visits = [null as never]; }, value => { value.trace.until = value.model.horizon + 1; },
       value => { value.provenance = null as never; }, value => { value.summary = [] as never; },

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createExample } from '../src/examples';
+import { duplicateProject } from '../src/model/commands';
+import { saveScenario } from '../src/model/scenarios';
+import { openProjectJSON, serializeProject } from '../src/storage/projectFile';
+import { parsePortableProject } from '../src/public-api';
 import { simulate } from '../src/engine';
 import { modelHash } from '../src/model/identity';
 import type { SimulationModel } from '../src/model/types';
@@ -10,6 +14,33 @@ describe('model safety and reproducibility', () => {
     for (const world of ['factory', 'festival', 'service'] as const) {
       const p = createExample(world); expect(validateProject(p)).toEqual([]);
       expect(parseProject(JSON.stringify(p))).toEqual(p);
+    }
+  });
+  it.each(['next', 'poolId', 'discipline', 'world', 'scenario world'])('rejects an array in the string field %s', field => {
+    const original = createExample('factory');
+    const project = saveScenario(original, 'Original', original.model);
+    const source = project.model.nodes.find(node => node.kind === 'source')!;
+    const service = project.model.nodes.find(node => node.kind === 'service')!;
+    const queue = project.model.nodes.find(node => node.kind === 'queue')!;
+    switch (field) {
+      case 'next': Object.assign(source, { next: [source.next] }); break;
+      case 'poolId': Object.assign(service.resources[0], { poolId: [service.resources[0].poolId] }); break;
+      case 'discipline': Object.assign(queue, { discipline: [queue.discipline] }); break;
+      case 'world': Object.assign(project, { world: [project.world] }); break;
+      case 'scenario world': Object.assign(project.scenarios![0], { world: [project.world] }); break;
+    }
+    expect(validateProject(project).length).toBeGreaterThan(0);
+    expect(() => openProjectJSON(JSON.stringify(project))).toThrow();
+    expect(() => parsePortableProject(JSON.stringify(project))).toThrow();
+  });
+  it('copies project names at a whole Unicode character and reopens the portable copy', () => {
+    const project = createExample('service');
+    for (const length of [148, 149]) {
+      const prefix = 'x'.repeat(length); project.name = prefix + '🚦 abc';
+      const copy = duplicateProject(project);
+      expect(copy.name).toBe(prefix + (length === 148 ? '🚦' : '') + ' copy');
+      expect(copy.id).not.toBe(project.id);
+      expect(openProjectJSON(serializeProject(copy))).toEqual(copy);
     }
   });
   it('rejects dangling links and invalid worker allocation', () => {

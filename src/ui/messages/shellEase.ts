@@ -3,6 +3,7 @@ export const shellEaseMessages = {
   repeatComparison: 'Repeat this comparison',
   scenario: 'Scenario settings', steps: 'Steps', view: 'View', search: 'Find a setting or action',
   quickSummary: (duration: string, arrivals: string, random: boolean, teams: number) => `${duration} · ${random ? '≈ ' : ''}${arrivals} arrivals · ${teams} teams`,
+  finishInspectorEdit: 'Apply or cancel the unfinished edit before leaving these properties.',
   pendingEdits: 'Apply or cancel the unfinished field before calculating. Your current model and previous results are preserved.',
   reviewInputs: 'Review inputs', editSettings: 'Open scenario settings',
   renameProject: 'Rename project', renameProjectLabel: (name: string) => `Rename project: ${name}`, projectName: 'Project name', rename: 'Rename',

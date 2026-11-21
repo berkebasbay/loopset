@@ -4,9 +4,10 @@ import { validateFacility } from './facilityValidation';
 import { templateMessages } from '../ui/messages/templates';
 
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const facilityNodeIds = (model: unknown) => new Set<string>(object(model) && Array.isArray(model.nodes) ? model.nodes.filter(object).map(node => String(node.id)) : []);
+const facilityNodeIds = (model: unknown) => new Set<string>(object(model) && Array.isArray(model.nodes) ? model.nodes.filter(object).map(node => node.id).filter(id) : []);
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
-const id = (v: unknown) => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v) && !['constructor', 'prototype', '__proto__'].includes(v);
+const id = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v) && !['constructor', 'prototype', '__proto__'].includes(v);
+const world = (v: unknown) => v === 'factory' || v === 'festival' || v === 'service';
 const text = (v: unknown) => typeof v === 'string' && v.trim().length > 0 && v.length <= 160;
 const dense = (values: unknown[]) => {
   for (let i = 0; i < values.length; i++) if (!Object.hasOwn(values, i)) return false;
@@ -36,11 +37,11 @@ function validateModelContent(value: unknown, allowEmpty: boolean): ValidationIs
   for (const [i, p] of m.resources.entries()) {
     const at = `resources.${i}`;
     if (!object(p)) { error(at, 'Resource must be an object.'); continue; }
-    if (!id(p.id) || poolIds.has(String(p.id))) error(`${at}.id`, 'Resource IDs must be valid and unique.');
-    poolIds.add(String(p.id));
+    if (!id(p.id) || poolIds.has(p.id)) error(`${at}.id`, 'Resource IDs must be valid and unique.');
+    else poolIds.add(p.id);
     if (!text(p.label)) error(`${at}.label`, 'Give this resource a name.');
     if (!finite(p.installedCapacity) || !Number.isInteger(p.installedCapacity) || p.installedCapacity < 1 || p.installedCapacity > 1000) error(`${at}.installedCapacity`, 'Installed capacity must be an integer from 1 to 1,000.');
-    else installed.set(String(p.id), p.installedCapacity);
+    else if (id(p.id)) installed.set(p.id, p.installedCapacity);
     if (!finite(p.capacity) || !Number.isInteger(p.capacity) || p.capacity < 0 || !finite(p.installedCapacity) || p.capacity > p.installedCapacity) error(`${at}.capacity`, 'Scheduled capacity cannot exceed installed capacity.');
     for (const field of ['costPerHour', 'overtimeCostPerHour']) if (!finite(p[field]) || p[field] < 0 || p[field] > 1e6) error(`${at}.${field}`, 'Hourly cost must be between 0 and 1,000,000.');
     if (!Array.isArray(p.calendar) || p.calendar.length > 200 || !dense(p.calendar)) error(`${at}.calendar`, 'A calendar can contain at most 200 periods.');
@@ -63,14 +64,15 @@ function validateModelContent(value: unknown, allowEmpty: boolean): ValidationIs
       default: error(at, 'Unknown time distribution.');
     }
   }
-  const nodeIds = new Set<string>(); const samples = new Set<string>();
+  const samples = new Set<string>();
   const nodes = new Map<string, Record<string, unknown>>();
   for (const [i, n] of m.nodes.entries()) {
     const at = `nodes.${i}`;
     if (!object(n)) { error(at, 'Node must be an object.'); continue; }
-    if (!id(n.id) || nodeIds.has(String(n.id))) error(`${at}.id`, 'Node IDs must be valid and unique.');
-    if (!id(n.samplingId) || samples.has(String(n.samplingId))) error(`${at}.samplingId`, 'Sampling identities must be valid and unique.');
-    nodeIds.add(String(n.id)); samples.add(String(n.samplingId)); nodes.set(String(n.id), n);
+    if (!id(n.id) || nodes.has(n.id)) error(`${at}.id`, 'Node IDs must be valid and unique.');
+    else nodes.set(n.id, n);
+    if (!id(n.samplingId) || samples.has(n.samplingId)) error(`${at}.samplingId`, 'Sampling identities must be valid and unique.');
+    else samples.add(n.samplingId);
     if (!text(n.label)) error(`${at}.label`, 'Give this step a name.');
     if (n.kind === 'source') {
       if (!object(n.arrival)) error(`${at}.arrival`, 'Choose an arrival pattern.');
@@ -92,14 +94,14 @@ function validateModelContent(value: unknown, allowEmpty: boolean): ValidationIs
       else {
         const seen = new Set<string>(); let sum = 0;
         n.classes.forEach((c, j) => {
-          if (!object(c) || !id(c.id) || seen.has(String(c.id)) || !text(c.label) || !finite(c.priority) || !Number.isInteger(c.priority) || Math.abs(c.priority) > 1000 || !finite(c.probability) || c.probability < 0 || c.probability > 1) error(`${at}.classes.${j}`, 'Classes need unique IDs, a name, integer priority and valid probability.');
-          if (object(c)) { seen.add(String(c.id)); if (finite(c.probability)) sum += c.probability; }
+          if (!object(c) || !id(c.id) || seen.has(c.id) || !text(c.label) || !finite(c.priority) || !Number.isInteger(c.priority) || Math.abs(c.priority) > 1000 || !finite(c.probability) || c.probability < 0 || c.probability > 1) error(`${at}.classes.${j}`, 'Classes need unique IDs, a name, integer priority and valid probability.');
+          if (object(c)) { if (id(c.id)) seen.add(c.id); if (finite(c.probability)) sum += c.probability; }
         });
         if (Math.abs(sum - 1) > 1e-9) error(`${at}.classes`, 'Class probabilities must add up to 1.');
       }
     } else if (n.kind === 'queue') {
       if (n.capacity !== null && (!finite(n.capacity) || !Number.isInteger(n.capacity) || n.capacity < 0 || n.capacity > MAX_WAITING_PLACES)) error(`${at}.capacity`, 'Waiting capacity must be an integer from 0 to 10,000,000, or unlimited.');
-      if (!['fifo', 'priority'].includes(String(n.discipline))) error(`${at}.discipline`, 'Choose FIFO or priority.');
+      if (n.discipline !== 'fifo' && n.discipline !== 'priority') error(`${at}.discipline`, 'Choose FIFO or priority.');
       if (n.patience !== null) distribution(n.patience, `${at}.patience`, true);
     } else if (n.kind === 'service') {
       distribution(n.duration, `${at}.duration`, false);
@@ -108,8 +110,8 @@ function validateModelContent(value: unknown, allowEmpty: boolean): ValidationIs
       else {
         const seen = new Set<string>();
         n.resources.forEach((req, j) => {
-          if (!object(req) || !poolIds.has(String(req.poolId)) || seen.has(String(req.poolId)) || !finite(req.units) || !Number.isInteger(req.units) || req.units < 1 || req.units > (installed.get(String(req.poolId)) ?? 0)) error(`${at}.resources.${j}`, 'Require each known resource once, with units within installed capacity.');
-          if (object(req)) seen.add(String(req.poolId));
+          if (!object(req) || !id(req.poolId) || !poolIds.has(req.poolId) || seen.has(req.poolId) || !finite(req.units) || !Number.isInteger(req.units) || req.units < 1 || req.units > (installed.get(req.poolId) ?? 0)) error(`${at}.resources.${j}`, 'Require each known resource once, with units within installed capacity.');
+          if (object(req) && id(req.poolId)) seen.add(req.poolId);
         });
       }
     } else if (n.kind === 'delay') distribution(n.duration, `${at}.duration`, true);
@@ -130,15 +132,15 @@ function validateModelContent(value: unknown, allowEmpty: boolean): ValidationIs
   for (const [key, n] of nodes) {
     if (n.kind === 'source') sources++;
     if (n.kind === 'sink') sinks++;
-    const destinations = n.kind === 'route' && Array.isArray(n.branches) ? n.branches.filter(object).map(b => String(b.to)) : n.kind === 'sink' ? [] : [String(n.next)];
-    edges.set(key, destinations);
-    for (const dest of destinations) if (!nodes.has(dest)) error(`nodes.${key}.next`, `Connect ${String(n.label)} to an existing step.`);
-    if (n.kind === 'queue' && nodes.get(String(n.next))?.kind !== 'service') error(`nodes.${key}.next`, 'A waiting queue must feed exactly one service station.');
-    if (destinations.some(d => nodes.get(d)?.kind === 'source')) error(`nodes.${key}.next`, 'An arrival source cannot receive incoming work.');
+    const destinations = n.kind === 'route' && Array.isArray(n.branches) ? n.branches.filter(object).map(b => b.to) : n.kind === 'sink' ? [] : [n.next];
+    edges.set(key, destinations.filter(id));
+    for (const dest of destinations) if (!id(dest) || !nodes.has(dest)) error(`nodes.${key}.next`, `Connect ${text(n.label) ? n.label : key} to an existing step.`);
+    if (n.kind === 'queue' && (!id(n.next) || nodes.get(n.next)?.kind !== 'service')) error(`nodes.${key}.next`, 'A waiting queue must feed exactly one service station.');
+    if (destinations.some(d => id(d) && nodes.get(d)?.kind === 'source')) error(`nodes.${key}.next`, 'An arrival source cannot receive incoming work.');
   }
   if ((!sources || !sinks) && !(allowEmpty && m.nodes.length === 0)) error('nodes', 'Include at least one arrival source and one exit.');
   const serviceQueues = new Map<string, number>();
-  for (const n of nodes.values()) if (n.kind === 'queue') serviceQueues.set(String(n.next), (serviceQueues.get(String(n.next)) ?? 0) + 1);
+  for (const n of nodes.values()) if (n.kind === 'queue' && id(n.next)) serviceQueues.set(n.next, (serviceQueues.get(n.next) ?? 0) + 1);
   for (const [key, count] of serviceQueues) if (count > 1) error(`nodes.${key}`, 'Use one waiting queue per service station; merge flows before that queue.');
   const canBeZero = (n: Record<string, unknown>) => {
     if (n.kind === 'service' || n.kind === 'sink') return false;
@@ -164,7 +166,7 @@ export function validateProject(value: unknown): ValidationIssue[] {
   const error = (path: string, message: string) => issues.push({ path, message, severity: 'error' });
   if (value.schemaVersion !== 1) error('schemaVersion', 'This project version is not supported. Your current project has not been replaced.');
   if (value.workspaceMode !== undefined && (value.workspaceMode !== 'layout' || !object(value.model) || !Array.isArray(value.model.nodes) || value.model.nodes.length !== 0)) error('workspaceMode', templateMessages.invalidMode);
-  if (!id(value.id) || !text(value.name) || !['factory', 'festival', 'service'].includes(String(value.world))) error('project', 'Project identity, name or world is invalid.');
+  if (!id(value.id) || !text(value.name) || !world(value.world)) error('project', 'Project identity, name or world is invalid.');
   if (!finite(value.revision) || !Number.isSafeInteger(value.revision) || value.revision < 0) error('revision', 'Invalid project revision.');
   if (typeof value.description !== 'string' || value.description.length > 5000) error('description', 'Description is too long or missing.');
   if (!object(value.layout) || Object.entries(value.layout).length > 100) error('layout', 'Layout must contain at most 100 positions.');
@@ -177,8 +179,8 @@ export function validateProject(value: unknown): ValidationIssue[] {
       value.scenarios.forEach((scenario, i) => {
         const at = `scenarios.${i}`;
         if (!object(scenario)) { error(at, 'Scenario must be an object.'); return; }
-        if (!id(scenario.id) || seen.has(String(scenario.id)) || !text(scenario.name) || typeof scenario.createdAt !== 'string' || !Number.isFinite(Date.parse(scenario.createdAt)) || !['factory', 'festival', 'service'].includes(String(scenario.world))) error(at, 'Scenario identity, name, date or world is invalid.');
-        seen.add(String(scenario.id));
+        if (!id(scenario.id) || seen.has(scenario.id) || !text(scenario.name) || typeof scenario.createdAt !== 'string' || !Number.isFinite(Date.parse(scenario.createdAt)) || !world(scenario.world)) error(at, 'Scenario identity, name, date or world is invalid.');
+        if (id(scenario.id)) seen.add(scenario.id);
         if (scenario.workspaceMode !== undefined && (scenario.workspaceMode !== 'layout' || !object(scenario.model) || !Array.isArray(scenario.model.nodes) || scenario.model.nodes.length !== 0)) error(`${at}.workspaceMode`, templateMessages.invalidMode);
         issues.push(...validateModelContent(scenario.model, scenario.workspaceMode === 'layout').map(issue => ({ ...issue, path: `${at}.${issue.path}` })));
         if (!object(scenario.layout) || Object.keys(scenario.layout).length > 100) error(`${at}.layout`, 'Scenario positions are invalid.');

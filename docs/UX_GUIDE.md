@@ -36,7 +36,7 @@ On narrow screens, the full model editor opens the selected step's settings dire
 
 ## Edit deliberately
 
-Number fields retain incomplete typing outside the model. Enter or leaving a valid field applies it; Escape cancels the unfinished field. Model commands use Undo/Redo and **Action history**. View units, camera, layout and playback are separate from numerical inputs.
+Number fields retain incomplete typing outside the model. Enter or leaving a valid field applies it; Escape cancels the unfinished field. Apply or cancel an unfinished Properties edit before switching inspector views, choosing another step or running a comparison. Model commands use Undo/Redo and **Action history**. View units, camera, layout and playback are separate from numerical inputs.
 
 Click a step's heading to rename it. The project title has its own rename action. Project labels, technical model names and recorded run labels serve different purposes; a rename does not rewrite a completed run.
 

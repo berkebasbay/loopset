@@ -8,7 +8,7 @@ test('dev HTTP blocks private folders and overrides, including raw and filesyste
   const root = process.cwd(), name = `boundary-${randomUUID()}`, created = [];
   let server;
   try {
-    for (const dir of ['.private', '.cache']) {
+    for (const dir of ['.private', '.cache', '.codex']) {
       await fs.mkdir(path.join(root, dir), { recursive: true });
       const file = path.join(root, dir, `${name}.md`); await fs.writeFile(file, 'Synthetic private fixture', { flag: 'wx' }); created.push(file);
     }

@@ -1,5 +1,5 @@
 import type { Distribution, ModelNode, Project } from '../model/types';
-import { mutateProject } from '../model/commands';
+import { mutateProject, namePrefix } from '../model/commands';
 import { scaleDistribution } from '../model/easeCommands';
 import { validateProject } from '../model/validate';
 import { uniqueIdentity } from './modelEdits';
@@ -23,7 +23,7 @@ export function duplicateStep(project:Project,id:string,mode:'detached'|'after')
  const count=original.kind==='queue'?2:1;if(project.model.nodes.length+count>100)throw new Error(m.duplicateLimit);
  let createdId='';
  const next=mutateProject(project,copy=>{
-  const clone=(node:ModelNode)=>{const cloned=structuredClone(node);let prefix='';for(const character of node.label){if(prefix.length+character.length>154)break;prefix+=character;}cloned.id=uniqueIdentity(node.kind,copy.model.nodes.map(n=>n.id));cloned.samplingId=uniqueIdentity(`sample-${node.kind}`,copy.model.nodes.map(n=>n.samplingId));cloned.label=`${prefix} copy`;copy.model.nodes.push(cloned);const p=copy.layout[node.id]??{x:0,z:0};copy.layout[cloned.id]={x:p.x>94?p.x-4:p.x+4,z:p.z};return cloned;};
+  const clone=(node:ModelNode)=>{const cloned=structuredClone(node);cloned.id=uniqueIdentity(node.kind,copy.model.nodes.map(n=>n.id));cloned.samplingId=uniqueIdentity(`sample-${node.kind}`,copy.model.nodes.map(n=>n.samplingId));cloned.label=`${namePrefix(node.label,154)} copy`;copy.model.nodes.push(cloned);const p=copy.layout[node.id]??{x:0,z:0};copy.layout[cloned.id]={x:p.x>94?p.x-4:p.x+4,z:p.z};return cloned;};
   const created=clone(original);createdId=created.id;
   if(copy.facility?.nodeAssets[original.id])copy.facility.nodeAssets[created.id]=structuredClone(copy.facility.nodeAssets[original.id]);
   if(created.kind==='queue'&&original.kind==='queue'){
